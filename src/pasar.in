@@ -15,8 +15,11 @@ localedir = '@localedir@'
 sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-locale.bindtextdomain('pasar', localedir)
-locale.textdomain('pasar')
+try:
+    locale.bindtextdomain('pasar', localedir)
+    locale.textdomain('pasar')
+except AttributeError:
+    pass
 gettext.install('pasar', localedir)
 
 if __name__ == '__main__':

@@ -6,10 +6,18 @@ BUILDDIR="builddir"
 PREFIX="$HOME/.local"
 
 # Source Homebrew environment so pkg-config can find brew-installed libs (gtk4, libadwaita, etc.)
-BREW_PREFIX="/home/linuxbrew/.linuxbrew"
-if [ -x "$BREW_PREFIX/bin/brew" ]; then
-    eval "$("$BREW_PREFIX/bin/brew" shellenv)"
+if [ -x "/opt/homebrew/bin/brew" ]; then
+    BREW_PREFIX="/opt/homebrew"
+elif [ -x "/usr/local/bin/brew" ]; then
+    BREW_PREFIX="/usr/local"
+elif [ -x "/home/linuxbrew/.linuxbrew/bin/brew" ]; then
+    BREW_PREFIX="/home/linuxbrew/.linuxbrew"
+else
+    echo "==> Error: Homebrew not found in standard paths."
+    exit 1
 fi
+
+eval "$("$BREW_PREFIX/bin/brew" shellenv)"
 
 if [ ! -d "$BUILDDIR" ] || [ ! -f "$BUILDDIR/build.ninja" ]; then
     echo "==> Setting up meson build..."
