@@ -100,6 +100,11 @@ if [ "$(uname)" = "Darwin" ]; then
         cp -R "$PREFIX/bin" "$APP_DIR/Contents/Resources/"
         
         echo '#!/bin/bash
+# Break out of Rosetta 2 translation if macOS forced this shell script into x86_64
+if [ "$(sysctl -in sysctl.proc_translated 2>/dev/null)" = "1" ]; then
+    exec arch -arm64 /bin/bash "$0" "$@"
+fi
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 RESOURCES="$DIR/../Resources"
 
@@ -124,6 +129,11 @@ exec "$RESOURCES/bin/pasar" "$@"
     fi
 
     echo '#!/bin/bash
+# Break out of Rosetta 2 translation if macOS forced this shell script into x86_64
+if [ "$(sysctl -in sysctl.proc_translated 2>/dev/null)" = "1" ]; then
+    exec arch -arm64 /bin/bash "$0" "$@"
+fi
+
 export GSETTINGS_SCHEMA_DIR="'"$HOME"'/.local/share/glib-2.0/schemas"
 export XDG_DATA_DIRS="'"$BREW_PREFIX"'/share:'"$HOME"'/.local/share:/usr/local/share:/usr/share"
 exec "'"$HOME"'/.local/bin/pasar" "$@"
