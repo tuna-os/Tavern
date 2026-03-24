@@ -4,12 +4,10 @@
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-gi.require_version('WebKit', '6.0')
 
-from gi.repository import Adw, Gtk, Gdk, Gio, GLib, GObject, Pango, WebKit
-import markdown
+from gi.repository import Adw, Gtk, Gdk, Gio, GLib, GObject, Pango
 
-GObject.type_ensure(WebKit.WebView)
+# Removed WebKit dependencies for macOS build
 from .backend import Package, BrewBackend
 from .task_manager import Task, TaskStatus, TaskOperation
 from .logging_util import get_logger
@@ -59,7 +57,6 @@ class PasarPackageDetails(Adw.NavigationPage):
     readme_preview_label = Gtk.Template.Child()
     readme_fade_overlay = Gtk.Template.Child()
     show_readme_button = Gtk.Template.Child()
-    readme_webview = Gtk.Template.Child()
     variants_bin = Gtk.Template.Child()
     variants_flow = Gtk.Template.Child()
     related_bin = Gtk.Template.Child()
@@ -79,8 +76,6 @@ class PasarPackageDetails(Adw.NavigationPage):
         self.update_button.connect('clicked', self._on_update_clicked)
         self.info_listbox.connect('row-activated', self._on_info_row_activated)
         self.screenshot_button.connect('clicked', self._on_screenshot_clicked)
-        # No button connections needed for README (using blueprint callback)
-        self.readme_webview.connect('decide-policy', self._on_readme_decide_policy)
 
         # Set cursor for screenshot button
         self.screenshot_button.set_cursor(Gdk.Cursor.new_from_name('pointer', None))
@@ -97,8 +92,6 @@ class PasarPackageDetails(Adw.NavigationPage):
         self.set_tag(f"details_{package.name}_{id(self)}")
         self.readme_bin.set_visible(False)
         self.readme_overlay.set_visible(True)
-        self.readme_webview.set_visible(False)
-        self.readme_webview.set_property('height-request', 20)
         self.readme_preview_label.set_label('')
         self._readme_text = None
         
@@ -161,6 +154,14 @@ class PasarPackageDetails(Adw.NavigationPage):
         if not self._backend or not self._package:
             return
             
+    def _load_tile_icon(self, tile, package):
+        if not self._backend:
+            return
+        def on_icon_fetched(pkg, pixbuf):
+            if pixbuf:
+                tile.set_icon_pixbuf(pixbuf)
+        self._backend.fetch_icon_async(package, on_icon_fetched)
+            
         search_term = self._package.name.split('@')[0]
         results = self._backend.search(search_term)
         
@@ -189,6 +190,7 @@ class PasarPackageDetails(Adw.NavigationPage):
                 tile = PasarPackageTile(package=pkg)
                 tile.connect('clicked', self._on_related_clicked)
                 tile.connect('install-requested', self._on_related_install_requested)
+                self._load_tile_icon(tile, pkg)
                 self.variants_flow.append(tile)
             self.variants_bin.set_visible(True)
         else:
@@ -205,6 +207,7 @@ class PasarPackageDetails(Adw.NavigationPage):
                 tile = PasarPackageTile(package=pkg)
                 tile.connect('clicked', self._on_related_clicked)
                 tile.connect('install-requested', self._on_related_install_requested)
+                self._load_tile_icon(tile, pkg)
                 self.related_flow.append(tile)
             self.related_bin.set_visible(True)
         else:
@@ -313,108 +316,11 @@ class PasarPackageDetails(Adw.NavigationPage):
 
     @Gtk.Template.Callback()
     def on_show_readme_clicked(self, *args):
-        if self._readme_text:
-            _log.debug('On-demand README loading triggered')
-            # Hide preview overlay, show full WebView
-            self.readme_overlay.set_visible(False)
-            self.readme_webview.set_visible(True)
-            self.readme_webview.set_property('height-request', 400)
-            self._render_readme(self._readme_text)
+        if self._package and self._package.homepage:
+            _log.debug('Opening homepage externally for README')
+            launcher = Gtk.UriLauncher.new(self._package.homepage)
+            launcher.launch(self.get_root(), None, None, None)
 
-    def _render_readme(self, text):
-        """Render Markdown text into the readme_webview using the markdown library."""
-        try:
-            # Convert Markdown to HTML
-            html_content = markdown.markdown(text, extensions=['extra', 'nl2br', 'sane_lists'])
-            
-            # Basic CSS to match the app style
-            # We'll try to guess if we're in dark mode or light mode
-            # In a real app we'd query the theme, but for now we'll use system-ui defaults
-            # and generic colors that look okay.
-            
-            style = """
-            <style>
-                :root {
-                    color-scheme: light dark;
-                }
-                body {
-                    font-family: system-ui, -apple-system, sans-serif;
-                    line-height: 1.5;
-                    color: CanvasText;
-                    background-color: transparent;
-                    margin: 20px;
-                    font-size: 14px;
-                    overflow-x: hidden; /* Prevent horizontal scroll on body */
-                }
-                img {
-                    max-width: 100%;
-                    height: auto;
-                    display: block;
-                    margin: 10px 0;
-                }
-                pre {
-                    background-color: rgba(0,0,0,0.1);
-                    padding: 10px;
-                    border-radius: 6px;
-                    overflow-x: auto;
-                    font-family: monospace;
-                    max-width: 100%;
-                }
-                code {
-                    background-color: rgba(0,0,0,0.1);
-                    padding: 2px 4px;
-                    border-radius: 4px;
-                    font-family: monospace;
-                    word-break: break-all;
-                }
-                a {
-                    color: #3584e4;
-                    text-decoration: underline;
-                }
-                h1, h2, h3 { margin-top: 1.5em; margin-bottom: 0.5em; }
-                blockquote {
-                    border-left: 4px solid #ccc;
-                    padding-left: 16px;
-                    margin-left: 0;
-                    color: #666;
-                }
-                table { 
-                    border-collapse: collapse; 
-                    width: 100%; 
-                    max-width: 100%;
-                    display: block;
-                    overflow-x: auto;
-                    margin: 16px 0;
-                }
-                th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-                th { background-color: rgba(0,0,0,0.05); }
-            </style>
-            """
-            
-            # Wrap in full HTML document
-            full_html = f"<html><head>{style}</head><body>{html_content}</body></html>"
-            
-            # Load into WebKit
-            # Map transparent background
-            self.readme_webview.set_background_color(Gdk.RGBA())
-            self.readme_webview.load_html(full_html, None)
-            
-        except Exception as e:
-            _log.warning('README render error for %s: %s', self._package.name, e)
-
-    def _on_readme_decide_policy(self, webview, decision, type):
-        if type == WebKit.PolicyDecisionType.NAVIGATION_ACTION:
-            action = decision.get_navigation_action()
-            req = action.get_request()
-            uri = req.get_uri()
-            
-            if uri and not uri.startswith('about:'):
-                decision.ignore()
-                _log.info('Opening README link externally: %s', uri)
-                launcher = Gtk.UriLauncher.new(uri)
-                launcher.launch(self.get_root(), None, None, None)
-                return True
-        return False
 
     # Removed Read More and Debug button handlers
 

@@ -71,6 +71,15 @@ class PasarSearchPage(Adw.Bin):
         self._do_search(query)
         return False
 
+    def _load_tile_icon(self, tile, package):
+        """Ask the backend to fetch an icon and push it into the tile when ready."""
+        if not self._backend:
+            return
+        def on_icon_fetched(pkg, pixbuf):
+            if pixbuf:
+                tile.set_icon_pixbuf(pixbuf)
+        self._backend.fetch_icon_async(package, on_icon_fetched)
+
     def _do_search(self, query):
         if not self._backend:
             return
@@ -93,6 +102,7 @@ class PasarSearchPage(Adw.Bin):
                 tile = PasarPackageTile(package=pkg)
                 tile.connect('clicked', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
+                self._load_tile_icon(tile, pkg)
                 self.results_flow.append(tile)
 
         self.search_spinner.set_visible(False)

@@ -1050,24 +1050,41 @@ class BrewBackend(GObject.Object):
         if getattr(package, 'icon_url', None):
             icon_urls.append(package.icon_url)
 
-        # 1. Scrape the homepage HTML for the best available favicon
-        if package.homepage:
-            favicon_url = self._find_favicon_url(package.homepage)
-            if favicon_url:
-                icon_urls.append(favicon_url)
+        is_github_repo = False
+        github_owner = None
+        
+        # Check if homepage implies a GitHub repo
+        if package.homepage and 'github.com' in package.homepage:
+            import re
+            m = re.search(r'github\.com/([^/\s"\']+)/([^/\s"\'#?.]+)', package.homepage)
+            if m:
+                is_github_repo = True
+                github_owner = m.group(1)
 
-        # 2. First image from source repo README (good for projects with logo images)
+        # 1. First image from source repo README (good for projects with logo images)
         readme_images = self._fetch_readme_images(package)
         if readme_images:
             icon_urls.append(readme_images[0])
+            
+        # 2. GitHub org/user avatar (if it's a GitHub repo)
+        if is_github_repo and github_owner:
+            icon_urls.append(f'https://github.com/{github_owner}.png?size=128')
 
-        # 3. Google S2 favicon service — returns PNG at arbitrary sizes
-        if package.homepage:
+        # 3. Scrape the homepage HTML for the best available favicon
+        if package.homepage and not is_github_repo:
+            domain = package.homepage.replace('https://', '').replace('http://', '').split('/')[0]
+            if not domain.endswith('gitlab.com'):
+                favicon_url = self._find_favicon_url(package.homepage)
+                if favicon_url:
+                    icon_urls.append(favicon_url)
+
+        # 4. Google S2 favicon service
+        if package.homepage and not is_github_repo:
             domain = package.homepage.replace('https://', '').replace('http://', '').split('/')[0]
             icon_urls.append(f'https://www.google.com/s2/favicons?domain={domain}&sz=128')
 
-        # 4. DuckDuckGo favicon service — returns ICO, so lower priority
-        if package.homepage:
+        # 5. DuckDuckGo favicon service
+        if package.homepage and not is_github_repo:
             domain = package.homepage.replace('https://', '').replace('http://', '').split('/')[0]
             icon_urls.append(f'https://icons.duckduckgo.com/ip3/{domain}.ico')
 
