@@ -154,6 +154,14 @@ class PasarPackageDetails(Adw.NavigationPage):
         if not self._backend or not self._package:
             return
             
+    def _load_tile_icon(self, tile, package):
+        if not self._backend:
+            return
+        def on_icon_fetched(pkg, pixbuf):
+            if pixbuf:
+                tile.set_icon_pixbuf(pixbuf)
+        self._backend.fetch_icon_async(package, on_icon_fetched)
+            
         search_term = self._package.name.split('@')[0]
         results = self._backend.search(search_term)
         
@@ -182,6 +190,7 @@ class PasarPackageDetails(Adw.NavigationPage):
                 tile = PasarPackageTile(package=pkg)
                 tile.connect('clicked', self._on_related_clicked)
                 tile.connect('install-requested', self._on_related_install_requested)
+                self._load_tile_icon(tile, pkg)
                 self.variants_flow.append(tile)
             self.variants_bin.set_visible(True)
         else:
@@ -198,6 +207,7 @@ class PasarPackageDetails(Adw.NavigationPage):
                 tile = PasarPackageTile(package=pkg)
                 tile.connect('clicked', self._on_related_clicked)
                 tile.connect('install-requested', self._on_related_install_requested)
+                self._load_tile_icon(tile, pkg)
                 self.related_flow.append(tile)
             self.related_bin.set_visible(True)
         else:

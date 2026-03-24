@@ -56,6 +56,14 @@ class PasarInstalledPage(Adw.Bin):
     def _on_packages_loaded(self, backend, packages):
         self.refresh(backend)
 
+    def _load_tile_icon(self, tile, package):
+        if not self._backend:
+            return
+        def on_icon_fetched(pkg, pixbuf):
+            if pixbuf:
+                tile.set_icon_pixbuf(pixbuf)
+        self._backend.fetch_icon_async(package, on_icon_fetched)
+
     def refresh(self, backend=None):
         if backend:
             self._backend = backend
@@ -77,6 +85,7 @@ class PasarInstalledPage(Adw.Bin):
             tile = PasarPackageTile(package=pkg)
             tile.connect('clicked', self._on_tile_clicked)
             tile.connect('install-requested', self._on_tile_install_requested)
+            self._load_tile_icon(tile, pkg)
             self.installed_flow.append(tile)
 
         self.installed_stack.set_visible_child_name('content')
