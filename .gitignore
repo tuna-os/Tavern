@@ -10,3 +10,5 @@ flatpak-build/
 .flatpak-state/
 .venv/
 .pytest_cache/
+Pasar.app/
+Pasar-macOS.zip
