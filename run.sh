@@ -5,6 +5,14 @@ set -e
 BUILDDIR="builddir"
 PREFIX="$HOME/.local"
 
+IS_CASK=0
+if [ "$1" = "--cask" ]; then
+    IS_CASK=1
+    BUILDDIR="builddir-cask"
+    PREFIX="$PWD/$BUILDDIR/cask-prefix"
+    shift
+fi
+
 # Source Homebrew environment so pkg-config can find brew-installed libs (gtk4, libadwaita, etc.)
 if [ -x "/opt/homebrew/bin/brew" ]; then
     BREW_PREFIX="/opt/homebrew"
@@ -32,8 +40,12 @@ echo "==> Installing to $PREFIX..."
 ninja -C "$BUILDDIR" install
 
 if [ "$(uname)" = "Darwin" ]; then
+    if [ "$IS_CASK" -eq 1 ]; then
+        APP_DIR="$PWD/Pasar.app"
+    else
+        APP_DIR="$HOME/Applications/Pasar.app"
+    fi
     echo "==> Packaging macOS App Bundle..."
-    APP_DIR="$HOME/Applications/Pasar.app"
     mkdir -p "$APP_DIR/Contents/MacOS"
     mkdir -p "$APP_DIR/Contents/Resources"
 
@@ -81,6 +93,35 @@ if [ "$(uname)" = "Darwin" ]; then
     <true/>
 </dict>
 </plist>' > "$APP_DIR/Contents/Info.plist"
+
+    if [ "$IS_CASK" -eq 1 ]; then
+        echo "==> Bundling Resources for Cask distribution..."
+        cp -R "$PREFIX/share" "$APP_DIR/Contents/Resources/"
+        cp -R "$PREFIX/bin" "$APP_DIR/Contents/Resources/"
+        
+        echo '#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+RESOURCES="$DIR/../Resources"
+
+if [ -x "/opt/homebrew/bin/brew" ]; then
+    BREW_PREFIX="/opt/homebrew"
+elif [ -x "/usr/local/bin/brew" ]; then
+    BREW_PREFIX="/usr/local"
+else
+    BREW_PREFIX="/home/linuxbrew/.linuxbrew"
+fi
+
+export PASAR_DATADIR="$RESOURCES/share/pasar"
+export PASAR_LOCALEDIR="$RESOURCES/share/locale"
+export GSETTINGS_SCHEMA_DIR="$RESOURCES/share/glib-2.0/schemas"
+export XDG_DATA_DIRS="$RESOURCES/share:$BREW_PREFIX/share:/usr/share"
+
+exec "$RESOURCES/bin/pasar" "$@"
+' > "$APP_DIR/Contents/MacOS/Pasar"
+        chmod +x "$APP_DIR/Contents/MacOS/Pasar"
+        echo "==> Cask bundle successfully built at $APP_DIR"
+        exit 0
+    fi
 
     echo '#!/bin/bash
 export GSETTINGS_SCHEMA_DIR="'"$HOME"'/.local/share/glib-2.0/schemas"

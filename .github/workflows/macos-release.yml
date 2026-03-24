@@ -1,0 +1,31 @@
+name: macOS Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    name: "macOS App Bundle"
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install gtk4 libadwaita blueprint-compiler meson ninja pkg-config
+
+    - name: Build App Bundle
+      run: ./run.sh --cask
+
+    - name: Zip App Bundle
+      run: zip -r Pasar-macOS.zip Pasar.app
+
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Pasar-macOS.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

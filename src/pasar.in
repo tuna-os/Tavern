@@ -9,8 +9,14 @@ import locale
 import gettext
 
 VERSION = '@VERSION@'
-pkgdatadir = '@PKGDATADIR@'
-localedir = '@localedir@'
+pkgdatadir = os.environ.get('PASAR_DATADIR', '@PKGDATADIR@')
+localedir = os.environ.get('PASAR_LOCALEDIR', '@localedir@')
+
+# Resolve absolute paths if they are relative to the executable (for portable macOS bundles)
+if not pkgdatadir.startswith('/'):
+    pkgdatadir = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), pkgdatadir)
+if not localedir.startswith('/'):
+    localedir = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), localedir)
 
 sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
