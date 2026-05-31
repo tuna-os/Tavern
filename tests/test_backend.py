@@ -546,3 +546,440 @@ class TestBrewBackendExtensions:
         assert callback_args[0][0] is True
         assert "Successful operation" in callback_args[0][1]
 
+    def test_load_all_async_full_flow(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        
+        # Mock Gio.Settings
+        from gi.repository import Gio
+        class MockSettings:
+            def __init__(self, schema_id):
+                self._store = {'outdated-check-enabled': True}
+            def get_boolean(self, name):
+                return self._store.get(name, False)
+        monkeypatch.setattr(Gio, 'Settings', type('Settings', (), {'new': MockSettings}))
+
+        # Synchronous threading mock
+        import threading
+        class SynchronousThread:
+            def __init__(self, target, args=(), kwargs={}, daemon=True):
+                self.target = target
+                self.args = args
+                self.kwargs = kwargs
+            def start(self):
+                self.target(*self.args, **self.kwargs)
+        monkeypatch.setattr(threading, 'Thread', SynchronousThread)
+
+        # Synchronous GLib idle_add
+        def mock_idle_add(callback, *args, **kwargs):
+            callback(*args, **kwargs)
+            return False
+        monkeypatch.setattr(GLib, 'idle_add', mock_idle_add)
+
+        # Mock urlopen to return mock JSON
+        class MockResponse:
+            def __init__(self, data):
+                self._data = data
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+            def read(self):
+                return self._data
+
+        def mock_urlopen(req, timeout=None):
+            url = req.full_url if hasattr(req, 'full_url') else str(req)
+            if 'formula' in url:
+                return MockResponse(json.dumps([{'name': 'ripgrep', 'desc': 'rg', 'versions': {'stable': '1.0.0'}}]).encode('utf-8'))
+            if 'cask' in url:
+                return MockResponse(json.dumps([{'token': 'firefox', 'name': ['Firefox'], 'version': '1.0.0'}]).encode('utf-8'))
+            return MockResponse(b'[]')
+        
+        monkeypatch.setattr('tavern.backend.urlopen', mock_urlopen)
+
+        # Mock subprocess run for brew list and brew tap commands
+        def mock_run(cmd, **kwargs):
+            cmd_str = ' '.join(cmd) if isinstance(cmd, list) else str(cmd)
+            if 'list' in cmd_str:
+                return MockCompletedProcess(0, 'ripgrep\nfirefox\n', '')
+            if 'tap' in cmd_str:
+                return MockCompletedProcess(0, 'custom/tap\n', '')
+            if 'outdated' in cmd_str:
+                # Mock outdated formula & casks json output
+                outdated_json = {
+                    'formulae': [{'name': 'ripgrep', 'installed_versions': ['0.9.0'], 'current_version': '1.0.0'}],
+                    'casks': [{'name': 'firefox', 'installed_version': '0.9.0', 'current_version': '1.0.0'}]
+                }
+                return MockCompletedProcess(0, json.dumps(outdated_json), '')
+            return MockCompletedProcess(0, '', '')
+        monkeypatch.setattr('subprocess.run', mock_run)
+
+        backend = BrewBackend()
+        
+        # Mock tap scanning to prevent disk-crawling of real Homebrew directory on host
+        monkeypatch.setattr(backend, '_load_tap_packages', lambda: None)
+        
+        signals_received = []
+        backend.connect('formulae-loaded', lambda b, f: signals_received.append('formulae'))
+        backend.connect('casks-loaded', lambda b, c: signals_received.append('casks'))
+        backend.connect('installed-loaded', lambda b, i: signals_received.append('installed'))
+        backend.connect('taps-loaded', lambda b, t: signals_received.append('taps'))
+        backend.connect('outdated-changed', lambda b, o: signals_received.append('outdated'))
+
+        backend.load_all_async()
+        
+        assert 'formulae' in signals_received
+        assert 'casks' in signals_received
+        assert 'installed' in signals_received
+        assert len(backend.formulae) > 0
+        assert len(backend.casks) > 0
+
+    def test_async_package_operations(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        
+        import threading
+        class SynchronousThread:
+            def __init__(self, target, args=(), kwargs={}, daemon=True):
+                self.target = target
+                self.args = args
+                self.kwargs = kwargs
+            def start(self):
+                self.target(*self.args, **self.kwargs)
+        monkeypatch.setattr(threading, 'Thread', SynchronousThread)
+
+        def mock_idle_add(callback, *args, **kwargs):
+            callback(*args, **kwargs)
+            return False
+        monkeypatch.setattr(GLib, 'idle_add', mock_idle_add)
+
+        # Mock Popen to run synchronously
+        class MockPopen:
+            def __init__(self, cmd, *args, **kwargs):
+                import io
+                self.returncode = 0
+                self.stdout = io.StringIO("Installing...\nFinished!\n")
+            def wait(self):
+                return 0
+
+        subprocess_calls = []
+        def mock_popen(cmd, *args, **kwargs):
+            subprocess_calls.append(' '.join(cmd) if isinstance(cmd, list) else str(cmd))
+            return MockPopen(cmd)
+
+        monkeypatch.setattr('subprocess.Popen', mock_popen)
+
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep'}, 'formula')
+
+        results = []
+        def callback(success, message):
+            results.append((success, message))
+
+        # Test install
+        backend.install_async(pkg, callback)
+        assert len(results) == 1
+        assert results[0][0] is True
+        assert any('install' in c for c in subprocess_calls)
+
+        # Test remove
+        backend.remove_async(pkg, callback)
+        assert len(results) == 2
+        assert results[1][0] is True
+        assert any('uninstall' in c for c in subprocess_calls)
+
+        # Test upgrade
+        backend.upgrade_async(pkg, callback)
+        assert len(results) == 3
+        assert results[2][0] is True
+        assert any('upgrade' in c for c in subprocess_calls)
+
+    def test_fetch_icon_async_and_caching(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        
+        import threading
+        class SynchronousThread:
+            def __init__(self, target, args=(), kwargs={}, daemon=True):
+                self.target = target
+                self.args = args
+                self.kwargs = kwargs
+            def start(self):
+                self.target(*self.args, **self.kwargs)
+        monkeypatch.setattr(threading, 'Thread', SynchronousThread)
+
+        def mock_idle_add(callback, *args, **kwargs):
+            callback(*args, **kwargs)
+            return False
+        monkeypatch.setattr(GLib, 'idle_add', mock_idle_add)
+
+        # Mock GdkPixbuf.PixbufLoader
+        from gi.repository import GdkPixbuf
+        class MockLoader:
+            def write(self, data):
+                pass
+            def close(self):
+                pass
+            def get_pixbuf(self):
+                class MockPixbuf:
+                    def get_width(self): return 64
+                    def get_height(self): return 64
+                    def scale_simple(self, w, h, interp): return self
+                return MockPixbuf()
+
+        monkeypatch.setattr(GdkPixbuf, 'PixbufLoader', MockLoader)
+        monkeypatch.setattr(GdkPixbuf.Pixbuf, 'new_from_file_at_scale', lambda *args, **kwargs: MockLoader().get_pixbuf())
+
+        # Mock urllib.request.urlopen to return dummy image data
+        class MockResponse:
+            def __init__(self):
+                # Fake small PNG header padded to be > 200 bytes to bypass size filter
+                self._data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82' + b'\x00' * 300
+                self.headers = {'Content-Type': 'image/png'}
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+            def read(self, *args, **kwargs):
+                return self._data
+        monkeypatch.setattr('tavern.backend.urlopen', lambda req, timeout=None: MockResponse())
+
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep', 'homepage': 'https://github.com/BurntSushi/ripgrep'}, 'formula')
+
+        fetched_pixbufs = []
+        def callback(p, pixbuf):
+            fetched_pixbufs.append((p, pixbuf))
+
+        # First load (should perform download & convert, then cache it)
+        backend.fetch_icon_async(pkg, callback)
+        assert len(fetched_pixbufs) == 1
+        assert fetched_pixbufs[0][1] is not None
+
+        # Second load (should hit cache immediately)
+        fetched_pixbufs.clear()
+        backend.fetch_icon_async(pkg, callback)
+        assert len(fetched_pixbufs) == 1
+        assert fetched_pixbufs[0][1] is not None
+
+    def test_minimal_rb_parsing(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+
+        # Create temporary formula .rb file
+        formula_rb = tmp_path / 'ripgrep.rb'
+        formula_rb.write_text('''
+        class Ripgrep < Formula
+          desc "Search tool"
+          homepage "https://rg.com"
+          version "13.0.0"
+          license "MIT"
+          url "https://rg.com/tar.gz"
+        end
+        ''')
+
+        # Create temporary cask .rb file
+        cask_rb = tmp_path / 'firefox.rb'
+        cask_rb.write_text('''
+        cask "firefox" do
+          version "120.0"
+          desc "Web browser"
+          homepage "https://firefox.org"
+          url "https://firefox.org/dmg"
+        end
+        ''')
+
+        formula_data = backend._minimal_formula_data_from_rb(str(formula_rb), 'homebrew/core', 'ripgrep')
+        assert formula_data['desc'] == 'Search tool'
+        assert formula_data['homepage'] == 'https://rg.com'
+        assert formula_data['license'] == 'MIT'
+        
+        cask_data = backend._minimal_cask_data_from_rb(str(cask_rb), 'homebrew/cask', 'firefox')
+        assert cask_data['desc'] == 'Web browser'
+        assert cask_data['homepage'] == 'https://firefox.org'
+        assert cask_data['version'] == '120.0'
+
+    def test_fetch_screenshot_async(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        
+        # Synchronous threading mock
+        import threading
+        class SynchronousThread:
+            def __init__(self, target, args=(), kwargs={}, daemon=True):
+                self.target = target
+                self.args = args
+                self.kwargs = kwargs
+            def start(self):
+                self.target(*self.args, **self.kwargs)
+        monkeypatch.setattr(threading, 'Thread', SynchronousThread)
+
+        def mock_idle_add(callback, *args, **kwargs):
+            callback(*args, **kwargs)
+            return False
+        monkeypatch.setattr(GLib, 'idle_add', mock_idle_add)
+
+        # Mock GdkPixbuf.PixbufLoader
+        from gi.repository import GdkPixbuf
+        class MockLoader:
+            def write(self, data):
+                pass
+            def close(self):
+                pass
+            def get_pixbuf(self):
+                class MockPixbuf:
+                    def get_width(self): return 800
+                    def get_height(self): return 600
+                    def scale_simple(self, w, h, interp): return self
+                return MockPixbuf()
+
+        monkeypatch.setattr(GdkPixbuf, 'PixbufLoader', MockLoader)
+        monkeypatch.setattr(GdkPixbuf.Pixbuf, 'new_from_file_at_scale', lambda *args, **kwargs: MockLoader().get_pixbuf())
+
+        # Mock urlopen
+        class MockResponse:
+            def __init__(self):
+                self._data = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR' + b'\x00' * 300
+                self.headers = {'Content-Type': 'image/png'}
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+            def read(self, *args, **kwargs):
+                return self._data
+        monkeypatch.setattr('tavern.backend.urlopen', lambda req, timeout=None: MockResponse())
+
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep', 'homepage': 'https://github.com/BurntSushi/ripgrep'}, 'formula')
+
+        results = []
+        backend.fetch_screenshot_async(pkg, lambda p, pixbuf: results.append(pixbuf))
+        assert len(results) == 1
+        assert results[0] is not None
+
+    def test_fetch_readme_async(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        
+        import threading
+        class SynchronousThread:
+            def __init__(self, target, args=(), kwargs={}, daemon=True):
+                self.target = target
+                self.args = args
+                self.kwargs = kwargs
+            def start(self):
+                self.target(*self.args, **self.kwargs)
+        monkeypatch.setattr(threading, 'Thread', SynchronousThread)
+
+        def mock_idle_add(callback, *args, **kwargs):
+            callback(*args, **kwargs)
+            return False
+        monkeypatch.setattr(GLib, 'idle_add', mock_idle_add)
+
+        # Mock urlopen to return fake readme string
+        class MockResponse:
+            def __init__(self):
+                self._data = b'# My Awesome README\nThis is a great tool.'
+                self.headers = {'Content-Type': 'text/plain'}
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                pass
+            def read(self, *args, **kwargs):
+                return self._data
+        monkeypatch.setattr('tavern.backend.urlopen', lambda req, timeout=None: MockResponse())
+
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep', 'homepage': 'https://github.com/BurntSushi/ripgrep'}, 'formula')
+
+        results = []
+        backend.fetch_readme_async(pkg, lambda p, text: results.append(text))
+        assert len(results) == 1
+        assert "My Awesome README" in results[0]
+
+    def test_get_version_history(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep', 'homepage': 'https://github.com/BurntSushi/ripgrep'}, 'formula')
+        pkg.source_url = 'https://github.com/BurntSushi/ripgrep'
+        backend._formulae = [pkg]
+        
+        class MockForge:
+            def get_releases(self, owner, repo):
+                return [{'version': '1.0.0', 'date': '2026-05-31', 'changelog': 'Initial release'}]
+        
+        monkeypatch.setattr('tavern.git_forge.get_forge_for_url', lambda url: (MockForge(), 'BurntSushi', 'ripgrep'))
+        
+        history = backend.get_version_history('ripgrep', 'formula')
+        assert len(history) == 1
+        assert history[0]['version'] == '1.0.0'
+
+    def test_get_flatpak_info(self, monkeypatch):
+        backend = BrewBackend()
+        mocked_info = {'id': 'org.gnome.Lollypop', 'name': 'Lollypop'}
+        monkeypatch.setattr(backend, '_fetch_json', lambda url: mocked_info)
+        assert backend.get_flatpak_info('org.gnome.Lollypop') == mocked_info
+
+    def test_get_version_history_cask(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        pkg = Package({'token': 'visual-studio-code', 'homepage': 'https://github.com/microsoft/vscode', 'version': '1.80.0', 'desc': 'VS Code'}, 'cask')
+        pkg.source_url = 'https://github.com/microsoft/vscode'
+        backend._casks = [pkg]
+        
+        class MockForge:
+            def get_releases(self, owner, repo):
+                return [{'version': '1.80.0', 'date': '2026-05-31', 'changelog': 'New release'}]
+        
+        monkeypatch.setattr('tavern.git_forge.get_forge_for_url', lambda url: (MockForge(), 'microsoft', 'vscode'))
+        
+        history = backend.get_version_history('visual-studio-code', 'cask')
+        assert len(history) == 1
+        assert history[0]['version'] == '1.80.0'
+
+    def test_get_version_history_not_found(self):
+        backend = BrewBackend()
+        # Test unknown package
+        assert backend.get_version_history('nonexistent-pkg', 'formula') == []
+        # Test invalid pkg_type
+        assert backend.get_version_history('ripgrep', 'invalid_type') == []
+
+    def test_get_version_history_unknown_forge(self, monkeypatch):
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep'}, 'formula')
+        pkg.source_url = 'https://example.com/ripgrep'
+        backend._formulae = [pkg]
+        
+        monkeypatch.setattr('tavern.git_forge.get_forge_for_url', lambda url: (None, None, None))
+        assert backend.get_version_history('ripgrep', 'formula') == []
+
+    def test_get_version_history_cache_hit(self, monkeypatch):
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep'}, 'formula')
+        pkg.source_url = 'https://github.com/BurntSushi/ripgrep'
+        backend._formulae = [pkg]
+        
+        class MockForge:
+            def get_releases(self, owner, repo):
+                assert False, "Should have returned cached data and not called get_releases"
+        
+        monkeypatch.setattr('tavern.git_forge.get_forge_for_url', lambda url: (MockForge(), 'BurntSushi', 'ripgrep'))
+        
+        cached_releases = [{'version': '2.0.0', 'date': '2026-05-31', 'changelog': 'Cache hit works'}]
+        monkeypatch.setattr(backend, '_load_cached', lambda key: (cached_releases, False))
+        
+        history = backend.get_version_history('ripgrep', 'formula')
+        assert history == cached_releases
+
+    def test_get_version_history_exception(self, monkeypatch):
+        backend = BrewBackend()
+        pkg = Package({'name': 'ripgrep'}, 'formula')
+        pkg.source_url = 'https://github.com/BurntSushi/ripgrep'
+        backend._formulae = [pkg]
+        
+        class FailingForge:
+            def get_releases(self, owner, repo):
+                raise Exception("Git Forge connection failed")
+        
+        monkeypatch.setattr('tavern.git_forge.get_forge_for_url', lambda url: (FailingForge(), 'BurntSushi', 'ripgrep'))
+        monkeypatch.setattr(backend, '_load_cached', lambda key: (None, True))
+        
+        assert backend.get_version_history('ripgrep', 'formula') == []
+
+

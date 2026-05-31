@@ -458,7 +458,7 @@ class TavernBrewfilePage(Adw.Bin):
             self.formulae_section.set_visible(True)
             for pkg in formulae:
                 tile = TavernPackageTile(package=pkg)
-                tile.connect('clicked', self._on_tile_clicked)
+                tile.connect('activated', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
                 # DON'T load icons yet - will be done after metadata fetches
                 self._tile_map[pkg.name] = (tile, pkg)
@@ -468,7 +468,7 @@ class TavernBrewfilePage(Adw.Bin):
             self.casks_section.set_visible(True)
             for pkg in casks:
                 tile = TavernPackageTile(package=pkg)
-                tile.connect('clicked', self._on_tile_clicked)
+                tile.connect('activated', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
                 # DON'T load icons yet
                 self._tile_map[pkg.name] = (tile, pkg)
@@ -478,7 +478,7 @@ class TavernBrewfilePage(Adw.Bin):
             self.flatpaks_section.set_visible(True)
             for pkg in flatpaks:
                 tile = TavernPackageTile(package=pkg)
-                tile.connect('clicked', self._on_tile_clicked)
+                tile.connect('activated', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
                 # DON'T load icons yet
                 self._tile_map[pkg.name] = (tile, pkg)
