@@ -650,8 +650,10 @@ class BrewBackend(GObject.Object):
             _log.debug('Could not read outdated-check-enabled setting: %s', e)
 
         # Load formulae from cache first
+        has_cache_f = False
         data, is_stale = self._load_cached('formulae', max_age=43200)
         if data:
+            has_cache_f = True
             with log_timing('parse formulae from cache', 'backend'):
                 self._formulae = [
                     Package(d, 'formula', self._installed_formulae) for d in data
@@ -659,8 +661,36 @@ class BrewBackend(GObject.Object):
             _log.info('Loaded %d formulae from cache (stale=%s)', len(self._formulae), is_stale)
             GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
 
-        # Fetch in background if missing or stale
-        if not data or is_stale:
+        # Load casks from cache first
+        has_cache_c = False
+        data_c, is_stale_c = self._load_cached('casks', max_age=43200)
+        if data_c:
+            has_cache_c = True
+            import sys
+            is_linux = sys.platform.startswith('linux')
+            
+            if is_linux:
+                filtered_data = []
+                for d in data_c:
+                    depends_on = d.get('depends_on', {})
+                    if 'macos' not in depends_on:
+                        filtered_data.append(d)
+                data_c = filtered_data
+
+            self._casks = [
+                Package(d, 'cask', self._installed_casks) for d in data_c
+            ]
+            GLib.idle_add(self.emit, 'casks-loaded', self._casks)
+
+        # If cache is available, instantly enable interaction and scan taps
+        if has_cache_f or has_cache_c:
+            _log.debug('Cache loaded on launch, clearing spinner and scanning taps immediately')
+            self._load_tap_packages()
+            GLib.idle_add(self._set_loading_false)
+
+        # Fetch formulae in background if missing or stale
+        if not has_cache_f or is_stale:
+            _log.debug('Formulae cache missing or stale, fetching from API...')
             new_data = self._fetch_json(FORMULA_API)
             if new_data:
                 self._save_cache('formulae', new_data)
@@ -671,27 +701,9 @@ class BrewBackend(GObject.Object):
                 _log.info('Loaded %d formulae from API', len(self._formulae))
                 GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
 
-        # Load casks from cache first
-        data, is_stale = self._load_cached('casks', max_age=43200)
-        if data:
-            import sys
-            is_linux = sys.platform.startswith('linux')
-            
-            if is_linux:
-                filtered_data = []
-                for d in data:
-                    depends_on = d.get('depends_on', {})
-                    if 'macos' not in depends_on:
-                        filtered_data.append(d)
-                data = filtered_data
-
-            self._casks = [
-                Package(d, 'cask', self._installed_casks) for d in data
-            ]
-            GLib.idle_add(self.emit, 'casks-loaded', self._casks)
-
-        # Fetch in background if missing or stale
-        if not data or is_stale:
+        # Fetch casks in background if missing or stale
+        if not has_cache_c or is_stale_c:
+            _log.debug('Casks cache missing or stale, fetching from API...')
             new_data = self._fetch_json(CASK_API)
             if new_data:
                 self._save_cache('casks', new_data)
@@ -712,13 +724,14 @@ class BrewBackend(GObject.Object):
                 ]
                 GLib.idle_add(self.emit, 'casks-loaded', self._casks)
 
-        # Tap scan runs after API load so it can safely merge without race conditions.
-        # Disk reads are fast (ms) so this doesn't meaningfully delay startup.
-        self._load_tap_packages()
+        # If no cache was available on launch, tap scan and clear spinner now
+        if not (has_cache_f or has_cache_c):
+            _log.debug('No cache was available on launch, scanning taps and clearing spinner now')
+            self._load_tap_packages()
+            GLib.idle_add(self._set_loading_false)
 
-        GLib.idle_add(self._set_loading_false)
-        _log.debug('_load_all_thread finished')
         self._build_search_provider_cache()
+        _log.debug('_load_all_thread finished')
 
 
     def _load_tap_packages(self):
