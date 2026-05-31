@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    name: "macOS App Bundle"
+    runs-on: macos-14
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        brew update
+        brew install gtk4 libadwaita blueprint-compiler meson ninja pkg-config
+
+    - name: Build App Bundle
+      run: ./run.sh --cask
+
+    - name: Zip App Bundle
+      run: zip -r Tavern-macOS.zip Tavern.app
+
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Tavern-macOS.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-flatpak:
+    name: "Flatpak Bundle"
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+      options: --privileged
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      with:
+        bundle: Tavern-Linux.flatpak
+        manifest-path: dev.hanthor.Tavern.json
+        cache-key: flatpak-builder-${{ github.sha }}
+
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Tavern-Linux.flatpak
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

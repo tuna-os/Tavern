@@ -1,0 +1,48 @@
+name: Auto Tag Version
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'meson.build'
+  workflow_dispatch:
+
+jobs:
+  tag:
+    name: "Create Git Tag"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Extract version from meson.build
+      id: get_version
+      run: |
+        VERSION=$(grep -oE "version: '[^']+'" meson.build | head -n1 | cut -d"'" -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Found version: $VERSION"
+
+    - name: Check if tag exists
+      id: check_tag
+      run: |
+        TAG_NAME="v${{ steps.get_version.outputs.version }}"
+        if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+          echo "tag_exists=true" >> $GITHUB_OUTPUT
+          echo "Tag $TAG_NAME already exists. Skipping."
+        else
+          echo "tag_exists=false" >> $GITHUB_OUTPUT
+          echo "Tag $TAG_NAME does not exist. Creating."
+        fi
+
+    - name: Create and push tag
+      if: steps.check_tag.outputs.tag_exists == 'false'
+      run: |
+        TAG_NAME="v${{ steps.get_version.outputs.version }}"
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+        git push origin "$TAG_NAME"

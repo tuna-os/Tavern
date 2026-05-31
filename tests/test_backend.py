@@ -11,6 +11,13 @@ from gi.repository import GLib, GObject
 from tavern.backend import Package, BrewBackend, _brew_cmd, _is_flatpak, _find_brew, _ico_to_png
 
 
+class MockCompletedProcess:
+    def __init__(self, returncode, stdout, stderr=''):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
 # ─── Package model ───────────────────────────────────────────────────────────
 
 class TestPackageFormula:
@@ -981,5 +988,98 @@ class TestBrewBackendExtensions:
         monkeypatch.setattr(backend, '_load_cached', lambda key: (None, True))
         
         assert backend.get_version_history('ripgrep', 'formula') == []
+
+
+class TestBrewBackendJWS:
+    def test_load_from_host_jws_missing(self, tmp_path):
+        backend = BrewBackend()
+        # Mock paths to non-existent files
+        cache_paths = {
+            'formula': str(tmp_path / 'nonexistent_formula.jws.json'),
+            'cask': str(tmp_path / 'nonexistent_cask.jws.json')
+        }
+        backend._get_host_brew_cache_paths = lambda: cache_paths
+        
+        assert backend._load_from_host_jws('formula') is None
+        assert backend._load_from_host_jws('cask') is None
+
+    def test_load_from_host_jws_invalid(self, tmp_path):
+        backend = BrewBackend()
+        # Create a truncated / invalid JSON file
+        formula_path = tmp_path / 'formula.jws.json'
+        with open(formula_path, 'w') as f:
+            f.write('{"payload": "[ { "name": "truncated"')  # missing closing brackets
+            
+        cache_paths = {
+            'formula': str(formula_path),
+            'cask': str(tmp_path / 'nonexistent_cask.jws.json')
+        }
+        backend._get_host_brew_cache_paths = lambda: cache_paths
+        
+        assert backend._load_from_host_jws('formula') is None
+
+    def test_load_from_host_jws_valid(self, tmp_path):
+        backend = BrewBackend()
+        # Create a valid JWS file
+        formula_path = tmp_path / 'formula.jws.json'
+        payload_data = [{'name': 'ripgrep', 'desc': 'fast search'}]
+        jws_data = {
+            'payload': json.dumps(payload_data),
+            'signatures': ['mock_signature']
+        }
+        with open(formula_path, 'w') as f:
+            json.dump(jws_data, f)
+            
+        cache_paths = {
+            'formula': str(formula_path),
+            'cask': str(tmp_path / 'nonexistent_cask.jws.json')
+        }
+        backend._get_host_brew_cache_paths = lambda: cache_paths
+        
+        result = backend._load_from_host_jws('formula')
+        assert result == payload_data
+
+    def test_refresh_cache_files(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        
+        formula_path = tmp_path / 'formula.jws.json'
+        cask_path = tmp_path / 'cask.jws.json'
+        
+        formula_payload = [{'name': 'ripgrep', 'desc': 'fast search', 'versions': {'stable': '1.0.0'}}]
+        cask_payload = [{'token': 'firefox', 'name': ['Firefox'], 'version': '1.0.0'}]
+        
+        with open(formula_path, 'w') as f:
+            json.dump({'payload': json.dumps(formula_payload)}, f)
+        with open(cask_path, 'w') as f:
+            json.dump({'payload': json.dumps(cask_payload)}, f)
+            
+        cache_paths = {
+            'formula': str(formula_path),
+            'cask': str(cask_path)
+        }
+        backend._get_host_brew_cache_paths = lambda: cache_paths
+        
+        # Prevent any network fetch calls
+        backend._fetch_json = lambda url: None
+        
+        # Run refresh
+        backend.refresh_cache_files()
+        
+        # Verify cached files on disk under Tavern's user cache directory
+        tavern_formula_cache = tmp_path / 'tavern' / 'formulae.json'
+        tavern_cask_cache = tmp_path / 'tavern' / 'casks.json'
+        tavern_sp_cache = tmp_path / 'tavern' / 'linux_packages.json'
+        
+        assert tavern_formula_cache.exists()
+        assert tavern_cask_cache.exists()
+        assert tavern_sp_cache.exists()
+        
+        # Verify internal structures are loaded correctly
+        assert len(backend.formulae) == 1
+        assert backend.formulae[0].name == 'ripgrep'
+        assert len(backend.casks) == 1
+        assert backend.casks[0].name == 'firefox'
+
 
 

@@ -95,68 +95,9 @@ class TavernApplication(Adw.Application):
         if needs_refresh:
             _log.info('Cache is stale, performing background refresh of Homebrew metadata...')
             try:
-                import urllib.request
-                import json
-                import sys
                 from .backend import BrewBackend
-                
-                # 1. Download formulae
-                req_f = urllib.request.Request(
-                    'https://formulae.brew.sh/api/formula.json',
-                    headers={'User-Agent': 'Tavern/0.1'}
-                )
-                with urllib.request.urlopen(req_f, timeout=30) as resp:
-                    formulae_data = json.loads(resp.read().decode('utf-8'))
-                
-                # Save cache
-                os.makedirs(cache_dir, exist_ok=True)
-                with open(cache_path, 'w') as f:
-                    json.dump(formulae_data, f)
-                
-                # 2. Download casks
-                cask_path = os.path.join(cache_dir, 'casks.json')
-                req_c = urllib.request.Request(
-                    'https://formulae.brew.sh/api/cask.json',
-                    headers={'User-Agent': 'Tavern/0.1'}
-                )
-                with urllib.request.urlopen(req_c, timeout=30) as resp:
-                    casks_data = json.loads(resp.read().decode('utf-8'))
-                
-                with open(cask_path, 'w') as f:
-                    json.dump(casks_data, f)
-                
-                # 3. Build search provider cache
-                is_linux = sys.platform.startswith('linux')
-                if is_linux:
-                    filtered_casks = []
-                    for d in casks_data:
-                        depends_on = d.get('depends_on', {})
-                        if 'macos' not in depends_on:
-                            filtered_casks.append(d)
-                    casks_data = filtered_casks
-                
-                # Create lightweight search cache list
-                packages_data = []
-                for pkg_data in formulae_data:
-                    packages_data.append({
-                        'name': pkg_data.get('name', ''),
-                        'display_name': pkg_data.get('name', ''),
-                        'description': pkg_data.get('desc', '') or '',
-                        'pkg_type': 'formula',
-                    })
-                for pkg_data in casks_data:
-                    names = pkg_data.get('name', [])
-                    packages_data.append({
-                        'name': pkg_data.get('token', ''),
-                        'display_name': names[0] if names else pkg_data.get('token', ''),
-                        'description': pkg_data.get('desc', '') or '',
-                        'pkg_type': 'cask',
-                    })
-                
-                sp_cache_path = os.path.join(cache_dir, 'linux_packages.json')
-                with open(sp_cache_path, 'w') as f:
-                    json.dump(packages_data, f)
-                
+                backend = BrewBackend()
+                backend.refresh_cache_files()
                 _log.info('Background cache refresh completed successfully!')
             except Exception as e:
                 _log.error('Background cache refresh failed: %s', e)

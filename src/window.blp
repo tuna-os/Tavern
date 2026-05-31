@@ -103,12 +103,19 @@ template $TavernWindow: Adw.ApplicationWindow {
                   margin-bottom: 18;
                 }
 
-                Label {
+                Label loading_label {
                   label: "Loading Homebrew Content…";
                   wrap: true;
                   justify: center;
                   margin-bottom: 24;
                   styles ["title-3"]
+                }
+
+                ProgressBar loading_progress_bar {
+                  valign: center;
+                  halign: center;
+                  width-request: 280;
+                  margin-bottom: 12;
                 }
               };
             }

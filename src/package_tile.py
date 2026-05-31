@@ -146,11 +146,7 @@ class TavernPackageTile(Adw.Bin):
     # ── Gesture handlers ────────────────────────────────────────────────────
 
     def _on_tile_released(self, gesture, n_press, x, y):
-        # Only activate the tile if no inner widget claimed the gesture sequence
-        seq = gesture.get_current_sequence()
-        state = gesture.get_sequence_state(seq)
-        if state != Gtk.EventSequenceState.DENIED:
-            self.emit('activated')
+        self.emit('activated')
 
     # ── Button handlers ─────────────────────────────────────────────────────
 

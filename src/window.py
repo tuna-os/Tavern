@@ -39,6 +39,8 @@ class TavernWindow(Adw.ApplicationWindow):
     task_indicator_stack = Gtk.Template.Child()
     task_count_label = Gtk.Template.Child()
     navigation_view = Gtk.Template.Child()
+    loading_label = Gtk.Template.Child()
+    loading_progress_bar = Gtk.Template.Child()
 
     def __init__(self, package_to_open=None, **kwargs):
         import time
@@ -62,6 +64,8 @@ class TavernWindow(Adw.ApplicationWindow):
         # Shared backend
         backend_start = time.perf_counter()
         self.backend = BrewBackend()
+        self.backend.bind_property('loading_status', self.loading_label, 'label', GObject.BindingFlags.DEFAULT)
+        self.backend.bind_property('loading_progress', self.loading_progress_bar, 'fraction', GObject.BindingFlags.DEFAULT)
         backend_time = (time.perf_counter() - backend_start) * 1000
         _log.info('Backend created: %.1f ms', backend_time)
 

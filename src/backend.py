@@ -10,6 +10,11 @@ import threading
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
+# Disable Homebrew's automatic update checks when we run brew commands.
+# This prevents random hangs and bandwidth waste on slow/capped connections.
+os.environ['HOMEBREW_NO_AUTO_UPDATE'] = '1'
+os.environ['HOMEBREW_API_AUTO_UPDATE_SECS'] = '604800'
+
 import gi
 gi.require_version('GdkPixbuf', '2.0')
 from gi.repository import Gio, GLib, GObject, GdkPixbuf
@@ -166,8 +171,9 @@ def _ico_to_png(ico_data):
 def _brew_cmd(args):
     """Build a command list for running brew, using flatpak-spawn if sandboxed."""
     if IN_FLATPAK:
-        # Use flatpak-spawn to run brew on the host
+        # Use flatpak-spawn to run brew on the host with updates disabled
         return ['flatpak-spawn', '--host', 'bash', '-c',
+                f'export HOMEBREW_NO_AUTO_UPDATE=1 && export HOMEBREW_API_AUTO_UPDATE_SECS=604800 && '
                 f'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew {" ".join(args)}']
     else:
         return [BREW_BIN] + args
@@ -363,6 +369,16 @@ class BrewBackend(GObject.Object):
     __gtype_name__ = 'TavernBrewBackend'
 
     loading = GObject.Property(type=bool, default=False)
+    loading_status = GObject.Property(type=str, default='Loading Homebrew Content…')
+    loading_progress = GObject.Property(type=float, default=0.0)
+    _refresh_lock = threading.Lock()
+
+    def _update_status(self, msg):
+        _log.info('Status update: %s', msg)
+        GLib.idle_add(setattr, self, 'loading_status', msg)
+
+    def _update_progress(self, val):
+        GLib.idle_add(setattr, self, 'loading_progress', float(val))
 
     __gsignals__ = {
         'formulae-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -498,11 +514,80 @@ class BrewBackend(GObject.Object):
     def _fetch_json(self, url):
         """Fetch JSON from URL with a timeout and detailed error reporting."""
         _log.debug('Fetching JSON: %s', url)
-        req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
+        import gzip
+        req = Request(url, headers={
+            'User-Agent': 'Tavern/0.1',
+            'Accept-Encoding': 'gzip'
+        })
         try:
             with log_timing(f'fetch_json {url}', 'backend'):
-                with urlopen(req, timeout=30) as resp:
-                    data = json.loads(resp.read().decode('utf-8'))
+                with urlopen(req, timeout=120) as resp:
+                    content_length = None
+                    if hasattr(resp, 'info'):
+                        headers = resp.info()
+                        content_length_str = headers.get('Content-Length')
+                        if content_length_str:
+                            try:
+                                content_length = int(content_length_str)
+                            except ValueError:
+                                pass
+                    
+                    buffer = io.BytesIO()
+                    downloaded = 0
+                    chunk_size = 65536 # 64KB chunks
+                    
+                    url_basename = url.split('/')[-1]
+                    is_formula = "formula" in url_basename
+                    is_cask = "cask" in url_basename
+                    display_name = "formulae" if is_formula else "casks"
+                    
+                    self._update_status(f"Downloading Homebrew {display_name} catalog...")
+                    
+                    read_all = False
+                    while True:
+                        if read_all:
+                            break
+                        try:
+                            chunk = resp.read(chunk_size)
+                        except TypeError:
+                            chunk = resp.read()
+                            read_all = True
+                        
+                        if not chunk:
+                            break
+                        buffer.write(chunk)
+                        downloaded += len(chunk)
+                        
+                        if content_length:
+                            percent = int((downloaded / content_length) * 100)
+                            downloaded_mb = downloaded / (1024 * 1024)
+                            total_mb = content_length / (1024 * 1024)
+                            self._update_status(f"Downloading Homebrew {display_name} catalog ({percent}%: {downloaded_mb:.1f} MB / {total_mb:.1f} MB)...")
+                            
+                            # Scale the progress bar fraction
+                            fraction = downloaded / content_length
+                            if is_formula:
+                                self._update_progress(0.2 + fraction * 0.4)
+                            elif is_cask:
+                                self._update_progress(0.6 + fraction * 0.3)
+                        else:
+                            downloaded_mb = downloaded / (1024 * 1024)
+                            self._update_status(f"Downloading Homebrew {display_name} catalog ({downloaded_mb:.1f} MB)...")
+                            
+                    content = buffer.getvalue()
+                    
+                    is_gzip = False
+                    if hasattr(resp, 'info'):
+                        headers = resp.info()
+                        if headers and headers.get('Content-Encoding') == 'gzip':
+                            is_gzip = True
+                    if is_gzip:
+                        self._update_status(f"Decompressing Homebrew {display_name} catalog...")
+                        _log.debug('Decompressing gzip response for %s', url)
+                        content = gzip.decompress(content)
+                    
+                    self._update_status(f"Parsing Homebrew {display_name} catalog...")
+                    data = json.loads(content.decode('utf-8'))
             _log.debug('Fetched JSON OK: %s  (items=%s)',
                        url, len(data) if isinstance(data, list) else '?')
             return data
@@ -517,6 +602,93 @@ class BrewBackend(GObject.Object):
             # Timeout or other errors
             _log.error('Failed to fetch %s: %s', url, type(e).__name__)
             return None
+
+    def _get_host_brew_cache_paths(self):
+        """Get the paths to the system Homebrew JWS cache files."""
+        # Typically ~/.cache/Homebrew/api/formula.jws.json
+        cache_dir = os.path.expanduser('~/.cache/Homebrew/api')
+        return {
+            'formula': os.path.join(cache_dir, 'formula.jws.json'),
+            'cask': os.path.join(cache_dir, 'cask.jws.json')
+        }
+
+    def _load_from_host_jws(self, pkg_type):
+        """
+        Attempt to read and parse the host Homebrew's signed JWS cache files
+        to avoid downloading large files over the network.
+        """
+        paths = self._get_host_brew_cache_paths()
+        path = paths.get(pkg_type)
+        if not path or not os.path.exists(path):
+            _log.debug('System Homebrew cache not found at %s', path)
+            return None
+        try:
+            display_name = "formulae" if pkg_type == "formula" else "casks"
+            self._update_status(f"Reading system Homebrew {display_name} catalog...")
+            _log.info('Found system Homebrew cached JWS file for %s at %s', pkg_type, path)
+            with open(path, 'r', encoding='utf-8') as f:
+                jws_data = json.load(f)
+            
+            payload_str = jws_data.get('payload')
+            if not payload_str:
+                _log.warning('No payload key in JWS file at %s', path)
+                return None
+            
+            if isinstance(payload_str, str):
+                payload = json.loads(payload_str)
+            else:
+                payload = payload_str
+            
+            _log.info('Successfully parsed %d %s items from system Homebrew JWS cache!', len(payload), pkg_type)
+            return payload
+        except Exception as e:
+            _log.warning('Failed to parse system Homebrew JWS cache at %s: %s', path, e)
+            return None
+
+    def refresh_cache_files(self):
+        """Fetch/load and save fresh formulae and casks cache files, and rebuild search cache."""
+        with BrewBackend._refresh_lock:
+            # Double check if cache is fresh before doing heavy work
+            double_check_data, double_check_stale = self._load_cached('formulae', max_age=14400)
+            if double_check_data and not double_check_stale:
+                _log.debug('Cache is already fresh, skipping refresh_cache_files')
+                return
+
+            _log.info('refresh_cache_files starting')
+            
+            # 1. Formulae
+            new_data_f = self._load_from_host_jws('formula')
+            if not new_data_f:
+                _log.debug('System Homebrew formula cache not available, downloading...')
+                new_data_f = self._fetch_json(FORMULA_API)
+            if new_data_f:
+                self._save_cache('formulae', new_data_f)
+                self._formulae = [
+                    Package(d, 'formula', self._installed_formulae) for d in new_data_f
+                ]
+                
+            # 2. Casks
+            new_data_c = self._load_from_host_jws('cask')
+            if not new_data_c:
+                _log.debug('System Homebrew cask cache not available, downloading...')
+                new_data_c = self._fetch_json(CASK_API)
+            if new_data_c:
+                self._save_cache('casks', new_data_c)
+                import sys
+                is_linux = sys.platform.startswith('linux')
+                if is_linux:
+                    filtered_data = []
+                    for d in new_data_c:
+                        depends_on = d.get('depends_on', {})
+                        if 'macos' not in depends_on:
+                            filtered_data.append(d)
+                    new_data_c = filtered_data
+                self._casks = [
+                    Package(d, 'cask', self._installed_casks) for d in new_data_c
+                ]
+                
+            self._build_search_provider_cache()
+            _log.info('refresh_cache_files completed')
 
     def _cache_path(self, name):
         return os.path.join(self._cache_dir, f'{name}.json')
@@ -631,25 +803,22 @@ class BrewBackend(GObject.Object):
 
     def _load_all_thread(self):
         _log.debug('_load_all_thread started')
+        self._update_progress(0.0)
+        self._update_status("Scanning installed packages...")
         # Get installed packages first
         with log_timing('get installed packages', 'backend'):
             installed_f, installed_c = self._get_installed()
         self._installed_formulae = installed_f
         self._installed_casks = installed_c
+        self._update_progress(0.05)
 
         # Emit installed signal
         installed_pkgs = []
         GLib.idle_add(self.emit, 'installed-loaded', installed_pkgs)
 
-        # Check for outdated packages if setting is enabled
-        try:
-            settings = Gio.Settings.new('dev.hanthor.Tavern')
-            if settings.get_boolean('outdated-check-enabled'):
-                self._check_outdated()
-        except Exception as e:
-            _log.debug('Could not read outdated-check-enabled setting: %s', e)
-
         # Load formulae from cache first
+        self._update_status("Loading Homebrew formulae catalog...")
+        self._update_progress(0.08)
         has_cache_f = False
         data, is_stale = self._load_cached('formulae', max_age=43200)
         if data:
@@ -660,8 +829,11 @@ class BrewBackend(GObject.Object):
                 ]
             _log.info('Loaded %d formulae from cache (stale=%s)', len(self._formulae), is_stale)
             GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
+            self._update_progress(0.12)
 
         # Load casks from cache first
+        self._update_status("Loading Homebrew casks catalog...")
+        self._update_progress(0.15)
         has_cache_c = False
         data_c, is_stale_c = self._load_cached('casks', max_age=43200)
         if data_c:
@@ -681,56 +853,121 @@ class BrewBackend(GObject.Object):
                 Package(d, 'cask', self._installed_casks) for d in data_c
             ]
             GLib.idle_add(self.emit, 'casks-loaded', self._casks)
+            self._update_progress(0.2)
 
         # If cache is available, instantly enable interaction and scan taps
         if has_cache_f or has_cache_c:
             _log.debug('Cache loaded on launch, clearing spinner and scanning taps immediately')
+            self._update_progress(0.9)
             self._load_tap_packages()
+            self._update_progress(0.95)
             GLib.idle_add(self._set_loading_false)
 
         # Fetch formulae in background if missing or stale
         if not has_cache_f or is_stale:
-            _log.debug('Formulae cache missing or stale, fetching from API...')
-            new_data = self._fetch_json(FORMULA_API)
-            if new_data:
-                self._save_cache('formulae', new_data)
-                with log_timing('parse formulae from API', 'backend'):
+            _log.debug('Formulae cache missing or stale, refreshing...')
+            with BrewBackend._refresh_lock:
+                # Double check if cache is still missing or stale after acquiring the lock
+                double_check_data, double_check_stale = self._load_cached('formulae', max_age=43200)
+                if double_check_data and not double_check_stale:
+                    _log.debug('Formulae cache was refreshed by another thread, loading from cache')
                     self._formulae = [
-                        Package(d, 'formula', self._installed_formulae) for d in new_data
+                        Package(d, 'formula', self._installed_formulae) for d in double_check_data
                     ]
-                _log.info('Loaded %d formulae from API', len(self._formulae))
-                GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
+                    GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
+                    self._update_progress(0.6)
+                else:
+                    new_data = self._load_from_host_jws('formula')
+                    if new_data:
+                        _log.info('Loaded formulae from system Homebrew JWS cache (bypassed API download)')
+                        self._update_progress(0.6)
+                    else:
+                        _log.debug('System Homebrew cache not available or invalid, fetching from API...')
+                        new_data = self._fetch_json(FORMULA_API)
+                    if new_data:
+                        self._save_cache('formulae', new_data)
+                        with log_timing('parse formulae from API', 'backend'):
+                            self._formulae = [
+                                Package(d, 'formula', self._installed_formulae) for d in new_data
+                            ]
+                        _log.info('Loaded %d formulae from cache/API', len(self._formulae))
+                        GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
+                        self._update_progress(0.6)
 
         # Fetch casks in background if missing or stale
         if not has_cache_c or is_stale_c:
-            _log.debug('Casks cache missing or stale, fetching from API...')
-            new_data = self._fetch_json(CASK_API)
-            if new_data:
-                self._save_cache('casks', new_data)
-                
-                import sys
-                is_linux = sys.platform.startswith('linux')
-                
-                if is_linux:
-                    filtered_data = []
-                    for d in new_data:
-                        depends_on = d.get('depends_on', {})
-                        if 'macos' not in depends_on:
-                            filtered_data.append(d)
-                    new_data = filtered_data
+            _log.debug('Casks cache missing or stale, refreshing...')
+            with BrewBackend._refresh_lock:
+                # Double check if cache is still missing or stale after acquiring the lock
+                double_check_data, double_check_stale = self._load_cached('casks', max_age=43200)
+                if double_check_data and not double_check_stale:
+                    _log.debug('Casks cache was refreshed by another thread, loading from cache')
+                    
+                    import sys
+                    is_linux = sys.platform.startswith('linux')
+                    if is_linux:
+                        filtered_data = []
+                        for d in double_check_data:
+                            depends_on = d.get('depends_on', {})
+                            if 'macos' not in depends_on:
+                                filtered_data.append(d)
+                        double_check_data = filtered_data
 
-                self._casks = [
-                    Package(d, 'cask', self._installed_casks) for d in new_data
-                ]
-                GLib.idle_add(self.emit, 'casks-loaded', self._casks)
+                    self._casks = [
+                        Package(d, 'cask', self._installed_casks) for d in double_check_data
+                    ]
+                    GLib.idle_add(self.emit, 'casks-loaded', self._casks)
+                    self._update_progress(0.9)
+                else:
+                    new_data = self._load_from_host_jws('cask')
+                    if new_data:
+                        _log.info('Loaded casks from system Homebrew JWS cache (bypassed API download)')
+                        self._update_progress(0.9)
+                    else:
+                        _log.debug('System Homebrew cache not available or invalid, fetching from API...')
+                        new_data = self._fetch_json(CASK_API)
+                    if new_data:
+                        self._save_cache('casks', new_data)
+                        
+                        import sys
+                        is_linux = sys.platform.startswith('linux')
+                        
+                        if is_linux:
+                            filtered_data = []
+                            for d in new_data:
+                                depends_on = d.get('depends_on', {})
+                                if 'macos' not in depends_on:
+                                    filtered_data.append(d)
+                            new_data = filtered_data
+
+                        self._casks = [
+                            Package(d, 'cask', self._installed_casks) for d in new_data
+                        ]
+                        GLib.idle_add(self.emit, 'casks-loaded', self._casks)
+                        self._update_progress(0.9)
 
         # If no cache was available on launch, tap scan and clear spinner now
         if not (has_cache_f or has_cache_c):
+            self._update_progress(0.92)
+            self._update_status("Scanning local taps...")
             _log.debug('No cache was available on launch, scanning taps and clearing spinner now')
             self._load_tap_packages()
+            self._update_progress(0.96)
             GLib.idle_add(self._set_loading_false)
 
+        self._update_progress(0.98)
+        self._update_status("Building search provider index...")
         self._build_search_provider_cache()
+        self._update_progress(1.0)
+
+        # Check for outdated packages in the background now that all catalog loading is complete
+        try:
+            settings = Gio.Settings.new('dev.hanthor.Tavern')
+            if settings.get_boolean('outdated-check-enabled'):
+                self._check_outdated()
+        except Exception as e:
+            _log.debug('Could not read outdated-check-enabled setting: %s', e)
+
         _log.debug('_load_all_thread finished')
 
 
