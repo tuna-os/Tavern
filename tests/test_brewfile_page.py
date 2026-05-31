@@ -62,6 +62,9 @@ def test_brewfile_page_workflows(tmp_path, monkeypatch):
         return False
     monkeypatch.setattr(GLib, 'idle_add', mock_idle_add)
     
+    # Prevent graphical MessageDialogs from popping up on the user's desktop
+    monkeypatch.setattr(Adw.MessageDialog, 'present', lambda self: None)
+    
     # Mock subprocess runs
     subprocess_calls = []
     def mock_subprocess_run(args, **kwargs):
