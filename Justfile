@@ -39,3 +39,9 @@ uninstall:
 # Clean all build artefacts
 clean:
     rm -rf {{BUILD_DIR}} {{REPO_DIR}} {{STATE_DIR}}
+
+# Validate desktop and AppStream metadata if tools are available
+validate:
+    -desktop-file-validate data/dev.hanthor.Tavern.desktop.in
+    -appstreamcli validate data/dev.hanthor.Tavern.metainfo.xml.in
+
