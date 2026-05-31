@@ -110,13 +110,54 @@ TAVERN_LOG_FILE=/tmp/p.log ./run.sh       # also write to file
 
 All logging is **off by default** — zero overhead in production.
 
-## Testing
+## Testing & Headless Mocks
 
 ```bash
-pytest tests/                              # full suite
-pytest tests/test_backend.py -v           # specific file
-TAVERN_LOG=debug pytest tests/ -s          # with logging
+pytest tests/                              # run full unit test suite
+pytest tests/test_backend.py -v           # run specific test file
+TAVERN_LOG=debug pytest tests/ -s          # run tests with verbose debug logging
 ```
+
+### Headless GUI Test Patterns
+
+Tavern is headlessly tested in environments that might not have an active display server (X11/Wayland) or installed GSettings schemas:
+
+1. **Mocking `GSettings`**: To prevent Gio GSettings initialization crashes when the schema is not installed in system folders, mock `Gio.Settings` inside the test setup:
+   ```python
+   class MockSettings:
+       def __init__(self, schema_id):
+           self._store = {'window-width': 1024, 'window-height': 768, 'window-maximized': False}
+       def get_int(self, name): return self._store[name]
+       def get_boolean(self, name): return self._store[name]
+       def set_int(self, name, value): self._store[name] = value
+       def set_boolean(self, name, value): self._store[name] = value
+   Gio.Settings = type('Settings', (), {'new': MockSettings})
+   ```
+
+2. **Suppressing Graphical Popups**: To prevent real windows or message boxes (`Adw.MessageDialog` or `Adw.AlertDialog`) from rendering or popping up on the developer's screen during test execution, always mock their `.present()` method:
+   ```python
+   monkeypatch.setattr(Adw.MessageDialog, 'present', lambda self: None)
+   monkeypatch.setattr(Adw.AlertDialog, 'present', lambda self, parent=None: None)
+   ```
+
+---
+
+## Performance Benchmarking
+
+Tavern uses `pytest-benchmark` to measure and track performance metrics.
+
+### Running Benchmarks
+
+```bash
+pytest tests/test_benchmarks.py --benchmark-enable -v
+```
+*(Note: Benchmarks are disabled by default in standard `pytest` runs to keep testing runs fast).*
+
+### Key Performance Targets
+- **Package Construction**: Evaluates the PyGObject batch-initialization (`super().__init__(**props)`) speed for bulk package listings.
+- **Search Latency**: Times substring filter operations on loaded lists of formulae and casks.
+- **Cache I/O**: Benchmarks JSON cache database persistence speeds on disk.
+- **Ruby AST Parsing**: Times regex-based `.rb` metadata extraction vs spawning Ruby shell subprocesses.
 
 ## C vs Python — Why We Stay in Python
 
