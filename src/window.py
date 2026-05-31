@@ -14,27 +14,30 @@ _log = get_logger('window')
 
 # These imports register the GTypes BEFORE the window template is parsed.
 # GTK needs to know about these custom widget types when building the UI.
-from .browse_page import PasarBrowsePage      # noqa: F401
-from .search_page import PasarSearchPage      # noqa: F401
-from .installed_page import PasarInstalledPage  # noqa: F401
-from .global_progress import PasarGlobalProgress # noqa: F401
-from .brewfile_page import PasarBrewfilePage  # noqa: F401
+from .browse_page import TavernBrowsePage      # noqa: F401
+from .search_page import TavernSearchPage      # noqa: F401
+from .installed_page import TavernInstalledPage  # noqa: F401
+from .tap_page import TavernTapPage            # noqa: F401
+from .global_progress import TavernGlobalProgress # noqa: F401
+from .brewfile_page import TavernBrewfilePage  # noqa: F401
 from .updates_card import UpdatesCard  # noqa: F401
-from .version_history_dialog import PasarVersionHistoryDialog  # noqa: F401
+from .version_history_dialog import TavernVersionHistoryDialog  # noqa: F401
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/window.ui')
-class PasarWindow(Adw.ApplicationWindow):
-    __gtype_name__ = 'PasarWindow'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/window.ui')
+class TavernWindow(Adw.ApplicationWindow):
+    __gtype_name__ = 'TavernWindow'
 
     toast_overlay = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     browse_page = Gtk.Template.Child()
     search_page = Gtk.Template.Child()
     installed_page = Gtk.Template.Child()
+    tap_page = Gtk.Template.Child()
     main_stack = Gtk.Template.Child()
     task_button = Gtk.Template.Child()
-    global_progress = Gtk.Template.Child()
+    task_indicator_stack = Gtk.Template.Child()
+    task_count_label = Gtk.Template.Child()
     navigation_view = Gtk.Template.Child()
 
     def __init__(self, package_to_open=None, **kwargs):
@@ -42,13 +45,14 @@ class PasarWindow(Adw.ApplicationWindow):
         init_start = time.perf_counter()
         
         super().__init__(**kwargs)
-        _log.info('PasarWindow.__init__: starting')
+        _log.info('TavernWindow.__init__: starting')
 
         # Store deeplink target
         self._package_to_open = package_to_open
         self._formulae_loaded = False
         self._casks_loaded = False
         self._brewfile_page_count = 0  # Counter for unique brewfile tab names
+        self._open_brewfiles = {}  # page_name -> abs_path
         # Track initial fetching
         self._initial_load_done = False
 
@@ -81,17 +85,26 @@ class PasarWindow(Adw.ApplicationWindow):
         self.browse_page.set_backend(self.backend)
         self.search_page.set_backend(self.backend)
         self.installed_page.set_backend_and_manager(self.backend, self.task_manager)
+        self.tap_page.set_backend(self.backend)
 
         # Wire package open signal from pages
         self.browse_page.connect('package-activated', self._on_package_activated)
         self.search_page.connect('package-activated', self._on_package_activated)
         self.installed_page.connect('package-activated', self._on_package_activated)
+        self.tap_page.connect('package-activated', self._on_package_activated)
+        self.tap_page.connect('tap-operation', self._on_tap_operation)
         self.installed_page.connect('outdated-count-changed', self._on_outdated_count_changed)
 
-        # Wire package install signals from inline tile buttons
+        # Wire package install/remove signals from inline tile buttons
         self.browse_page.connect('install-requested', self._on_install_requested)
         self.search_page.connect('install-requested', self._on_install_requested)
         self.installed_page.connect('install-requested', self._on_install_requested)
+        self.tap_page.connect('install-requested', self._on_install_requested)
+
+        self.browse_page.connect('remove-requested', self._on_remove_requested)
+        self.search_page.connect('remove-requested', self._on_remove_requested)
+        self.installed_page.connect('remove-requested', self._on_remove_requested)
+        self.tap_page.connect('remove-requested', self._on_remove_requested)
         pages_time = (time.perf_counter() - pages_start) * 1000
         _log.info('Pages wired: %.1f ms', pages_time)
 
@@ -110,7 +123,7 @@ class PasarWindow(Adw.ApplicationWindow):
 
         # Settings for size persistence
         settings_start = time.perf_counter()
-        self._settings = Gio.Settings.new('dev.hanthor.Pasar')
+        self._settings = Gio.Settings.new('dev.hanthor.Tavern')
         self.set_default_size(
             self._settings.get_int('window-width'),
             self._settings.get_int('window-height'),
@@ -134,7 +147,7 @@ class PasarWindow(Adw.ApplicationWindow):
         _log.info('Backend.load_all_async() started: %.1f ms', backend_load_time)
         
         total_init_time = (time.perf_counter() - init_start) * 1000
-        _log.info('PasarWindow.__init__: completed in %.1f ms', total_init_time)
+        _log.info('TavernWindow.__init__: completed in %.1f ms', total_init_time)
 
     def _find_package_by_name(self, package_name):
         target = (package_name or '').strip().lower()
@@ -185,9 +198,14 @@ class PasarWindow(Adw.ApplicationWindow):
                 f'{verb}: {pkg.display_name or pkg.name}'
             ))
         elif task.status == TaskStatus.FAILED:
-            self.toast_overlay.add_toast(Adw.Toast.new(
-                f'Failed: {pkg.display_name or pkg.name}'
-            ))
+            if task.ambiguous_taps:
+                self._offer_ambiguous_tap_choice(task)
+            elif task.conflict_info:
+                self._offer_tap_conflict_resolution(task)
+            else:
+                self.toast_overlay.add_toast(Adw.Toast.new(
+                    f'Failed: {pkg.display_name or pkg.name}'
+                ))
         # Refresh installed page
         self.installed_page.refresh(self.backend)
 
@@ -195,28 +213,20 @@ class PasarWindow(Adw.ApplicationWindow):
         count = mgr.active_count
         if count > 0:
             self.task_button.set_tooltip_text(f'{count} task{"s" if count != 1 else ""} running')
-            self.task_button.set_can_target(True)
-            self.global_progress.props.active = True
+            self.task_indicator_stack.set_visible_child_name('active')
+            self.task_count_label.set_label(str(count))
+            self.task_count_label.set_visible(True)
         else:
             self.task_button.set_tooltip_text('Downloads & Tasks')
-            self.task_button.set_can_target(False)
-            self.global_progress.props.active = False
-            self.global_progress.props.fraction = 0.0
+            self.task_indicator_stack.set_visible_child_name('idle')
+            self.task_count_label.set_visible(False)
 
     def _on_task_progress_changed(self, mgr, task):
-        # Calculate overall progress of active tasks
-        active_tasks = [t for t in mgr.tasks if t.is_active]
-        if not active_tasks:
-            self.global_progress.props.fraction = 0.0
-            return
-        
-        total_progress = sum(t.progress for t in active_tasks)
-        avg_progress = total_progress / len(active_tasks)
-        self.global_progress.props.fraction = avg_progress
+        pass  # progress visible in task panel and tile inline bar
 
     def _on_task_button_clicked(self, button):
-        from .task_panel import PasarTaskPanel
-        panel = PasarTaskPanel(task_manager=self.task_manager)
+        from .task_panel import TavernTaskPanel
+        panel = TavernTaskPanel(task_manager=self.task_manager)
         panel.present(self)
 
     # ── Package / data signals ───────────────────────────────────
@@ -279,8 +289,8 @@ class PasarWindow(Adw.ApplicationWindow):
 
     def _on_package_activated(self, page, package):
         _log.debug('Package activated: %s (%s)', package.name, package.pkg_type)
-        from .package_details import PasarPackageDetails
-        dialog = PasarPackageDetails(
+        from .package_details import TavernPackageDetails
+        dialog = TavernPackageDetails(
             package=package,
             backend=self.backend,
             task_manager=self.task_manager,
@@ -294,14 +304,139 @@ class PasarWindow(Adw.ApplicationWindow):
         # Refresh installed page when something is installed/removed
         self.installed_page.refresh(self.backend)
 
+    def _offer_ambiguous_tap_choice(self, task):
+        """Show a dialog letting the user pick which tap to install from."""
+        pkg = task.package
+        options = task.ambiguous_taps  # ['user/tap/name', ...]
+
+        dialog = Adw.AlertDialog()
+        dialog.set_heading('Choose a Tap')
+        dialog.set_body(
+            f'"{pkg.display_name or pkg.name}" is available from multiple taps.\n'
+            'Choose which one to install from:'
+        )
+        dialog.add_response('cancel', 'Cancel')
+        dialog.set_close_response('cancel')
+
+        listbox = Gtk.ListBox()
+        listbox.add_css_class('boxed-list')
+        listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        listbox.set_margin_top(8)
+
+        for qualified in options:
+            # Parse tap name from fully-qualified: user/repo/pkg → user/repo
+            parts = qualified.rsplit('/', 1)
+            tap_name = parts[0] if len(parts) == 2 else qualified
+            row = Adw.ActionRow()
+            row.set_title(qualified)
+            row.set_subtitle(f'from tap: {tap_name}')
+            row._qualified = qualified
+            listbox.append(row)
+
+        # Select first row by default
+        first = listbox.get_row_at_index(0)
+        if first:
+            listbox.select_row(first)
+
+        dialog.set_extra_child(listbox)
+        dialog.add_response('install', 'Install')
+        dialog.set_response_appearance('install', Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response('install')
+        dialog.connect('response', self._on_ambiguous_tap_response, listbox, pkg)
+        dialog.present(self)
+
+    def _on_ambiguous_tap_response(self, dialog, response, listbox, pkg):
+        if response != 'install':
+            return
+        row = listbox.get_selected_row()
+        if not row:
+            return
+        qualified = getattr(row, '_qualified', None)
+        if not qualified:
+            return
+        _log.info('User chose qualified install: %s', qualified)
+        self.task_manager.install_qualified(pkg, qualified)
+
+    def _offer_tap_conflict_resolution(self, task):
+        """Show a dialog offering to switch taps when a multi-tap conflict occurs."""
+        pkg = task.package
+        info = task.conflict_info
+        installed_tap = info['installed_tap']
+        target_tap    = info['target_tap']
+        is_core = target_tap in ('homebrew/core', 'homebrew/cask')
+
+        dialog = Adw.AlertDialog()
+        dialog.set_heading('Tap Conflict')
+        dialog.set_body(
+            f'"{pkg.display_name or pkg.name}" is already installed from the '
+            f'{installed_tap} tap.\n\n'
+            + (
+                f'Would you like to uninstall it from {installed_tap} and reinstall '
+                f'from {target_tap}?'
+                if is_core else
+                f'Formulae with the same name from different taps cannot both be installed.'
+            )
+        )
+        dialog.add_response('cancel', 'Cancel')
+        if is_core:
+            dialog.add_response('switch', f'Switch to {target_tap}')
+            dialog.set_response_appearance('switch', Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response('cancel')
+        dialog.set_close_response('cancel')
+        dialog.connect('response', self._on_conflict_resolution, task)
+        dialog.present(self)
+
+    def _on_conflict_resolution(self, dialog, response, task):
+        if response != 'switch':
+            return
+        pkg = task.package
+        _log.info('Switching tap for %s: uninstall then reinstall', pkg.name)
+        # Run uninstall then re-queue install
+        def after_uninstall(success, _msg):
+            if success:
+                self.task_manager.install(pkg)
+            else:
+                self.toast_overlay.add_toast(Adw.Toast.new(
+                    f'Failed to uninstall {pkg.name} for tap switch'
+                ))
+        self.task_manager.remove(pkg)
+        # We can't easily chain after remove via task_manager signals here,
+        # so use the backend directly for the uninstall + then install
+        # Actually re-queue properly via task_manager signal
+        self._pending_reinstall = pkg
+        if not hasattr(self, '_conflict_conn'):
+            self._conflict_conn = self.task_manager.connect(
+                'task-finished', self._on_conflict_uninstall_finished
+            )
+
+    def _on_conflict_uninstall_finished(self, mgr, task):
+        from .task_manager import TaskOperation, TaskStatus
+        pkg = getattr(self, '_pending_reinstall', None)
+        if not pkg or task.package is not pkg or task.operation != TaskOperation.REMOVE:
+            return
+        self._pending_reinstall = None
+        if task.status == TaskStatus.COMPLETED:
+            self.task_manager.install(pkg)
+        else:
+            self.toast_overlay.add_toast(Adw.Toast.new(
+                f'Could not uninstall {pkg.name} — tap switch cancelled'
+            ))
+
+    def _on_tap_operation(self, page, message):
+        self.toast_overlay.add_toast(Adw.Toast.new(message))
+
     def _on_install_requested(self, page, package):
         _log.info('Install requested from page: %s (%s)', package.name, package.pkg_type)
         self.task_manager.install(package)
 
+    def _on_remove_requested(self, page, package):
+        _log.info('Remove requested from page: %s (%s)', package.name, package.pkg_type)
+        self.task_manager.remove(package)
+
     def _on_package_history_requested(self, card, package):
         """Open version history dialog for a package."""
         _log.debug('Package history requested: %s', package.name)
-        version_dialog = PasarVersionHistoryDialog(
+        version_dialog = TavernVersionHistoryDialog(
             package=package,
             backend=self.backend,
         )
@@ -397,8 +532,8 @@ class PasarWindow(Adw.ApplicationWindow):
         title = title.capitalize()
         
         # Create brewfile page
-        from .brewfile_page import PasarBrewfilePage
-        brewfile_page = PasarBrewfilePage()
+        from .brewfile_page import TavernBrewfilePage
+        brewfile_page = TavernBrewfilePage()
         brewfile_page.set_backend_and_manager(self.backend, self.task_manager)
         
         # Connect signals

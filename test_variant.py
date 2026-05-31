@@ -9,7 +9,7 @@ try:
         "name": GLib.Variant("s", "Test Pkg"),
         "description": GLib.Variant("s", "Desc")
     }
-    icon_name = "dev.hanthor.Pasar-symbolic"
+    icon_name = "dev.hanthor.Tavern-symbolic"
     v = GLib.Icon.new_for_string(icon_name).serialize()
     # serialize returns a variant, usually (sv) or similar.
     # What type is returned by serialize()?

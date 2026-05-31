@@ -1,6 +1,7 @@
 # task_manager.py - Centralized installation/removal task manager
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import re
 import subprocess
 import threading
 import time
@@ -36,8 +37,18 @@ _PHASE_PATTERNS = [
 ]
 
 
+# Matches brew download progress bars: "######  15.3%"
+_DOWNLOAD_BAR_RE = re.compile(r'^[#\s]{4,}\s+(\d+\.?\d*)\s*%\s*$')
+
+
 def _parse_phase(line):
     """Parse a line of brew output and return (label, fraction) or None."""
+    # Download progress bar — e.g. "######  15.3%" — map to 0.05–0.35 range
+    m = _DOWNLOAD_BAR_RE.match(line.strip())
+    if m:
+        pct = float(m.group(1))
+        return 'Downloading…', 0.05 + (pct / 100.0) * 0.30
+
     for pattern, label, frac in _PHASE_PATTERNS:
         if pattern.lower() in line.lower():
             return label, frac
@@ -66,16 +77,34 @@ class TaskOperation:
         }.get(op, op.title())
 
 
+# "X was installed from tap A but you are trying to install from tap B"
+_MULTI_TAP_RE = re.compile(
+    r'(\S+) was installed from the (\S+) tap\s+'
+    r'but you are trying to install it from the (\S+) tap',
+    re.IGNORECASE,
+)
+
+# "X exists in multiple taps: * tap/a/x  * tap/b/x"
+_AMBIGUOUS_TAP_RE = re.compile(r'^\s*\*\s+([\w\-./]+)', re.MULTILINE)
+
+
 class Task(GObject.Object):
     """A single package operation tracked by the TaskManager."""
 
-    __gtype_name__ = 'PasarTask'
+    __gtype_name__ = 'TavernTask'
 
     # Properties observable from UI
     status       = GObject.Property(type=str, default=TaskStatus.PENDING)
     progress     = GObject.Property(type=float, default=0.0)   # 0.0 – 1.0
     status_text  = GObject.Property(type=str, default='Waiting…')
     error_detail = GObject.Property(type=str, default='')
+
+    # Set when a multi-tap conflict is detected: {'installed_tap': str, 'target_tap': str}
+    conflict_info = None
+    # Set when a formula/cask exists in multiple taps: [fully/qualified/name, ...]
+    ambiguous_taps = None
+    # Fully-qualified install name override (e.g. 'ublue-os/tap/antigravity-cli-linux')
+    qualified_install_name = None
 
     __gsignals__ = {
         'finished': (GObject.SignalFlags.RUN_LAST, None, (bool,)),  # success
@@ -102,30 +131,41 @@ class Task(GObject.Object):
         self.status = TaskStatus.RUNNING
         self.status_text = 'Starting…'
         self.progress = 0.05
+        self.package.task_active   = True
+        self.package.task_progress = 0.05
+        self.package.task_label    = 'Starting…'
 
     def _update_phase(self, label, fraction):
         self.status_text = label
-        # Only move forward
         if fraction > self.progress:
             self.progress = fraction
+        self.package.task_label = label
+        if fraction > self.package.task_progress:
+            self.package.task_progress = fraction
 
     def _set_completed(self):
         self.status = TaskStatus.COMPLETED
         self.progress = 1.0
         self.status_text = 'Done'
+        self.package.task_active   = False
+        self.package.task_progress = 0.0
+        self.package.task_label    = ''
         self.emit('finished', True)
 
     def _set_failed(self, detail=''):
         self.status = TaskStatus.FAILED
         self.error_detail = detail
         self.status_text = 'Failed'
+        self.package.task_active   = False
+        self.package.task_progress = 0.0
+        self.package.task_label    = ''
         self.emit('finished', False)
 
 
 class TaskManager(GObject.Object):
     """Singleton-ish manager that owns all tasks and runs them sequentially."""
 
-    __gtype_name__ = 'PasarTaskManager'
+    __gtype_name__ = 'TavernTaskManager'
 
     active_count = GObject.Property(type=int, default=0)
 
@@ -197,9 +237,13 @@ class TaskManager(GObject.Object):
         GLib.idle_add(task._set_running)
 
         args = [task.operation]
-        if task.package.pkg_type == 'cask':
-            args.append('--cask')
-        args.append(task.package.name)
+        if task.qualified_install_name:
+            # Fully-qualified name already encodes the tap; no --cask/--formula needed
+            args.append(task.qualified_install_name)
+        else:
+            if task.package.pkg_type == 'cask':
+                args.append('--cask')
+            args.append(task.package.name)
         cmd = _brew_cmd(args)
         _log.info('Running brew command: %s', ' '.join(cmd))
 
@@ -227,12 +271,13 @@ class TaskManager(GObject.Object):
                       task.title, process.returncode, len(task._output_lines))
 
             if success:
-                self._update_package_state(task)
-                GLib.idle_add(task._set_completed)
+                GLib.idle_add(self._apply_task_success, task)
             else:
                 detail = self._extract_error(task._output_lines)
+                conflict = self._detect_multi_tap_conflict(task._output_lines)
+                ambiguous = self._detect_ambiguous_taps(task._output_lines)
                 _log.warning('Task failed: %s — %s', task.title, detail[:200])
-                GLib.idle_add(task._set_failed, detail)
+                GLib.idle_add(self._apply_task_failure, task, detail, conflict, ambiguous)
 
         except Exception as e:
             _log.exception('Exception running task %s', task.title)
@@ -248,6 +293,26 @@ class TaskManager(GObject.Object):
         self.emit('task-finished', task)
         # Schedule next queued task
         self._maybe_start_next()
+
+    def _apply_task_success(self, task):
+        self._update_package_state(task)
+        task._set_completed()
+
+    def _apply_task_failure(self, task, detail, conflict, ambiguous):
+        if conflict:
+            installed_tap, target_tap = conflict
+            task.conflict_info = {
+                'installed_tap': installed_tap,
+                'target_tap': target_tap,
+            }
+            _log.info('Multi-tap conflict for %s: installed from %s, tried %s',
+                      task.package.name, installed_tap, target_tap)
+
+        if ambiguous:
+            task.ambiguous_taps = ambiguous
+            _log.info('Ambiguous taps for %s: %s', task.package.name, ambiguous)
+            
+        task._set_failed(detail)
 
     def _update_package_state(self, task):
         """Update the Package object + backend installed sets after a successful op."""
@@ -286,5 +351,28 @@ class TaskManager(GObject.Object):
                 break
         if error_lines:
             return '\n'.join(error_lines)
-        # Fallback: last few lines
         return '\n'.join(lines[-4:]) if lines else 'Unknown error'
+
+    @staticmethod
+    def _detect_multi_tap_conflict(lines):
+        """Return (installed_tap, target_tap) if a multi-tap conflict is present, else None."""
+        text = '\n'.join(lines)
+        m = _MULTI_TAP_RE.search(text)
+        if m:
+            return m.group(2), m.group(3)
+        return None
+
+    @staticmethod
+    def _detect_ambiguous_taps(lines):
+        """Return list of fully-qualified names if an ambiguous-tap error is present, else None."""
+        text = '\n'.join(lines)
+        if 'exists in multiple taps' not in text.lower():
+            return None
+        matches = _AMBIGUOUS_TAP_RE.findall(text)
+        return matches if len(matches) >= 2 else None
+
+    def install_qualified(self, package, qualified_name):
+        """Install a package using a fully-qualified tap/name, e.g. ublue-os/tap/foo."""
+        task = self.submit(package, TaskOperation.INSTALL)
+        task.qualified_install_name = qualified_name
+        return task

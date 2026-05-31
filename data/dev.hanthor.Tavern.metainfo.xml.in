@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>dev.hanthor.Pasar</id>
+  <id>dev.hanthor.Tavern</id>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  <name>Pasar</name>
+  <name>Tavern</name>
   <summary>Browse and install Homebrew packages</summary>
   <description>
     <p>
-      Pasar is a graphical app store for Homebrew, letting you browse, search,
+      Tavern is a graphical app store for Homebrew, letting you browse, search,
       install, and remove both formulae and casks with a beautiful GNOME interface.
     </p>
   </description>
-  <url type="homepage">https://github.com/hanthor/pasar</url>
+  <url type="homepage">https://github.com/hanthor/tavern</url>
   <content_rating type="oars-1.1" />
   <releases>
     <release version="0.1.0" date="2026-02-28">

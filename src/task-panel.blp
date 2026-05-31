@@ -1,10 +1,10 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $PasarTaskPanel: Adw.Dialog {
+template $TavernTaskPanel: Adw.Dialog {
   title: "Downloads & Tasks";
-  content-width: 420;
-  content-height: 500;
+  content-width: 440;
+  content-height: 520;
 
   child: Adw.ToolbarView {
     [top]
@@ -16,6 +16,8 @@ template $PasarTaskPanel: Adw.Dialog {
         icon-name: "edit-clear-all-symbolic";
         tooltip-text: "Clear Completed";
         visible: false;
+
+        styles ["flat"]
       }
     }
 
@@ -37,14 +39,25 @@ template $PasarTaskPanel: Adw.Dialog {
 
         child: ScrolledWindow {
           hscrollbar-policy: never;
+          vexpand: true;
 
-          child: Box task_list_box {
-            orientation: vertical;
-            spacing: 0;
-            margin-start: 12;
-            margin-end: 12;
-            margin-top: 8;
-            margin-bottom: 8;
+          child: Adw.Clamp {
+            maximum-size: 500;
+
+            child: Box {
+              orientation: vertical;
+              margin-start: 12;
+              margin-end: 12;
+              margin-top: 12;
+              margin-bottom: 12;
+              spacing: 0;
+
+              ListBox task_list_box {
+                selection-mode: none;
+
+                styles ["boxed-list"]
+              }
+            };
           };
         };
       }

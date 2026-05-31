@@ -1,3 +1,0 @@
-[D-BUS Service]
-Name=dev.hanthor.Pasar
-Exec=@bindir@/pasar --gapplication-service

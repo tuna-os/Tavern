@@ -26,7 +26,7 @@ flatpak-INFO: 11:14:43.542: Opening system flatpak installation at path /var/lib
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	filesystems=home;/home/linuxbrew:ro;
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	[Session Bus Policy]
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	org.freedesktop.Flatpak=talk
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	dev.hanthor.Pasar.SearchProvider=own
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	dev.hanthor.Tavern.SearchProvider=own
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	[Environment]
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	ALSA_CONFIG_PATH=/usr/share/alsa/alsa-flatpak.conf
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	GI_TYPELIB_PATH=/app/lib/girepository-1.0
@@ -53,7 +53,7 @@ flatpak-INFO: 11:14:43.542: Opening system flatpak installation at path /var/lib
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	filesystems=home;/home/linuxbrew:ro;
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	[Session Bus Policy]
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	org.freedesktop.Flatpak=talk
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	dev.hanthor.Pasar.SearchProvider=own
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	dev.hanthor.Tavern.SearchProvider=own
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	[Environment]
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	ALSA_CONFIG_PATH=/usr/share/alsa/alsa-flatpak.conf
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.543: 	GI_TYPELIB_PATH=/app/lib/girepository-1.0
@@ -69,8 +69,8 @@ flatpak-INFO: 11:14:43.558: /var/lib/flatpak/runtime/org.gnome.Platform/x86_64/4
 flatpak-INFO: 11:14:43.562: Cleaning up unused container id 857386954
 flatpak-INFO: 11:14:43.562: Cleaning up per-app-ID state for org.gnome.NautilusPreviewer
 flatpak-INFO: 11:14:43.563: Allocated instance id 2451674570
-flatpak-INFO: 11:14:43.563: Add defaults in dir /dev/hanthor/Pasar/
-flatpak-INFO: 11:14:43.565: Add locks in dir /dev/hanthor/Pasar/
+flatpak-INFO: 11:14:43.563: Add defaults in dir /dev/hanthor/Tavern/
+flatpak-INFO: 11:14:43.565: Add locks in dir /dev/hanthor/Tavern/
 flatpak-INFO: 11:14:43.566: Allowing dri access
 flatpak-INFO: 11:14:43.566: Allowing homedir access
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.566: Trying to export read/write: /var/home/james
@@ -94,14 +94,14 @@ flatpak-INFO: 11:14:43.566: Allowing homedir access
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home/james/.var is not a symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home/james/.var/app is not a symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Will replace with tmpfs: /var/home/james/.var/app
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Trying to export read/write: /var/home/james/.var/app/dev.hanthor.Pasar
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Trying to export read/write: /var/home/james/.var/app/dev.hanthor.Tavern
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var is not a symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home is not a symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home/james is not a symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home/james/.var is not a symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home/james/.var/app is not a symlink
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home/james/.var/app/dev.hanthor.Pasar is not a symlink
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Will export read/write: /var/home/james/.var/app/dev.hanthor.Pasar
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home/james/.var/app/dev.hanthor.Tavern is not a symlink
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Will export read/write: /var/home/james/.var/app/dev.hanthor.Tavern
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Trying to replace with tmpfs: /var/home/james/.local/share/flatpak
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var is not a symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: /var/home is not a symlink
@@ -124,7 +124,7 @@ flatpak-INFO: 11:14:43.566: Allowing homedir access
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Parent of "/var/home/james/.local/share/flatpak" is mapped, creating tmpfs to shadow it
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: "/var/home/james/.var/app" is meant to be a tmpfs or empty directory
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Parent of "/var/home/james/.var/app" is mapped, creating tmpfs to shadow it
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: "/var/home/james/.var/app/dev.hanthor.Pasar" is meant to be shared (ro or rw) with the container
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.567: "/var/home/james/.var/app/dev.hanthor.Tavern" is meant to be shared (ro or rw) with the container
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: "/var/home/linuxbrew" is meant to be shared (ro or rw) with the container
 flatpak-INFO: 11:14:43.567: Allowing wayland access
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.567: Wayland display does not support security_context_manager_v1
@@ -206,10 +206,10 @@ flatpak-INFO: 11:14:43.567: Allowing wayland access
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     unix:path=/run/user/1000/bus
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     /run/user/1000/.dbus-proxy/session-bus-proxy-WEAXL3
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     --filter
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--own=dev.hanthor.Pasar.*'
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--own=org.mpris.MediaPlayer2.dev.hanthor.Pasar.*'
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--own=dev.hanthor.Tavern.*'
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--own=org.mpris.MediaPlayer2.dev.hanthor.Tavern.*'
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     --talk=org.freedesktop.Flatpak
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     --own=dev.hanthor.Pasar.SearchProvider
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     --own=dev.hanthor.Tavern.SearchProvider
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--call=org.freedesktop.portal.*=*'
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--broadcast=org.freedesktop.portal.*=@/org/freedesktop/portal/*'
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     unix:path=/run/user/1000/at-spi/bus
@@ -226,7 +226,7 @@ flatpak-INFO: 11:14:43.567: Allowing wayland access
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     --call=org.a11y.atspi.Registry=org.a11y.atspi.DeviceEventController.NotifyListenersSync@/org/a11y/atspi/registry/deviceeventcontroller
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     --call=org.a11y.atspi.Registry=org.a11y.atspi.DeviceEventController.NotifyListenersAsync@/org/a11y/atspi/registry/deviceeventcontroller
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     --filter
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--call=dev.hanthor.Pasar.Sandboxed.*=org.a11y.atspi.Socket.Embedded'
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.612:     '--call=dev.hanthor.Tavern.Sandboxed.*=org.a11y.atspi.Socket.Embedded'
 flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-dbus-proxy --args=42'
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.622: bwrap --args 40 = ...
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     --ro-bind
@@ -235,7 +235,7 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     --lock-file
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     /usr/.ref
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     --ro-bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Pasar/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Tavern/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     /app
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     --lock-file
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.623:     /app/.ref
@@ -634,16 +634,16 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/lib/flatpak/runtime/org.gnome.Platform/x86_64/49/c97a19249ae151244a123538628d10aa41ddce6f2af64d8b3c010838a3e9ccaf/files/etc/xdg
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /etc/xdg
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Pasar/cache
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Tavern/cache
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/cache
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Pasar/data
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Tavern/data
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/data
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Pasar/config
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Tavern/config
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/config
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Pasar/cache/tmp
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/home/james/.var/app/dev.hanthor.Tavern/cache/tmp
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     /var/tmp
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.625:     --symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     usr/bin
@@ -717,10 +717,10 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --info-fd
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     34
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/.flatpak/dev.hanthor.Pasar/xdg-run
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/.flatpak/dev.hanthor.Tavern/xdg-run
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/doc/by-app/dev.hanthor.Pasar
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/doc/by-app/dev.hanthor.Tavern
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/flatpak/doc
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --dev
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /dev
@@ -728,11 +728,11 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /dev/dri
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /dev/dri
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/.flatpak/dev.hanthor.Pasar/tmp
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/.flatpak/dev.hanthor.Tavern/tmp
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /tmp
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/app/dev.hanthor.Pasar
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/flatpak/app/dev.hanthor.Pasar
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/app/dev.hanthor.Tavern
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/flatpak/app/dev.hanthor.Tavern
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --symlink
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     var/home
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /home
@@ -744,8 +744,8 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --tmpfs
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.var/app
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.var/app/dev.hanthor.Pasar
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.var/app/dev.hanthor.Pasar
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.var/app/dev.hanthor.Tavern
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.var/app/dev.hanthor.Tavern
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --ro-bind
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/linuxbrew
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/linuxbrew
@@ -754,7 +754,7 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/host/os-release
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --ro-bind
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.config/user-dirs.dirs
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.var/app/dev.hanthor.Pasar/config/user-dirs.dirs
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /var/home/james/.var/app/dev.hanthor.Tavern/config/user-dirs.dirs
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --ro-bind
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/wayland-0
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/flatpak/wayland-0
@@ -769,7 +769,7 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --sync-fd
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     39
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --ro-bind
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/.flatpak/dev.hanthor.Pasar/.ref
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/user/1000/.flatpak/dev.hanthor.Tavern/.ref
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/flatpak/per-app-dirs-ref
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     --lock-file
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.626:     /run/flatpak/per-app-dirs-ref
@@ -850,10 +850,10 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     1
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     FLATPAK_ID
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     dev.hanthor.Pasar
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     dev.hanthor.Tavern
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     FLATPAK_SANDBOX_DIR
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     /var/home/james/.var/app/dev.hanthor.Pasar/sandbox
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     /var/home/james/.var/app/dev.hanthor.Tavern/sandbox
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     GDMSESSION
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.627:     gnome
@@ -964,7 +964,7 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     '[📦 $FLATPAK_ID \W]\$ '
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     PWD
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/dev/pasar
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/dev/tavern
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     PYTHONUSERBASE
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/data/python
@@ -1024,13 +1024,13 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /run/user/1000/.mutter-Xwaylandauth.QG3VL3
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XDG_CACHE_HOME
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Pasar/cache
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Tavern/cache
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XDG_CONFIG_DIRS
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /app/etc/xdg:/etc/xdg
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XDG_CONFIG_HOME
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Pasar/config
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Tavern/config
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XDG_CURRENT_DESKTOP
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     GNOME
@@ -1039,7 +1039,7 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /app/share:/usr/share:/usr/share/runtime/share:/run/host/user-share:/run/host/share
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XDG_DATA_HOME
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Pasar/data
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Tavern/data
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XDG_MENU_PREFIX
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     gnome-
@@ -1054,7 +1054,7 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     wayland
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XDG_STATE_HOME
-(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Pasar/.local/state
+(flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /var/home/james/.var/app/dev.hanthor.Tavern/.local/state
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     XMODIFIERS
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     @im=ibus
@@ -1064,7 +1064,7 @@ flatpak-INFO: 11:14:43.612: Running '/usr/bin/bwrap --args 36 -- /usr/bin/xdg-db
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     --setenv
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     __EGL_EXTERNAL_PLATFORM_CONFIG_DIRS
 (flatpak run:59438): flatpak-DEBUG: 11:14:43.628:     /etc/egl/egl_external_platform.d:/usr/lib/x86_64-linux-gnu/GL/egl/egl_external_platform.d:/usr/share/egl/egl_external_platform.d
-flatpak-INFO: 11:14:43.628: Running '/usr/bin/bwrap --args 40 -- pasar'
+flatpak-INFO: 11:14:43.628: Running '/usr/bin/bwrap --args 40 -- tavern'
 (process:2): Gdk-DEBUG: 11:14:44.080: Using portal setting for org.gnome.fontconfig serial: 0
 (process:2): Gdk-DEBUG: 11:14:44.080: Ignoring portal setting for org.gnome.desktop.privacy disable-microphone
 (process:2): Gdk-DEBUG: 11:14:44.080: Ignoring portal setting for org.gnome.desktop.privacy disable-camera
@@ -1176,16 +1176,16 @@ flatpak-INFO: 11:14:43.628: Running '/usr/bin/bwrap --args 40 -- pasar'
 (process:2): Gdk-DEBUG: 11:14:44.081: Ignoring portal setting for org.gnome.settings-daemon.plugins.xsettings overrides
 (process:2): Gdk-DEBUG: 11:14:44.081: Ignoring portal setting for org.gnome.settings-daemon.plugins.xsettings disabled-gtk-modules
 (process:2): Gdk-DEBUG: 11:14:44.081: Ignoring portal setting for org.gnome.settings-daemon.plugins.xsettings enabled-gtk-modules
-(pasar:2): GVFS-DEBUG: 11:14:44.235: org.gtk.vfs.MountTracker.listMountableInfo call failed: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown (g-dbus-error-quark, 2)
+(tavern:2): GVFS-DEBUG: 11:14:44.235: org.gtk.vfs.MountTracker.listMountableInfo call failed: GDBus.Error:org.freedesktop.DBus.Error.ServiceUnknown: org.freedesktop.DBus.Error.ServiceUnknown (g-dbus-error-quark, 2)
 
-(pasar:2): GLib-GIO-DEBUG: 11:14:44.235: _g_io_module_get_default: Found default implementation local (GLocalVfs) for ‘gio-vfs’
+(tavern:2): GLib-GIO-DEBUG: 11:14:44.235: _g_io_module_get_default: Found default implementation local (GLocalVfs) for ‘gio-vfs’
 
-(pasar:2): Gtk-WARNING **: 11:14:44.389: Theme parser error: style.css:27:3-9: No property named "cursor"
+(tavern:2): Gtk-WARNING **: 11:14:44.389: Theme parser error: style.css:27:3-9: No property named "cursor"
 
-(pasar:2): Gtk-WARNING **: 11:14:44.389: Theme parser error: style.css:27:3-9: No property named "cursor"
-(pasar:2): GLib-GIO-DEBUG: 11:14:44.425: _g_io_module_get_default: Found default implementation keyfile (GKeyfileSettingsBackend) for ‘gsettings-backend’
+(tavern:2): Gtk-WARNING **: 11:14:44.389: Theme parser error: style.css:27:3-9: No property named "cursor"
+(tavern:2): GLib-GIO-DEBUG: 11:14:44.425: _g_io_module_get_default: Found default implementation keyfile (GKeyfileSettingsBackend) for ‘gsettings-backend’
 
-(pasar:2): Gtk-WARNING **: 11:14:44.428: Theme parser error: style.css:27:3-9: No property named "cursor"
+(tavern:2): Gtk-WARNING **: 11:14:44.428: Theme parser error: style.css:27:3-9: No property named "cursor"
 Gdk-INFO: 11:14:44.533: Vulkan: Loader Message: linux_read_sorted_physical_devices:
 Gdk-INFO: 11:14:44.533: Vulkan: Loader Message:      Original order:
 Gdk-INFO: 11:14:44.533: Vulkan: Loader Message:            [0] Intel(R) Arc(tm) Graphics (MTL)
@@ -1208,10 +1208,10 @@ Gdk-INFO: 11:14:44.534: Vulkan: Loader Message:            [0] Intel(R) Arc(tm) 
 Gdk-INFO: 11:14:44.534: Vulkan: Loader Message:            [1] Intel(R) Arc(tm) Graphics (MTL)  
 Gdk-INFO: 11:14:44.534: Vulkan: Loader Message:            [2] llvmpipe (LLVM 21.1.8, 256 bits)  
 Gdk-INFO: 11:14:44.534: Vulkan: Loader Message:            [3] llvmpipe (LLVM 21.1.8, 256 bits)  
-(pasar:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 0 into new device 0
-(pasar:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 1 into new device 1
-(pasar:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 2 into new device 2
-(pasar:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 3 into new device 3
+(tavern:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 0 into new device 0
+(tavern:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 1 into new device 1
+(tavern:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 2 into new device 2
+(tavern:2): Gdk-DEBUG: 11:14:44.534: Vulkan: Loader Message: Copying old device 3 into new device 3
 Gdk-INFO: 11:14:44.535: Vulkan: Loader Message: linux_read_sorted_physical_devices:
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:      Original order:
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [0] Intel(R) Arc(tm) Graphics (MTL)
@@ -1223,10 +1223,10 @@ Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [0] Intel(R) Arc(tm) 
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [1] Intel(R) Arc(tm) Graphics (MTL)  
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [2] llvmpipe (LLVM 21.1.8, 256 bits)  
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [3] llvmpipe (LLVM 21.1.8, 256 bits)  
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 0 into new device 0
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 1 into new device 1
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 2 into new device 2
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 3 into new device 3
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 0 into new device 0
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 1 into new device 1
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 2 into new device 2
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 3 into new device 3
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message: linux_read_sorted_physical_devices:
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:      Original order:
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [0] Intel(R) Arc(tm) Graphics (MTL)
@@ -1238,10 +1238,10 @@ Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [0] Intel(R) Arc(tm) 
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [1] Intel(R) Arc(tm) Graphics (MTL)  
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [2] llvmpipe (LLVM 21.1.8, 256 bits)  
 Gdk-INFO: 11:14:44.536: Vulkan: Loader Message:            [3] llvmpipe (LLVM 21.1.8, 256 bits)  
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 0 into new device 0
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 1 into new device 1
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 2 into new device 2
-(pasar:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 3 into new device 3
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 0 into new device 0
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 1 into new device 1
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 2 into new device 2
+(tavern:2): Gdk-DEBUG: 11:14:44.536: Vulkan: Loader Message: Copying old device 3 into new device 3
 Gdk-INFO: 11:14:44.537: Vulkan: Loader Message: Removing driver /usr/lib/x86_64-linux-gnu/GL/default/lib/libvulkan_intel_hasvk.so due to not having any physical devices
 Gdk-INFO: 11:14:44.538: Vulkan: Loader Message: Removing driver /usr/lib/x86_64-linux-gnu/GL/default/lib/libvulkan_nouveau.so due to not having any physical devices
 Gdk-INFO: 11:14:44.538: Vulkan: Loader Message: Removing driver /usr/lib/x86_64-linux-gnu/GL/default/lib/libvulkan_radeon.so due to not having any physical devices
@@ -1260,14 +1260,14 @@ Gdk-INFO: 11:14:44.539: Vulkan: Loader Message:    <Device>
 Gdk-INFO: 11:14:44.539: Vulkan: Loader Message:        Using "Intel(R) Arc(tm) Graphics (MTL)" with driver: "/usr/lib/x86_64-linux-gnu/GL/default/lib/libvulkan_intel.so"
 MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:993: FINISHME: support more multi-planar formats with DRM modifiers
 MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YUV colorspace with DRM format modifiers
-(pasar:2): Gtk-DEBUG: 11:14:44.849: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:44.850: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:44.850: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:44.851: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:44.853: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:44.859: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:44.859: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:44.860: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.849: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.850: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.850: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.851: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.853: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.859: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.859: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:44.860: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:44.896037Z[0m [34mDEBUG[0m [2mglycin::gobject[0m[2m:[0m Initialized logging
 [2m2026-03-03T05:44:44.898722Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m No existing loader/editor in pool. Spawning new one.
 [2m2026-03-03T05:44:44.898853Z[0m [34mDEBUG[0m [2mglycin::sandbox[0m[2m:[0m Setting prlimit to 6147702784 bytes
@@ -1301,7 +1301,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:44.935373Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	filesystems=home;/home/linuxbrew:ro;
 [2m2026-03-03T05:44:44.935378Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	[Session Bus Policy]
 [2m2026-03-03T05:44:44.935382Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	org.freedesktop.Flatpak=talk
-[2m2026-03-03T05:44:44.935389Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	dev.hanthor.Pasar.SearchProvider=own
+[2m2026-03-03T05:44:44.935389Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	dev.hanthor.Tavern.SearchProvider=own
 [2m2026-03-03T05:44:44.935392Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	[Environment]
 [2m2026-03-03T05:44:44.935396Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	ALSA_CONFIG_PATH=/usr/share/alsa/alsa-flatpak.conf
 [2m2026-03-03T05:44:44.935399Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.934: 	GI_TYPELIB_PATH=/app/lib/girepository-1.0
@@ -1355,7 +1355,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:44.946566Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     --lock-file
 [2m2026-03-03T05:44:44.946575Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     /usr/.ref
 [2m2026-03-03T05:44:44.946580Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     --ro-bind
-[2m2026-03-03T05:44:44.946586Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Pasar/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
+[2m2026-03-03T05:44:44.946586Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Tavern/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
 [2m2026-03-03T05:44:44.946592Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     /app
 [2m2026-03-03T05:44:44.946596Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     --lock-file
 [2m2026-03-03T05:44:44.946602Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.945:     /app/.ref
@@ -1657,7 +1657,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:44.948163Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     /app/bin:/usr/bin
 [2m2026-03-03T05:44:44.948167Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     --setenv
 [2m2026-03-03T05:44:44.948172Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     PWD
-[2m2026-03-03T05:44:44.948176Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     /var/home/james/dev/pasar
+[2m2026-03-03T05:44:44.948176Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     /var/home/james/dev/tavern
 [2m2026-03-03T05:44:44.948181Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     --setenv
 [2m2026-03-03T05:44:44.948185Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     SHELL
 [2m2026-03-03T05:44:44.948189Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.947:     /bin/sh
@@ -1686,8 +1686,8 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:44.996364Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.995: FIPS is disabled
 [2m2026-03-03T05:44:44.996394Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.995: /var/lib/flatpak/runtime/org.gnome.Platform/x86_64/49/c97a19249ae151244a123538628d10aa41ddce6f2af64d8b3c010838a3e9ccaf/files/lib32 does not exist
 [2m2026-03-03T05:44:44.999220Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.999: Allocated instance id 2069390727
-[2m2026-03-03T05:44:44.999815Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.999: Add defaults in dir /dev/hanthor/Pasar/
-[2m2026-03-03T05:44:44.999943Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.999: Add locks in dir /dev/hanthor/Pasar/
+[2m2026-03-03T05:44:44.999815Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.999: Add defaults in dir /dev/hanthor/Tavern/
+[2m2026-03-03T05:44:44.999943Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.999: Add locks in dir /dev/hanthor/Tavern/
 [2m2026-03-03T05:44:44.999986Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:44.999: Disallowing ipc access
 [2m2026-03-03T05:44:45.000000Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:44.999: Trying to replace with tmpfs: /var/home/james/.local/share/flatpak
 [2m2026-03-03T05:44:45.000092Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.000: /var is not a symlink
@@ -1715,7 +1715,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:45.043563Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     --lock-file
 [2m2026-03-03T05:44:45.043567Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     /usr/.ref
 [2m2026-03-03T05:44:45.043570Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     --ro-bind
-[2m2026-03-03T05:44:45.043573Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Pasar/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
+[2m2026-03-03T05:44:45.043573Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Tavern/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
 [2m2026-03-03T05:44:45.043577Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     /app
 [2m2026-03-03T05:44:45.043580Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     --lock-file
 [2m2026-03-03T05:44:45.043589Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.042:     /app/.ref
@@ -2281,10 +2281,10 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:45.046209Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     1
 [2m2026-03-03T05:44:45.046214Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     --setenv
 [2m2026-03-03T05:44:45.046224Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     FLATPAK_ID
-[2m2026-03-03T05:44:45.046229Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     dev.hanthor.Pasar
+[2m2026-03-03T05:44:45.046229Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     dev.hanthor.Tavern
 [2m2026-03-03T05:44:45.046233Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     --setenv
 [2m2026-03-03T05:44:45.046241Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     FLATPAK_SANDBOX_DIR
-[2m2026-03-03T05:44:45.046246Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     /var/home/james/.var/app/dev.hanthor.Pasar/sandbox
+[2m2026-03-03T05:44:45.046246Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     /var/home/james/.var/app/dev.hanthor.Tavern/sandbox
 [2m2026-03-03T05:44:45.046251Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     --setenv
 [2m2026-03-03T05:44:45.046256Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     GDMSESSION
 [2m2026-03-03T05:44:45.046762Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.046:     gnome
@@ -2395,7 +2395,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:45.048095Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     '[📦 $FLATPAK_ID \W]\$ '
 [2m2026-03-03T05:44:45.048099Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     --setenv
 [2m2026-03-03T05:44:45.048106Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     PWD
-[2m2026-03-03T05:44:45.048110Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     /var/home/james/dev/pasar
+[2m2026-03-03T05:44:45.048110Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     /var/home/james/dev/tavern
 [2m2026-03-03T05:44:45.048115Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     --setenv
 [2m2026-03-03T05:44:45.048125Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     PYTHONUSERBASE
 [2m2026-03-03T05:44:45.048130Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59555): flatpak-DEBUG: 11:14:45.048:     /var/data/python
@@ -2592,68 +2592,68 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:45.135155Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
 [2m2026-03-03T05:44:45.135181Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
 [2m2026-03-03T05:44:45.135189Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.136: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.137049Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
 [2m2026-03-03T05:44:45.137067Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.137327Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.137670Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.137: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.138335Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
 [2m2026-03-03T05:44:45.138408Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.138512Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.138: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.139821Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.139: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.139956Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
 [2m2026-03-03T05:44:45.140021Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from R16g16b16a16 to R8g8b8a8
-(pasar:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.140285Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.140: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.141809Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.141: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.142: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:45.143: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:45.144241Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 4.200173ms
 [2m2026-03-03T05:44:46.025536Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
 [2m2026-03-03T05:44:46.025852Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
@@ -2725,7 +2725,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.095730Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	filesystems=home;/home/linuxbrew:ro;
 [2m2026-03-03T05:44:46.095733Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	[Session Bus Policy]
 [2m2026-03-03T05:44:46.095736Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	org.freedesktop.Flatpak=talk
-[2m2026-03-03T05:44:46.095740Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	dev.hanthor.Pasar.SearchProvider=own
+[2m2026-03-03T05:44:46.095740Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	dev.hanthor.Tavern.SearchProvider=own
 [2m2026-03-03T05:44:46.095743Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	[Environment]
 [2m2026-03-03T05:44:46.095747Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	ALSA_CONFIG_PATH=/usr/share/alsa/alsa-flatpak.conf
 [2m2026-03-03T05:44:46.095750Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.095: 	GI_TYPELIB_PATH=/app/lib/girepository-1.0
@@ -2779,7 +2779,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.099056Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     --lock-file
 [2m2026-03-03T05:44:46.099059Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     /usr/.ref
 [2m2026-03-03T05:44:46.099063Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     --ro-bind
-[2m2026-03-03T05:44:46.099073Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Pasar/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
+[2m2026-03-03T05:44:46.099073Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Tavern/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
 [2m2026-03-03T05:44:46.099078Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     /app
 [2m2026-03-03T05:44:46.099082Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     --lock-file
 [2m2026-03-03T05:44:46.099130Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.099:     /app/.ref
@@ -3081,7 +3081,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.100966Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     /app/bin:/usr/bin
 [2m2026-03-03T05:44:46.100970Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     --setenv
 [2m2026-03-03T05:44:46.100978Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     PWD
-[2m2026-03-03T05:44:46.100982Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     /var/home/james/dev/pasar
+[2m2026-03-03T05:44:46.100982Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     /var/home/james/dev/tavern
 [2m2026-03-03T05:44:46.100989Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     --setenv
 [2m2026-03-03T05:44:46.100997Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     SHELL
 [2m2026-03-03T05:44:46.101001Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.100:     /bin/sh
@@ -3110,8 +3110,8 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.130945Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.130: FIPS is disabled
 [2m2026-03-03T05:44:46.130972Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.130: /var/lib/flatpak/runtime/org.gnome.Platform/x86_64/49/c97a19249ae151244a123538628d10aa41ddce6f2af64d8b3c010838a3e9ccaf/files/lib32 does not exist
 [2m2026-03-03T05:44:46.133953Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.133: Allocated instance id 1199755085
-[2m2026-03-03T05:44:46.133977Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.133: Add defaults in dir /dev/hanthor/Pasar/
-[2m2026-03-03T05:44:46.133982Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.133: Add locks in dir /dev/hanthor/Pasar/
+[2m2026-03-03T05:44:46.133977Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.133: Add defaults in dir /dev/hanthor/Tavern/
+[2m2026-03-03T05:44:46.133982Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.133: Add locks in dir /dev/hanthor/Tavern/
 [2m2026-03-03T05:44:46.134217Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.134: Disallowing ipc access
 [2m2026-03-03T05:44:46.134244Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.134: Trying to replace with tmpfs: /var/home/james/.local/share/flatpak
 [2m2026-03-03T05:44:46.134252Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.134: /var is not a symlink
@@ -3139,7 +3139,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.178736Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     --lock-file
 [2m2026-03-03T05:44:46.178738Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     /usr/.ref
 [2m2026-03-03T05:44:46.178742Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     --ro-bind
-[2m2026-03-03T05:44:46.178753Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Pasar/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
+[2m2026-03-03T05:44:46.178753Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     /var/home/james/.local/share/flatpak/app/dev.hanthor.Tavern/x86_64/master/08d9bac83988b95e44bdb05071a3a174cc29db1c72f30bb2551f3104313b6497/files
 [2m2026-03-03T05:44:46.178758Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     /app
 [2m2026-03-03T05:44:46.178761Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     --lock-file
 [2m2026-03-03T05:44:46.178769Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.178:     /app/.ref
@@ -3705,10 +3705,10 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.183488Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     1
 [2m2026-03-03T05:44:46.183490Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     --setenv
 [2m2026-03-03T05:44:46.183497Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     FLATPAK_ID
-[2m2026-03-03T05:44:46.183501Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     dev.hanthor.Pasar
+[2m2026-03-03T05:44:46.183501Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     dev.hanthor.Tavern
 [2m2026-03-03T05:44:46.183504Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     --setenv
 [2m2026-03-03T05:44:46.183507Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     FLATPAK_SANDBOX_DIR
-[2m2026-03-03T05:44:46.183509Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     /var/home/james/.var/app/dev.hanthor.Pasar/sandbox
+[2m2026-03-03T05:44:46.183509Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     /var/home/james/.var/app/dev.hanthor.Tavern/sandbox
 [2m2026-03-03T05:44:46.183512Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     --setenv
 [2m2026-03-03T05:44:46.183514Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     GDMSESSION
 [2m2026-03-03T05:44:46.183518Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     gnome
@@ -3819,7 +3819,7 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.183841Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     '[📦 $FLATPAK_ID \W]\$ '
 [2m2026-03-03T05:44:46.183843Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     --setenv
 [2m2026-03-03T05:44:46.183846Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     PWD
-[2m2026-03-03T05:44:46.183849Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     /var/home/james/dev/pasar
+[2m2026-03-03T05:44:46.183849Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     /var/home/james/dev/tavern
 [2m2026-03-03T05:44:46.183852Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     --setenv
 [2m2026-03-03T05:44:46.183856Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     PYTHONUSERBASE
 [2m2026-03-03T05:44:46.183858Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.182:     /var/data/python
@@ -3908,72 +3908,72 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:44:46.184113Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.183:     __EGL_EXTERNAL_PLATFORM_CONFIG_DIRS
 [2m2026-03-03T05:44:46.184115Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: (/usr/bin/flatpak run:59751): flatpak-DEBUG: 11:14:46.183:     /etc/egl/egl_external_platform.d:/usr/lib/x86_64-linux-gnu/GL/egl/egl_external_platform.d:/usr/share/egl/egl_external_platform.d
 [2m2026-03-03T05:44:46.184118Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m Loader stdout: flatpak-INFO: 11:14:46.183: Running '/usr/bin/bwrap --args 36 -- prlimit --as=6032791961 '/usr/libexec/glycin-loaders/2+/glycin-svg' --dbus-fd 51'
-(pasar:2): Gtk-DEBUG: 11:14:46.229: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.229: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.230: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.231727Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.231: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.231933Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
 [2m2026-03-03T05:44:46.231992Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.232162Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.232298Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.232415Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.232656Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
 [2m2026-03-03T05:44:46.232835Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.232: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.232992Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.233098Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
 [2m2026-03-03T05:44:46.233229Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.233264Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
 [2m2026-03-03T05:44:46.233304Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
 [2m2026-03-03T05:44:46.233361Z[0m [34mDEBUG[0m [2mglycin::pool[0m[2m:[0m Using existing loader from pool.
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.233: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.234: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.235299Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Starting to transform image format from B8g8r8a8Premultiplied to R8g8b8a8
-(pasar:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.235: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.236320Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Transformation completed after 988.323µs
-(pasar:2): Gtk-DEBUG: 11:14:46.236: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.236: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:14:46.236: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.236: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.236: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.236: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.237016Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
-(pasar:2): Gtk-DEBUG: 11:14:46.237: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:14:46.237: snapshot symbolic icon as recolored node
 [2m2026-03-03T05:44:46.237068Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
 [2m2026-03-03T05:44:46.237075Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
 [2m2026-03-03T05:44:46.237089Z[0m [34mDEBUG[0m [2mglycin_utils::editing::change_memory_format[0m[2m:[0m Same image format R8g8b8a8, no need for transformation
@@ -4014,32 +4014,32 @@ MESA-INTEL: warning: ../src/intel/vulkan/anv_formats.c:959: FINISHME: support YU
 [2m2026-03-03T05:45:16.249122Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m stderr disconnected without error
 [2m2026-03-03T05:45:16.249149Z[0m [34mDEBUG[0m [2mglycin::dbus[0m[2m:[0m stdout disconnected without error
 
-(pasar:2): Gtk-WARNING **: 11:15:52.806: Theme parser error: style.css:27:3-9: No property named "cursor"
-(pasar:2): Gtk-DEBUG: 11:16:18.651: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.658: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.699: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.716: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.736: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.750: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.768: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.782: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.800: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.816: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.832: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.849: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.866: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.882: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:18.899: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.051: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.067: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.084: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.106: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.129: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.144: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.161: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.179: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.211: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.228: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.243: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.259: snapshot symbolic icon as recolored node
-(pasar:2): Gtk-DEBUG: 11:16:19.276: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-WARNING **: 11:15:52.806: Theme parser error: style.css:27:3-9: No property named "cursor"
+(tavern:2): Gtk-DEBUG: 11:16:18.651: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.658: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.699: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.716: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.736: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.750: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.768: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.782: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.800: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.816: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.832: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.849: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.866: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.882: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:18.899: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.051: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.067: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.084: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.106: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.129: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.144: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.161: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.179: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.211: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.228: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.243: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.259: snapshot symbolic icon as recolored node
+(tavern:2): Gtk-DEBUG: 11:16:19.276: snapshot symbolic icon as recolored node

@@ -11,15 +11,15 @@ from gi.repository import Adw, Gtk, Gdk, Gio, GLib, GObject, Pango
 from .backend import Package, BrewBackend
 from .task_manager import Task, TaskStatus, TaskOperation
 from .logging_util import get_logger
-from .screenshot_lightbox import PasarScreenshotLightbox
+from .screenshot_lightbox import TavernScreenshotLightbox
 
 
 _log = get_logger('package_details')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/package-details.ui')
-class PasarPackageDetails(Adw.NavigationPage):
-    __gtype_name__ = 'PasarPackageDetails'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/package-details.ui')
+class TavernPackageDetails(Adw.NavigationPage):
+    __gtype_name__ = 'TavernPackageDetails'
 
     __gsignals__ = {
         'package-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -154,14 +154,6 @@ class PasarPackageDetails(Adw.NavigationPage):
         if not self._backend or not self._package:
             return
             
-    def _load_tile_icon(self, tile, package):
-        if not self._backend:
-            return
-        def on_icon_fetched(pkg, pixbuf):
-            if pixbuf:
-                tile.set_icon_pixbuf(pixbuf)
-        self._backend.fetch_icon_async(package, on_icon_fetched)
-            
         search_term = self._package.name.split('@')[0]
         results = self._backend.search(search_term)
         
@@ -185,10 +177,10 @@ class PasarPackageDetails(Adw.NavigationPage):
             while child := self.variants_flow.get_first_child():
                 self.variants_flow.remove(child)
                 
-            from .package_tile import PasarPackageTile
+            from .package_tile import TavernPackageTile
             for pkg in variants:
-                tile = PasarPackageTile(package=pkg)
-                tile.connect('clicked', self._on_related_clicked)
+                tile = TavernPackageTile(package=pkg)
+                tile.connect('activated', self._on_related_clicked)
                 tile.connect('install-requested', self._on_related_install_requested)
                 self._load_tile_icon(tile, pkg)
                 self.variants_flow.append(tile)
@@ -202,16 +194,24 @@ class PasarPackageDetails(Adw.NavigationPage):
             while child := self.related_flow.get_first_child():
                 self.related_flow.remove(child)
                 
-            from .package_tile import PasarPackageTile
+            from .package_tile import TavernPackageTile
             for pkg in related:
-                tile = PasarPackageTile(package=pkg)
-                tile.connect('clicked', self._on_related_clicked)
+                tile = TavernPackageTile(package=pkg)
+                tile.connect('activated', self._on_related_clicked)
                 tile.connect('install-requested', self._on_related_install_requested)
                 self._load_tile_icon(tile, pkg)
                 self.related_flow.append(tile)
             self.related_bin.set_visible(True)
         else:
             self.related_bin.set_visible(False)
+
+    def _load_tile_icon(self, tile, package):
+        if not self._backend:
+            return
+        def on_icon_fetched(pkg, pixbuf):
+            if pixbuf:
+                tile.set_icon_pixbuf(pixbuf)
+        self._backend.fetch_icon_async(package, on_icon_fetched)
 
     def _on_related_clicked(self, tile):
         pkg = tile.get_package()
@@ -290,7 +290,7 @@ class PasarPackageDetails(Adw.NavigationPage):
 
     def _on_screenshot_clicked(self, button):
         if hasattr(self, '_current_screenshot') and self._current_screenshot:
-            lightbox = PasarScreenshotLightbox(self._current_screenshot)
+            lightbox = TavernScreenshotLightbox(self._current_screenshot)
             lightbox.present_with_animation(self.get_root())
 
     def _on_readme_fetched(self, package, text):
@@ -382,10 +382,10 @@ class PasarPackageDetails(Adw.NavigationPage):
             launcher.launch(self.get_root(), None, None, None)
         elif row == self.installs_row and self._package and self._package._raw_analytics:
             try:
-                from .stats_dialog import PasarStatsDialog
-                dialog = PasarStatsDialog(self._package)
+                from .stats_dialog import TavernStatsDialog
+                dialog = TavernStatsDialog(self._package)
                 dialog.present(self.get_root())
             except ImportError:
-                _log.error('PasarStatsDialog not found')
+                _log.error('TavernStatsDialog not found')
             except Exception as e:
                 _log.error('Failed to open stats dialog: %s', e)

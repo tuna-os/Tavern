@@ -12,9 +12,9 @@ from .logging_util import get_logger
 _log = get_logger('brewfile_dialog')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/brewfile-dialog.ui')
-class PasarBrewfileDialog(Adw.Window):
-    __gtype_name__ = 'PasarBrewfileDialog'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/brewfile-dialog.ui')
+class TavernBrewfileDialog(Adw.Window):
+    __gtype_name__ = 'TavernBrewfileDialog'
 
     list_box = Gtk.Template.Child()
 
@@ -67,7 +67,8 @@ class PasarBrewfileDialog(Adw.Window):
                 return p
         
         # Create a placeholder if not loaded or not in central index
-        return Package(data={'name': name}, pkg_type=pkg_type, installed_set=[])
+        data = {'name': [name], 'token': name} if pkg_type == 'cask' else {'name': name}
+        return Package(data=data, pkg_type=pkg_type, installed_set=[])
 
     @Gtk.Template.Callback()
     def _on_install_all_clicked(self, *args):

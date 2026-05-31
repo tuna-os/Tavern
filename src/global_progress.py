@@ -6,12 +6,12 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Gtk, Gdk, Gsk, Graphene, GObject, Adw
 
-class PasarGlobalProgress(Gtk.Widget):
+class TavernGlobalProgress(Gtk.Widget):
     """
     A custom widget that visually mimics Bazaar's global progress button background.
     It takes a `fraction` (0.0 to 1.0) and animates the width of an overlay graphic.
     """
-    __gtype_name__ = 'PasarGlobalProgress'
+    __gtype_name__ = 'TavernGlobalProgress'
 
     child = GObject.Property(type=Gtk.Widget)
     active = GObject.Property(type=bool, default=False)

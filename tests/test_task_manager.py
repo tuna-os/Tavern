@@ -7,8 +7,8 @@ import time
 import pytest
 
 from gi.repository import GLib, GObject
-from pasar.backend import Package, BrewBackend
-from pasar.task_manager import (
+from tavern.backend import Package, BrewBackend
+from tavern.task_manager import (
     Task, TaskStatus, TaskOperation, TaskManager,
     _parse_phase, _PHASE_PATTERNS,
 )
@@ -175,6 +175,95 @@ class TestTaskManager:
 
     def test_extract_error_empty(self):
         assert TaskManager._extract_error([]) == 'Unknown error'
+
+    def test_detect_multi_tap_conflict(self):
+        lines = [
+            "Error: ripgrep was installed from the homebrew/core tap",
+            "but you are trying to install it from the custom/tap tap",
+        ]
+        res = TaskManager._detect_multi_tap_conflict(lines)
+        assert res == ("homebrew/core", "custom/tap")
+        assert TaskManager._detect_multi_tap_conflict(["no conflict here"]) is None
+
+    def test_detect_ambiguous_taps(self):
+        lines = [
+            "Error: ripgrep exists in multiple taps:",
+            " * homebrew/core/ripgrep",
+            " * custom/tap/ripgrep",
+        ]
+        res = TaskManager._detect_ambiguous_taps(lines)
+        assert res == ["homebrew/core/ripgrep", "custom/tap/ripgrep"]
+        assert TaskManager._detect_ambiguous_taps(["no ambiguity here"]) is None
+
+    def test_install_qualified(self, mgr, pkg):
+        task = mgr.install_qualified(pkg, "custom/tap/ripgrep")
+        assert task.qualified_install_name == "custom/tap/ripgrep"
+        assert task.operation == TaskOperation.INSTALL
+
+    def test_run_task_success(self, mgr, pkg, monkeypatch):
+        class MockStdout:
+            def __init__(self):
+                self.lines = [
+                    "==> Downloading https://example.com/ripgrep",
+                    "==> Installing ripgrep",
+                    "==> Pouring ripgrep",
+                ]
+            def __iter__(self):
+                return iter(self.lines)
+
+        class MockProcess:
+            def __init__(self, *args, **kwargs):
+                self.stdout = MockStdout()
+                self.returncode = 0
+                self.pid = 9999
+            def wait(self):
+                pass
+
+        monkeypatch.setattr("subprocess.Popen", MockProcess)
+        monkeypatch.setattr("tavern.backend._brew_cmd", lambda args: ["brew"] + args)
+        
+        task = mgr.submit(pkg, TaskOperation.INSTALL)
+        
+        # Wait for the task thread to complete
+        start = time.time()
+        while task.is_active and time.time() - start < 2.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+
+        assert task.status == TaskStatus.COMPLETED
+
+    def test_run_task_failure(self, mgr, pkg, monkeypatch):
+        class MockStdout:
+            def __init__(self):
+                self.lines = [
+                    "Error: ripgrep exists in multiple taps:",
+                    " * homebrew/core/ripgrep",
+                    " * custom/tap/ripgrep",
+                ]
+            def __iter__(self):
+                return iter(self.lines)
+
+        class MockProcess:
+            def __init__(self, *args, **kwargs):
+                self.stdout = MockStdout()
+                self.returncode = 1
+                self.pid = 9999
+            def wait(self):
+                pass
+
+        monkeypatch.setattr("subprocess.Popen", MockProcess)
+        monkeypatch.setattr("tavern.backend._brew_cmd", lambda args: ["brew"] + args)
+
+        task = mgr.submit(pkg, TaskOperation.INSTALL)
+
+        start = time.time()
+        while task.is_active and time.time() - start < 2.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+
+        assert task.status == TaskStatus.FAILED
+        assert task.ambiguous_taps == ["homebrew/core/ripgrep", "custom/tap/ripgrep"]
+
 
 
 # ─── TaskOperation labels ───────────────────────────────────────────────────

@@ -25,6 +25,13 @@ CASK_API = 'https://formulae.brew.sh/api/cask.json'
 FORMULA_DETAIL_API = 'https://formulae.brew.sh/api/formula/{}.json'
 CASK_DETAIL_API = 'https://formulae.brew.sh/api/cask/{}.json'
 FLATHUB_APPSTREAM_API = 'https://flathub.org/api/v2/appstream/{}'
+GITHUB_TAP_SEARCH_URL = (
+    'https://api.github.com/search/repositories'
+    '?q=homebrew-+in:name&sort=stars&order=desc&per_page=80'
+)
+
+# Core taps served by the public API — never need to appear in the "Add" list
+_CORE_TAPS = frozenset({'homebrew/core', 'homebrew/cask'})
 
 
 def _is_flatpak():
@@ -169,7 +176,7 @@ def _brew_cmd(args):
 class Package(GObject.Object):
     """Represents a Homebrew formula or cask."""
 
-    __gtype_name__ = 'PasarPackage'
+    __gtype_name__ = 'TavernPackage'
 
     name = GObject.Property(type=str, default='')
     full_name = GObject.Property(type=str, default='')
@@ -182,45 +189,107 @@ class Package(GObject.Object):
     icon_url = GObject.Property(type=str, default='')
     license_ = GObject.Property(type=str, default='')
 
-    # Analytics
-    installs_30d = GObject.Property(type=int, default=0)
-    installs_90d = GObject.Property(type=int, default=0)
-    installs_365d = GObject.Property(type=int, default=0)
+    # Live task state (driven by TaskManager)
+    task_active   = GObject.Property(type=bool,  default=False)
+    task_progress = GObject.Property(type=float, default=0.0)
+    task_label    = GObject.Property(type=str,   default='')
 
     def __init__(self, data=None, pkg_type='formula', installed_set=None, **kwargs):
-        super().__init__(**kwargs)
+        props = {}
         self._raw_analytics = {}
+        self.source_url = ''
+        self._installs_30d = None
+        self._installs_90d = None
+        self._installs_365d = None
+
         if data:
-            self._from_api(data, pkg_type, installed_set)
+            props['pkg_type'] = pkg_type
+            if pkg_type == 'formula':
+                name = data.get('name', '')
+                props['name'] = name
+                props['full_name'] = data.get('full_name', name)
+                props['display_name'] = name
+                props['description'] = data.get('desc', '') or ''
+                props['homepage'] = data.get('homepage', '') or ''
+                versions = data.get('versions', {})
+                props['version'] = versions.get('stable', '') or '' if isinstance(versions, dict) else ''
+                props['license_'] = data.get('license', '') or ''
+                # Stable source URL — often a github.com release tarball
+                urls = data.get('urls', {})
+                stable = urls.get('stable', {}) if isinstance(urls, dict) else {}
+                self.source_url = stable.get('url', '') or '' if isinstance(stable, dict) else ''
+            elif pkg_type == 'cask':
+                name = data.get('token', '')
+                props['name'] = name
+                props['full_name'] = data.get('full_token', name)
+                names = data.get('name', [])
+                props['display_name'] = names[0] if names else name
+                props['description'] = data.get('desc', '') or ''
+                props['homepage'] = data.get('homepage', '') or ''
+                props['version'] = data.get('version', '') or ''
+                props['license_'] = ''
+                # Cask download URL
+                self.source_url = data.get('url', '') or ''
+            else:
+                # Flatpak appstream object
+                app_id = data.get('id', '')
+                props['name'] = app_id
+                props['full_name'] = app_id
+                props['display_name'] = data.get('name', '') or app_id
+                props['description'] = data.get('summary', '') or ''
+                props['homepage'] = (data.get('urls', {}) or {}).get('homepage', '') if isinstance(data.get('urls', {}), dict) else ''
+                releases = data.get('releases', []) or []
+                if isinstance(releases, list) and releases:
+                    props['version'] = (releases[0] or {}).get('version', '') or ''
+                else:
+                    props['version'] = ''
+                self.source_url = props['homepage']
+                props['icon_url'] = data.get('icon', '') or ''
+
+            if installed_set:
+                props['installed'] = name in installed_set or props.get('full_name', '') in installed_set
+
+            self._raw_analytics = data.get('analytics', {})
+
+        # Merge any caller-provided kwargs (takes precedence)
+        for k, v in kwargs.items():
+            props[k] = v
+
+        super().__init__(**props)
 
     def _from_api(self, data, pkg_type, installed_set=None):
-        self.pkg_type = pkg_type
+        self._raw_analytics = data.get('analytics', {})
+        self._installs_30d = None
+        self._installs_90d = None
+        self._installs_365d = None
+
         if pkg_type == 'formula':
-            self.name = data.get('name', '')
-            self.full_name = data.get('full_name', self.name)
-            self.display_name = self.name
+            name = data.get('name', '')
+            self.name = name
+            self.full_name = data.get('full_name', name)
+            self.display_name = name
             self.description = data.get('desc', '') or ''
             self.homepage = data.get('homepage', '') or ''
             versions = data.get('versions', {})
             self.version = versions.get('stable', '') or '' if isinstance(versions, dict) else ''
             self.license_ = data.get('license', '') or ''
-            # Stable source URL — often a github.com release tarball, very reliable for
-            # finding the upstream repo even when homepage is a custom domain.
+            # Stable source URL — often a github.com release tarball
             urls = data.get('urls', {})
             stable = urls.get('stable', {}) if isinstance(urls, dict) else {}
             self.source_url = stable.get('url', '') or '' if isinstance(stable, dict) else ''
         elif pkg_type == 'cask':
-            self.name = data.get('token', '')
-            self.full_name = data.get('full_token', self.name)
+            name = data.get('token', '')
+            self.name = name
+            self.full_name = data.get('full_token', name)
             names = data.get('name', [])
-            self.display_name = names[0] if names else self.name
+            self.display_name = names[0] if names else name
             self.description = data.get('desc', '') or ''
             self.homepage = data.get('homepage', '') or ''
             self.version = data.get('version', '') or ''
-            # Cask download URL — often a github.com release asset
+            self.license_ = ''
+            # Cask download URL
             self.source_url = data.get('url', '') or ''
         else:
-            # Flatpak appstream object
             app_id = data.get('id', '')
             self.name = app_id
             self.full_name = app_id
@@ -236,32 +305,62 @@ class Package(GObject.Object):
             self.icon_url = data.get('icon', '') or ''
 
         if installed_set:
-            self.installed = self.name in installed_set or self.full_name in installed_set
+            self.installed = name in installed_set or self.full_name in installed_set
 
-        # Parse analytics if present
-        analytics = data.get('analytics', {})
-        self._raw_analytics = analytics
-        if analytics:
-            # Prefer 'install_on_request' for formulae, fall back to 'install' for casks
-            metrics = analytics.get('install_on_request', {})
-            if not metrics:
-                metrics = analytics.get('install', {})
-            
-            def _sum_period(period_data):
-                if not isinstance(period_data, dict):
-                    return 0
-                return sum(val for val in period_data.values() if isinstance(val, int))
-            
-            self.installs_30d = _sum_period(metrics.get('30d', {}))
-            self.installs_90d = _sum_period(metrics.get('90d', {}))
-            self.installs_365d = _sum_period(metrics.get('365d', {}))
+    def _parse_analytics(self):
+        if self._installs_30d is not None:
+            return
+        if not self._raw_analytics:
+            self._installs_30d = 0
+            self._installs_90d = 0
+            self._installs_365d = 0
+            return
+        metrics = self._raw_analytics.get('install_on_request', {})
+        if not metrics:
+            metrics = self._raw_analytics.get('install', {})
+
+        def _sum_period(period_data):
+            if not isinstance(period_data, dict):
+                return 0
+            return sum(val for val in period_data.values() if isinstance(val, int))
+
+        self._installs_30d = _sum_period(metrics.get('30d', {}))
+        self._installs_90d = _sum_period(metrics.get('90d', {}))
+        self._installs_365d = _sum_period(metrics.get('365d', {}))
+
+    @GObject.Property(type=int, default=0)
+    def installs_30d(self):
+        self._parse_analytics()
+        return self._installs_30d
+
+    @installs_30d.setter
+    def installs_30d(self, value):
+        self._installs_30d = value
+
+    @GObject.Property(type=int, default=0)
+    def installs_90d(self):
+        self._parse_analytics()
+        return self._installs_90d
+
+    @installs_90d.setter
+    def installs_90d(self, value):
+        self._installs_90d = value
+
+    @GObject.Property(type=int, default=0)
+    def installs_365d(self):
+        self._parse_analytics()
+        return self._installs_365d
+
+    @installs_365d.setter
+    def installs_365d(self, value):
+        self._installs_365d = value
 
 
 
 class BrewBackend(GObject.Object):
     """Backend that communicates with both the Homebrew JSON API and local brew CLI."""
 
-    __gtype_name__ = 'PasarBrewBackend'
+    __gtype_name__ = 'TavernBrewBackend'
 
     loading = GObject.Property(type=bool, default=False)
 
@@ -269,6 +368,7 @@ class BrewBackend(GObject.Object):
         'formulae-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'casks-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'installed-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'taps-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'outdated-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'operation-complete': (GObject.SignalFlags.RUN_LAST, None, (bool, str)),
         'operation-output': (GObject.SignalFlags.RUN_LAST, None, (str,)),
@@ -280,10 +380,12 @@ class BrewBackend(GObject.Object):
         self._casks = []
         self._installed_formulae = set()
         self._installed_casks = set()
+        self._tap_packages = {}  # tap_name -> [Package, ...]
+        self._tap_list = []  # [{name, path}, ...] for non-core taps
         self._outdated_formulae = {}  # {name: {installed, latest}}
         self._outdated_casks = {}  # {name: {installed, latest}}
         self._outdated_lock = threading.Lock()
-        self._cache_dir = os.path.join(GLib.get_user_cache_dir(), 'pasar')
+        self._cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
         os.makedirs(self._cache_dir, exist_ok=True)
         _log.debug('BrewBackend init  cache_dir=%s', self._cache_dir)
 
@@ -386,10 +488,17 @@ class BrewBackend(GObject.Object):
     def casks(self):
         return self._casks
 
+    @property
+    def taps(self):
+        return self._tap_list
+
+    def get_packages_for_tap(self, tap_name):
+        return self._tap_packages.get(tap_name, [])
+
     def _fetch_json(self, url):
         """Fetch JSON from URL with a timeout and detailed error reporting."""
         _log.debug('Fetching JSON: %s', url)
-        req = Request(url, headers={'User-Agent': 'Pasar/0.1'})
+        req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
         try:
             with log_timing(f'fetch_json {url}', 'backend'):
                 with urlopen(req, timeout=30) as resp:
@@ -412,12 +521,12 @@ class BrewBackend(GObject.Object):
     def _cache_path(self, name):
         return os.path.join(self._cache_dir, f'{name}.json')
 
-    def _load_cached(self, name):
+    def _load_cached(self, name, max_age=3600):
         path = self._cache_path(name)
         if os.path.exists(path):
             try:
                 age = GLib.get_real_time() / 1e6 - os.path.getmtime(path)
-                stale = age > 3600
+                stale = age > max_age
                 with open(path) as f:
                     data = json.load(f)
                 _log.debug('Cache hit: %s  age=%.0fs  stale=%s', name, age, stale)
@@ -517,12 +626,8 @@ class BrewBackend(GObject.Object):
         """Load all package data asynchronously."""
         _log.info('load_all_async() starting')
         self.loading = True
-        # Core API fetch thread
         thread = threading.Thread(target=self._load_all_thread, daemon=True)
         thread.start()
-        # Tap packages are all on disk — start loading immediately in parallel
-        tap_thread = threading.Thread(target=self._load_tap_packages, daemon=True)
-        tap_thread.start()
 
     def _load_all_thread(self):
         _log.debug('_load_all_thread started')
@@ -538,7 +643,7 @@ class BrewBackend(GObject.Object):
 
         # Check for outdated packages if setting is enabled
         try:
-            settings = Gio.Settings.new('dev.hanthor.Pasar')
+            settings = Gio.Settings.new('dev.hanthor.Tavern')
             if settings.get_boolean('outdated-check-enabled'):
                 self._check_outdated()
         except Exception as e:
@@ -607,9 +712,12 @@ class BrewBackend(GObject.Object):
                 ]
                 GLib.idle_add(self.emit, 'casks-loaded', self._casks)
 
+        # Tap scan runs after API load so it can safely merge without race conditions.
+        # Disk reads are fast (ms) so this doesn't meaningfully delay startup.
+        self._load_tap_packages()
+
         GLib.idle_add(self._set_loading_false)
         _log.debug('_load_all_thread finished')
-        # build the search provider cache
         self._build_search_provider_cache()
 
 
@@ -663,6 +771,8 @@ class BrewBackend(GObject.Object):
         existing_cask_names = {p.name for p in self._casks}
         formulae_changed = False
         casks_changed = False
+        tap_packages = {}  # tap_name -> [Package]
+        non_core_taps = []
 
         for tap in tap_list:
             tap_name = tap['name']
@@ -673,6 +783,8 @@ class BrewBackend(GObject.Object):
             if not tap_path or not os.path.isdir(tap_path):
                 continue
 
+            non_core_taps.append(tap)
+            tap_pkgs = []
 
             # ── Formulae ─────────────────────────────────────────────────────
             formula_dir = os.path.join(tap_path, 'Formula')
@@ -683,8 +795,6 @@ class BrewBackend(GObject.Object):
                     pkg_name = fname[:-3]  # strip .rb
                     if pkg_name in existing_formula_names:
                         continue
-                    # Build a minimal data dict from what we can extract cheaply
-                    # (avoid running `brew info` per-formula — too slow at scale)
                     data = self._minimal_formula_data_from_rb(
                         os.path.join(formula_dir, fname), tap_name, pkg_name
                     )
@@ -692,6 +802,7 @@ class BrewBackend(GObject.Object):
                         pkg = Package(data, 'formula', self._installed_formulae)
                         new_formulae.append(pkg)
                         existing_formula_names.add(pkg_name)
+                        tap_pkgs.append(pkg)
                         formulae_changed = True
 
             # ── Casks ─────────────────────────────────────────────────────────
@@ -708,23 +819,42 @@ class BrewBackend(GObject.Object):
                             os.path.join(cask_dir, fname), tap_name, pkg_name
                         )
                         if data:
-                            # Filter macOS-only casks on Linux
                             if is_linux and 'macos' in data.get('depends_on', {}):
                                 continue
                             pkg = Package(data, 'cask', self._installed_casks)
                             new_casks.append(pkg)
                             existing_cask_names.add(pkg_name)
+                            tap_pkgs.append(pkg)
                             casks_changed = True
+
+            if tap_pkgs:
+                tap_packages[tap_name] = tap_pkgs
+
+        GLib.idle_add(
+            self._apply_tap_scan_results,
+            tap_packages,
+            non_core_taps,
+            new_formulae,
+            new_casks,
+            formulae_changed,
+            casks_changed
+        )
+
+    def _apply_tap_scan_results(self, tap_packages, non_core_taps, new_formulae, new_casks, formulae_changed, casks_changed):
+        self._tap_packages = tap_packages
+        self._tap_list = non_core_taps
+        _log.info('Tap scan complete: %d custom taps with packages', len(tap_packages))
+        self.emit('taps-loaded', tap_packages)
 
         if formulae_changed:
             self._formulae = new_formulae
-            _log.info('Tap scan added %d formulae', len(new_formulae) - len(existing_formula_names) + (len(new_formulae) - len(self._formulae) if False else 0))
-            GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
+            _log.info('Tap scan added formulae, total now %d', len(new_formulae))
+            self.emit('formulae-loaded', self._formulae)
 
         if casks_changed:
             self._casks = new_casks
             _log.info('Tap scan added casks, total now %d', len(new_casks))
-            GLib.idle_add(self.emit, 'casks-loaded', self._casks)
+            self.emit('casks-loaded', self._casks)
 
     def _minimal_formula_data_from_rb(self, rb_path, tap_name, pkg_name):
         """
@@ -883,6 +1013,97 @@ class BrewBackend(GObject.Object):
         except Exception as e:
             _log.error('Failed to save search provider cache: %s', e)
 
+    def fetch_popular_taps_async(self, callback):
+        """Fetch popular Homebrew taps from GitHub search, cached 24 h.
+        callback([{name, gh_user, desc}, ...])"""
+        thread = threading.Thread(
+            target=self._fetch_popular_taps_thread,
+            args=(callback,),
+            daemon=True,
+        )
+        thread.start()
+
+    def _fetch_popular_taps_thread(self, callback):
+        cache_key = 'popular_taps'
+        cached, is_stale = self._load_cached(cache_key, max_age=86400)  # 24 h
+        if cached and not is_stale:
+            _log.debug('Popular taps: cache hit (%d taps)', len(cached))
+            GLib.idle_add(callback, cached)
+            return
+
+        taps = []
+        try:
+            req = Request(GITHUB_TAP_SEARCH_URL, headers={
+                'User-Agent': 'Tavern/0.1',
+                'Accept': 'application/vnd.github.v3+json',
+            })
+            with urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+
+            for item in data.get('items', []):
+                full_name = item.get('full_name', '')
+                parts = full_name.split('/', 1)
+                if len(parts) != 2:
+                    continue
+                owner, repo = parts
+                if not repo.startswith('homebrew-'):
+                    continue
+                tap_name = f'{owner}/{repo[9:]}'  # strip "homebrew-" prefix
+                if tap_name in _CORE_TAPS:
+                    continue
+                desc = (item.get('description') or '').strip()
+                taps.append({'name': tap_name, 'gh_user': owner, 'desc': desc})
+
+            _log.info('Fetched %d popular taps from GitHub', len(taps))
+            if taps:
+                self._save_cache(cache_key, taps)
+        except Exception as e:
+            _log.error('Failed to fetch popular taps from GitHub: %s', e)
+
+        # Fall back to stale cache if the network request failed
+        if not taps and cached:
+            _log.info('Using stale popular taps cache (%d taps)', len(cached))
+            taps = cached
+
+        GLib.idle_add(callback, taps)
+
+    def tap_async(self, tap_name, callback=None):
+        """Add a Homebrew tap asynchronously. callback(success, message)."""
+        thread = threading.Thread(
+            target=self._run_tap_operation,
+            args=('tap', tap_name, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def untap_async(self, tap_name, callback=None):
+        """Remove a Homebrew tap asynchronously. callback(success, message)."""
+        thread = threading.Thread(
+            target=self._run_tap_operation,
+            args=('untap', tap_name, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def _run_tap_operation(self, operation, tap_name, callback=None):
+        cmd = _brew_cmd([operation, tap_name])
+        _log.info('_run_tap_operation: %s %s', operation, tap_name)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            success = result.returncode == 0
+            msg = (result.stdout + result.stderr).strip()
+            _log.info('brew %s %s  rc=%d', operation, tap_name, result.returncode)
+            if success:
+                # Reload tap packages so UI stays in sync
+                tap_thread = threading.Thread(target=self._load_tap_packages, daemon=True)
+                tap_thread.start()
+            if callback:
+                GLib.idle_add(callback, success, msg)
+        except Exception as e:
+            _log.error('_run_tap_operation exception: %s %s: %s', operation, tap_name, e)
+            if callback:
+                GLib.idle_add(callback, False, str(e))
+
     def install_async(self, package, callback=None):
         """Install a package asynchronously."""
         thread = threading.Thread(
@@ -937,18 +1158,7 @@ class BrewBackend(GObject.Object):
                       operation, package.name, process.returncode, len(output_lines))
 
             if success:
-                if operation == 'install':
-                    package.installed = True
-                    if package.pkg_type == 'formula':
-                        self._installed_formulae.add(package.name)
-                    else:
-                        self._installed_casks.add(package.name)
-                elif operation == 'uninstall':
-                    package.installed = False
-                    if package.pkg_type == 'formula':
-                        self._installed_formulae.discard(package.name)
-                    else:
-                        self._installed_casks.discard(package.name)
+                GLib.idle_add(self._update_package_installed_state, operation, package)
 
             msg = '\n'.join(output_lines)
             GLib.idle_add(self.emit, 'operation-complete', success, msg)
@@ -960,6 +1170,20 @@ class BrewBackend(GObject.Object):
             GLib.idle_add(self.emit, 'operation-complete', False, str(e))
             if callback:
                 GLib.idle_add(callback, False, str(e))
+
+    def _update_package_installed_state(self, operation, package):
+        if operation == 'install':
+            package.installed = True
+            if package.pkg_type == 'formula':
+                self._installed_formulae.add(package.name)
+            else:
+                self._installed_casks.add(package.name)
+        elif operation == 'uninstall':
+            package.installed = False
+            if package.pkg_type == 'formula':
+                self._installed_formulae.discard(package.name)
+            else:
+                self._installed_casks.discard(package.name)
 
     def get_package_info_async(self, package, callback):
         """Get detailed info for a package asynchronously."""
@@ -1090,7 +1314,7 @@ class BrewBackend(GObject.Object):
 
         for url in icon_urls:
             try:
-                req = Request(url, headers={'User-Agent': 'Mozilla/5.0 Pasar/0.1'})
+                req = Request(url, headers={'User-Agent': 'Mozilla/5.0 Tavern/0.1'})
                 with urlopen(req, timeout=10) as resp:
                     data = resp.read()
                     if len(data) < 200:  # Filter out 1x1 pixel / blank responses
@@ -1137,7 +1361,7 @@ class BrewBackend(GObject.Object):
         """
         import re
         try:
-            req = Request(homepage, headers={'User-Agent': 'Mozilla/5.0 Pasar/0.1'})
+            req = Request(homepage, headers={'User-Agent': 'Mozilla/5.0 Tavern/0.1'})
             with urlopen(req, timeout=8) as resp:
                 # Only read the <head> — stop after 32 KB to avoid downloading full pages
                 chunk = resp.read(32768).decode('utf-8', errors='replace')
@@ -1181,7 +1405,7 @@ class BrewBackend(GObject.Object):
         for path in ('/favicon.png', '/favicon.ico'):
             url = base + path
             try:
-                req = Request(url, headers={'User-Agent': 'Pasar/0.1'})
+                req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
                 with urlopen(req, timeout=5) as resp:
                     if resp.status == 200 and int(resp.headers.get('Content-Length', '9999')) > 200:
                         return url
@@ -1233,7 +1457,7 @@ class BrewBackend(GObject.Object):
         for readme_name in ('README.md', 'readme.md', 'Readme.md', 'README.rst', 'README'):
             raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{readme_name}'
             try:
-                req = Request(raw_url, headers={'User-Agent': 'Pasar/0.1'})
+                req = Request(raw_url, headers={'User-Agent': 'Tavern/0.1'})
                 with urlopen(req, timeout=15) as resp:
                     text = resp.read().decode('utf-8', errors='replace')
                 break
@@ -1258,8 +1482,8 @@ class BrewBackend(GObject.Object):
 
         screenshot_urls = []
 
-        # 1. pasar-metadata repo (curated)
-        screenshot_urls.append(f'https://raw.githubusercontent.com/hanthor/pasar-metadata/main/screenshots/{package.name}.jpg')
+        # 1. tavern-metadata repo (curated)
+        screenshot_urls.append(f'https://raw.githubusercontent.com/hanthor/tavern-metadata/main/screenshots/{package.name}.jpg')
 
         # 2. README images from source repo (skip the first one — that's the icon)
         readme_images = self._fetch_readme_images(package)
@@ -1269,7 +1493,7 @@ class BrewBackend(GObject.Object):
 
         for url in screenshot_urls:
             try:
-                req = Request(url, headers={'User-Agent': 'Pasar/0.1'})
+                req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
                 with urlopen(req, timeout=10) as resp:
                     data = resp.read()
                     if len(data) > 100:
@@ -1331,7 +1555,7 @@ class BrewBackend(GObject.Object):
         for readme_name in ('README.md', 'readme.md', 'Readme.md', 'README.rst'):
             raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{readme_name}'
             try:
-                req = Request(raw_url, headers={'User-Agent': 'Pasar/0.1'})
+                req = Request(raw_url, headers={'User-Agent': 'Tavern/0.1'})
                 with urlopen(req, timeout=10) as resp:
                     text = resp.read().decode('utf-8', errors='replace')
                 break
@@ -1498,7 +1722,7 @@ class BrewBackend(GObject.Object):
         try:
             url = f'https://api.github.com/repos/{owner}/{repo}/releases?per_page=50'
             req = Request(url, headers={
-                'User-Agent': 'Pasar/0.1',
+                'User-Agent': 'Tavern/0.1',
                 'Accept': 'application/vnd.github.v3+json',
             })
             with urlopen(req, timeout=10) as resp:

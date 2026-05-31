@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run.sh - Development build & run helper for Pasar
+# run.sh - Development build & run helper for Tavern
 set -e
 
 BUILDDIR="builddir"
@@ -41,18 +41,18 @@ ninja -C "$BUILDDIR" install
 
 if [ "$(uname)" = "Darwin" ]; then
     if [ "$IS_CASK" -eq 1 ]; then
-        APP_DIR="$PWD/Pasar.app"
+        APP_DIR="$PWD/Tavern.app"
     else
-        APP_DIR="$HOME/Applications/Pasar.app"
+        APP_DIR="$HOME/Applications/Tavern.app"
     fi
     echo "==> Packaging macOS App Bundle..."
     mkdir -p "$APP_DIR/Contents/MacOS"
     mkdir -p "$APP_DIR/Contents/Resources"
 
     if [ ! -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]; then
-        ICON_SRC="data/icons/hicolor/scalable/apps/dev.hanthor.Pasar.svg"
-        TMP_ICON="/tmp/pasar_icon_$$.png"
-        TMP_ICONSET="/tmp/Pasar_$$.iconset"
+        ICON_SRC="data/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg"
+        TMP_ICON="/tmp/tavern_icon_$$.png"
+        TMP_ICONSET="/tmp/Tavern_$$.iconset"
         
         sips -s format png "$ICON_SRC" --out "$TMP_ICON" > /dev/null
         mkdir -p "$TMP_ICONSET"
@@ -78,15 +78,15 @@ if [ "$(uname)" = "Darwin" ]; then
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.hanthor.Pasar</string>
+    <string>dev.hanthor.Tavern</string>
     <key>CFBundleName</key>
-    <string>Pasar</string>
+    <string>Tavern</string>
     <key>CFBundleVersion</key>
     <string>0.1.0</string>
     <key>CFBundleShortVersionString</key>
     <string>0.1.0</string>
     <key>CFBundleExecutable</key>
-    <string>Pasar</string>
+    <string>Tavern</string>
     <key>LSMinimumSystemVersion</key>
     <string>10.13</string>
     <key>NSHighResolutionCapable</key>
@@ -116,14 +116,14 @@ else
     BREW_PREFIX="/home/linuxbrew/.linuxbrew"
 fi
 
-export PASAR_DATADIR="$RESOURCES/share/pasar"
-export PASAR_LOCALEDIR="$RESOURCES/share/locale"
+export TAVERN_DATADIR="$RESOURCES/share/tavern"
+export TAVERN_LOCALEDIR="$RESOURCES/share/locale"
 export GSETTINGS_SCHEMA_DIR="$RESOURCES/share/glib-2.0/schemas"
 export XDG_DATA_DIRS="$RESOURCES/share:$BREW_PREFIX/share:/usr/share"
 
-exec "$RESOURCES/bin/pasar" "$@"
-' > "$APP_DIR/Contents/MacOS/Pasar"
-        chmod +x "$APP_DIR/Contents/MacOS/Pasar"
+exec "$RESOURCES/bin/tavern" "$@"
+' > "$APP_DIR/Contents/MacOS/Tavern"
+        chmod +x "$APP_DIR/Contents/MacOS/Tavern"
         echo "==> Cask bundle successfully built at $APP_DIR"
         exit 0
     fi
@@ -136,15 +136,15 @@ fi
 
 export GSETTINGS_SCHEMA_DIR="'"$HOME"'/.local/share/glib-2.0/schemas"
 export XDG_DATA_DIRS="'"$BREW_PREFIX"'/share:'"$HOME"'/.local/share:/usr/local/share:/usr/share"
-exec "'"$HOME"'/.local/bin/pasar" "$@"
-' > "$APP_DIR/Contents/MacOS/Pasar"
-    chmod +x "$APP_DIR/Contents/MacOS/Pasar"
+exec "'"$HOME"'/.local/bin/tavern" "$@"
+' > "$APP_DIR/Contents/MacOS/Tavern"
+    chmod +x "$APP_DIR/Contents/MacOS/Tavern"
 
-    echo "==> Launching Pasar..."
-    exec "$APP_DIR/Contents/MacOS/Pasar" "$@"
+    echo "==> Launching Tavern..."
+    exec "$APP_DIR/Contents/MacOS/Tavern" "$@"
 else
-    echo "==> Launching Pasar..."
+    echo "==> Launching Tavern..."
     exec env GSETTINGS_SCHEMA_DIR="$HOME/.local/share/glib-2.0/schemas" \
         XDG_DATA_DIRS="$BREW_PREFIX/share:$HOME/.local/share:/usr/local/share:/usr/share" \
-        "$HOME/.local/bin/pasar" "$@"
+        "$HOME/.local/bin/tavern" "$@"
 fi

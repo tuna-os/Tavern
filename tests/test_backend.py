@@ -8,7 +8,7 @@ import textwrap
 import pytest
 
 from gi.repository import GLib, GObject
-from pasar.backend import Package, BrewBackend, _brew_cmd, _is_flatpak, _find_brew, _ico_to_png
+from tavern.backend import Package, BrewBackend, _brew_cmd, _is_flatpak, _find_brew, _ico_to_png
 
 
 # ─── Package model ───────────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ class TestBrewBackend:
         cache_dir = str(tmp_path / 'cache')
         monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
         backend = BrewBackend()
-        expected = os.path.join(str(tmp_path), 'pasar')
+        expected = os.path.join(str(tmp_path), 'tavern')
         assert os.path.isdir(expected)
 
     def test_cache_roundtrip(self, tmp_path, monkeypatch):
@@ -228,27 +228,27 @@ class TestBrewfileParsing:
         bf = tmp_path / 'empty.Brewfile'
         bf.write_text('')
         result = backend.parse_brewfile(str(bf))
-        assert result == {'taps': [], 'formulae': [], 'casks': []}
+        assert result == {'taps': [], 'formulae': [], 'casks': [], 'flatpaks': []}
 
     def test_parse_brewfile_missing_file(self, tmp_path, monkeypatch):
         monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
         backend = BrewBackend()
         result = backend.parse_brewfile('/nonexistent/path.Brewfile')
-        assert result == {'taps': [], 'formulae': [], 'casks': []}
+        assert result == {'taps': [], 'formulae': [], 'casks': [], 'flatpaks': []}
 
 
 # ─── _brew_cmd helper ────────────────────────────────────────────────────────
 
 class TestBrewCmd:
     def test_non_flatpak_uses_brew_directly(self, monkeypatch):
-        import pasar.backend as bmod
+        import tavern.backend as bmod
         monkeypatch.setattr(bmod, 'IN_FLATPAK', False)
         monkeypatch.setattr(bmod, 'BREW_BIN', '/usr/local/bin/brew')
         cmd = _brew_cmd(['install', 'git'])
         assert cmd == ['/usr/local/bin/brew', 'install', 'git']
 
     def test_flatpak_uses_flatpak_spawn(self, monkeypatch):
-        import pasar.backend as bmod
+        import tavern.backend as bmod
         monkeypatch.setattr(bmod, 'IN_FLATPAK', True)
         cmd = _brew_cmd(['install', 'git'])
         assert cmd[0] == 'flatpak-spawn'
@@ -421,3 +421,128 @@ class TestIcoToPng:
         ])
         result = _ico_to_png(ico)
         assert result == large_png
+
+
+# ─── BrewBackend Extensions ──────────────────────────────────────────────────
+
+class TestBrewBackendExtensions:
+    def test_search_sorting(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        
+        # Populate mock packages
+        p1 = Package({'name': 'libgit2', 'desc': 'Git library'}, 'formula')
+        p2 = Package({'name': 'git', 'desc': 'Version control'}, 'formula')
+        p3 = Package({'name': 'git-lfs', 'desc': 'Git Large File Storage'}, 'formula')
+        p4 = Package({'token': 'github', 'name': ['GitHub Desktop'], 'desc': 'Desktop client'}, 'cask')
+        
+        backend._formulae = [p1, p2, p3]
+        backend._casks = [p4]
+        
+        # Search for 'git'
+        res = backend.search('git')
+        # Expect exact match first ('git'), then starts-with ('git-lfs', 'github'), then contains ('libgit2')
+        assert [p.name for p in res] == ['git', 'git-lfs', 'github', 'libgit2']
+        
+        # Search with type filter
+        res_casks = backend.search('git', pkg_type='cask')
+        assert len(res_casks) == 1
+        assert res_casks[0].name == 'github'
+
+    def test_update_package_installed_state(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        
+        pkg_f = Package({'name': 'ripgrep'}, 'formula')
+        pkg_c = Package({'token': 'firefox'}, 'cask')
+        
+        # Install formula
+        backend._update_package_installed_state('install', pkg_f)
+        assert pkg_f.installed is True
+        assert 'ripgrep' in backend._installed_formulae
+        
+        # Uninstall formula
+        backend._update_package_installed_state('uninstall', pkg_f)
+        assert pkg_f.installed is False
+        assert 'ripgrep' not in backend._installed_formulae
+
+        # Install cask
+        backend._update_package_installed_state('install', pkg_c)
+        assert pkg_c.installed is True
+        assert 'firefox' in backend._installed_casks
+
+    def test_apply_tap_scan_results(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        
+        taps = {'custom/tap': []}
+        non_core = [{'name': 'custom/tap', 'path': '/path'}]
+        formulae = [Package({'name': 'foo'}, 'formula')]
+        casks = [Package({'token': 'bar'}, 'cask')]
+        
+        signals_emitted = []
+        backend.connect('taps-loaded', lambda b, t: signals_emitted.append(('taps', t)))
+        backend.connect('formulae-loaded', lambda b, f: signals_emitted.append(('formulae', f)))
+        backend.connect('casks-loaded', lambda b, c: signals_emitted.append(('casks', c)))
+        
+        backend._apply_tap_scan_results(taps, non_core, formulae, casks, True, True)
+        
+        assert backend._tap_packages == taps
+        assert backend._tap_list == non_core
+        assert backend._formulae == formulae
+        assert backend._casks == casks
+        assert len(signals_emitted) == 3
+
+    def test_popular_taps_cache_hit(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        
+        # Pre-seed popular_taps cache
+        cached_taps = [{'name': 'homebrew/cask-fonts', 'desc': 'Fonts tap'}]
+        backend._save_cache('popular_taps', cached_taps)
+        
+        callback_called = []
+        def cb(taps):
+            callback_called.append(taps)
+            
+        backend.fetch_popular_taps_async(cb)
+        
+        # Yield to GLib main loop to process callback
+        import time
+        start = time.time()
+        while not callback_called and time.time() - start < 1.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+            
+        assert len(callback_called) == 1
+        assert callback_called[0] == cached_taps
+
+    def test_tap_untap_async(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        
+        # Mock subprocess run to simulate successful tap/untap
+        class MockCompletedProcess:
+            returncode = 0
+            stdout = "Successful operation"
+            stderr = ""
+        
+        monkeypatch.setattr("subprocess.run", lambda cmd, **kwargs: MockCompletedProcess())
+        monkeypatch.setattr("tavern.backend._brew_cmd", lambda args: ["brew"] + args)
+        
+        callback_args = []
+        def cb(success, message):
+            callback_args.append((success, message))
+            
+        backend.tap_async("custom/tap", cb)
+        
+        import time
+        start = time.time()
+        while not callback_args and time.time() - start < 2.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+            
+        assert len(callback_args) == 1
+        assert callback_args[0][0] is True
+        assert "Successful operation" in callback_args[0][1]
+

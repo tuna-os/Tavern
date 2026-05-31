@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<schemalist gettext-domain="pasar">
-  <schema id="dev.hanthor.Pasar" path="/dev/hanthor/Pasar/">
+<schemalist gettext-domain="tavern">
+  <schema id="dev.hanthor.Tavern" path="/dev/hanthor/Tavern/">
     <key name="window-width" type="i">
       <default>1100</default>
       <summary>Window width</summary>
@@ -16,7 +16,7 @@
     <key name="outdated-check-enabled" type="b">
       <default>true</default>
       <summary>Enable automatic outdated package checks</summary>
-      <description>When enabled, Pasar will check for outdated homebrew packages on startup and periodically in the background</description>
+      <description>When enabled, Tavern will check for outdated homebrew packages on startup and periodically in the background</description>
     </key>
     <key name="outdated-check-interval-hours" type="i">
       <default>24</default>

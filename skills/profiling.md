@@ -1,7 +1,7 @@
 # Profiling & Diagnostics Skills
 
 ## Overview
-Pasar includes comprehensive logging and profiling infrastructure. All major operations are instrumented with timing information and debug output.
+Tavern includes comprehensive logging and profiling infrastructure. All major operations are instrumented with timing information and debug output.
 
 **Design principle:** Logging is **disabled by default** for zero overhead. Enable via environment variables when needed.
 
@@ -9,21 +9,21 @@ Pasar includes comprehensive logging and profiling infrastructure. All major ope
 
 ```bash
 # Full startup timing
-PASAR_LOG=info ./run.sh
+TAVERN_LOG=info ./run.sh
 
 # Detailed debugging
-PASAR_LOG=debug ./run.sh
+TAVERN_LOG=debug ./run.sh
 
 # Performance profiling only
-PASAR_PROFILE=1 PASAR_LOG=info ./run.sh
+TAVERN_PROFILE=1 TAVERN_LOG=info ./run.sh
 
 # Log to file
-PASAR_LOG=debug PASAR_LOG_FILE=/tmp/pasar.log ./run.sh
+TAVERN_LOG=debug TAVERN_LOG_FILE=/tmp/tavern.log ./run.sh
 ```
 
 ## Environment Variables
 
-### PASAR_LOG
+### TAVERN_LOG
 Controls logging level. Options:
 - `1`, `true`, `on` → INFO level
 - `info` → INFO level (identical to above)
@@ -32,18 +32,18 @@ Controls logging level. Options:
 
 **Effect:** Enables `logging.StreamHandler` and logs to stderr.
 
-### PASAR_PROFILE
+### TAVERN_PROFILE
 Controls @profile decorator timing. Options:
 - `1`, `true`, `on` → Enable timing
 - Unset or `0` → Disable (default)
 
-**Requires:** `PASAR_LOG` must be set to one of the above values.
+**Requires:** `TAVERN_LOG` must be set to one of the above values.
 
 **Effect:** Every function and context manager logs entry/exit with elapsed milliseconds.
 
-### PASAR_LOG_FILE
+### TAVERN_LOG_FILE
 Optional file path for log output. Options:
-- Absolute path (e.g., `/tmp/pasar.log`) → Logs to file AND stderr
+- Absolute path (e.g., `/tmp/tavern.log`) → Logs to file AND stderr
 - Unset → Logs to stderr only (default)
 
 **Effect:** Enables `logging.FileHandler` in addition to streaming.
@@ -58,7 +58,7 @@ Optional file path for log output. Options:
 Called at application startup (in `main.py`).
 
 Sets up:
-- Logger hierarchy (`Pasar`, `Pasar.module`, etc.)
+- Logger hierarchy (`Tavern`, `Tavern.module`, etc.)
 - Handlers (console, file if enabled)
 - Formatters (timestamp, level, module name)
 - Handler level filtering
@@ -69,7 +69,7 @@ Sets up:
 Factory function for module loggers.
 
 ```python
-logger = get_logger('backend')  # → Pasar.backend logger
+logger = get_logger('backend')  # → Tavern.backend logger
 logger.info("Starting backend init")
 ```
 
@@ -78,25 +78,25 @@ logger.info("Starting backend init")
 logger = get_logger(__name__)
 ```
 
-**Result:** Logs appear as `Pasar.module_name: message`
+**Result:** Logs appear as `Tavern.module_name: message`
 
 ### Log Format
 
 ```
-HH:MM:SS.mmm [LEVEL] Pasar.module: message
+HH:MM:SS.mmm [LEVEL] Tavern.module: message
 ```
 
 Example:
 ```
-15:35:49.725 [INFO ] Pasar.window: Kicking off backend.load_all_async()
-15:35:49.726 [DEBUG] Pasar.backend: _load_all_thread started
-15:35:50.768 [INFO ] Pasar.window: Formulae loaded: 14 packages
+15:35:49.725 [INFO ] Tavern.window: Kicking off backend.load_all_async()
+15:35:49.726 [DEBUG] Tavern.backend: _load_all_thread started
+15:35:50.768 [INFO ] Tavern.window: Formulae loaded: 14 packages
 ```
 
 **Components:**
 - `HH:MM:SS.mmm` — Wall clock time with milliseconds
 - `[LEVEL]` — INFO, DEBUG, WARNING, ERROR (7 chars, right-aligned)
-- `Pasar.module` — Logger hierarchy (left-aligned)
+- `Tavern.module` — Logger hierarchy (left-aligned)
 - `message` — Custom log text
 
 ## Profiling Infrastructure
@@ -115,15 +115,15 @@ def parse_brewfile(path):
 
 **Output:**
 ```
-Pasar.backend: >> parse_brewfile() start
-Pasar.backend: << parse_brewfile() finished: 234.5 ms
+Tavern.backend: >> parse_brewfile() start
+Tavern.backend: << parse_brewfile() finished: 234.5 ms
 ```
 
 **Behavior:**
 - Logs entry message before function runs
 - Logs exit with elapsed time in milliseconds
 - Uses `time.perf_counter()` for precise measurement
-- Only works when `PASAR_PROFILE=1`
+- Only works when `TAVERN_PROFILE=1`
 
 **Performance:** No overhead when disabled.
 
@@ -140,8 +140,8 @@ with log_timing("Loading packages", "backend"):
 
 **Output:**
 ```
-Pasar.backend: ⏱  Loading packages (backend) started
-Pasar.backend:    Loading packages (backend) finished: 1234.5 ms
+Tavern.backend: ⏱  Loading packages (backend) started
+Tavern.backend:    Loading packages (backend) finished: 1234.5 ms
 ```
 
 **Parameters:**
@@ -172,9 +172,9 @@ Full startup profiling with separator markers:
 
 ```
 ============================================================================
-PASAR DESKTOP STARTUP
+TAVERN DESKTOP STARTUP
 ============================================================================
-Starting Pasar  version=0.1.0  python=3.12.12
+Starting Tavern  version=0.1.0  python=3.12.12
 Resources loaded: 2.3 ms
 Application module imported: 145.2 ms
 Application instance created: 4.5 ms
@@ -184,8 +184,8 @@ Running application...
 **Timing points:**
 1. `startup_start = time.perf_counter()` — Zero point
 2. After resource loading: `resource_load_time`
-3. After `from pasar import application` import: `import_time`
-4. After `application.Pasar()` creation: `app_init_time`
+3. After `from tavern import application` import: `import_time`
+4. After `application.Tavern()` creation: `app_init_time`
 5. After `app.run()` returns: `total_time`
 
 **Format:** Each timing uses `(time_ms:.1f} ms` format. Separators use `===` on both sides.
@@ -198,14 +198,14 @@ Window creation and CSS loading timing:
 
 ```
 do_activate: called
-PasarWindow created: 125.3 ms
+TavernWindow created: 125.3 ms
 CSS loaded and applied: 3.2 ms
 Window presented: 8.1 ms
 ```
 
 **Timing points:**
 1. Entry to `do_activate()`
-2. After `PasarWindow()` creation: `window_time`
+2. After `TavernWindow()` creation: `window_time`
 3. After CSS loading: `css_time`
 4. After `window.present()`: `present_time`
 5. Summary: `total_activate_time`
@@ -219,14 +219,14 @@ Window presented: 8.1 ms
 The most detailed profiling section:
 
 ```
-PasarWindow.__init__: starting
+TavernWindow.__init__: starting
 Backend created: 2.1 ms
 Task manager created: 1.3 ms
 Pages wired: 0.8 ms
 Window actions setup: 2.2 ms
 Settings restored: 1.5 ms
 Backend.load_all_async() started: 0.6 ms
-PasarWindow.__init__: completed in 137.8 ms
+TavernWindow.__init__: completed in 137.8 ms
 ```
 
 **Timing points (in order):**
@@ -302,7 +302,7 @@ Tap ublue-os/tap: failed - Error message here
 
 | Operation | Module | Log pattern |
 |-----------|--------|------------|
-| Application entry | `main` | `PASAR DESKTOP STARTUP` |
+| Application entry | `main` | `TAVERN DESKTOP STARTUP` |
 | Window creation | `application` | `do_activate:` |
 | Backend init | `window` | `Backend created:` |
 | Homebrew scan | `backend` | `Scanning taps:`, `Found X formulae` |
@@ -314,24 +314,24 @@ Tap ublue-os/tap: failed - Error message here
 
 Example: Show only window timing
 ```bash
-PASAR_LOG=info ./run.sh 2>&1 | grep -E "Window|PasarWindow"
+TAVERN_LOG=info ./run.sh 2>&1 | grep -E "Window|TavernWindow"
 ```
 
 Example: Show only Brewfile performance
 ```bash
-PASAR_LOG=info ./run.sh 2>&1 | grep -E "Brewfile|Casks stats"
+TAVERN_LOG=info ./run.sh 2>&1 | grep -E "Brewfile|Casks stats"
 ```
 
 Example: Show only @profile decorators
 ```bash
-PASAR_PROFILE=1 PASAR_LOG=info ./run.sh 2>&1 | grep -E ">>|<<"
+TAVERN_PROFILE=1 TAVERN_LOG=info ./run.sh 2>&1 | grep -E ">>|<<"
 ```
 
 ## Performance Optimization Process
 
 1. **Enable profiling:**
    ```bash
-   PASAR_LOG=info PASAR_PROFILE=1 ./run.sh 2>&1 | tee /tmp/profile.log
+   TAVERN_LOG=info TAVERN_PROFILE=1 ./run.sh 2>&1 | tee /tmp/profile.log
    ```
 
 2. **Identify slow operations:**

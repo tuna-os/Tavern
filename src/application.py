@@ -7,19 +7,20 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gio, GLib, Gtk
-from .window import PasarWindow
-from .search_provider import PasarSearchProvider
+from .window import TavernWindow
+from .search_provider import TavernSearchProvider
 from .logging_util import get_logger
 
 _log = get_logger('application')
 
 
-class PasarApplication(Adw.Application):
+class TavernApplication(Adw.Application):
     """The main application singleton class."""
 
     def __init__(self, version='0.1.0', **kwargs):
+        app_id = kwargs.pop('application_id', 'dev.hanthor.Tavern')
         super().__init__(
-            application_id='dev.hanthor.Pasar',
+            application_id=app_id,
             flags=Gio.ApplicationFlags.HANDLES_OPEN | Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
             **kwargs,
         )
@@ -37,12 +38,12 @@ class PasarApplication(Adw.Application):
         show_pkg.connect('activate', self._on_show_package)
         self.add_action(show_pkg)
 
-        _log.debug('PasarApplication created  version=%s', version)
+        _log.debug('TavernApplication created  version=%s', version)
 
     # ── D-Bus registration (for GNOME Shell search provider) ──────
     def do_dbus_register(self, connection, object_path):
         """Export search provider interface before the app is activated."""
-        self._search_provider = PasarSearchProvider(self)
+        self._search_provider = TavernSearchProvider(self)
         self._search_provider.export(connection)
         return Gio.Application.do_dbus_register(self, connection, object_path)
 
@@ -106,10 +107,10 @@ class PasarApplication(Adw.Application):
         win = self.props.active_window
         if not win:
             window_start = time.perf_counter()
-            _log.debug('Creating new PasarWindow')
-            win = PasarWindow(application=self, package_to_open=self._package_to_open)
+            _log.debug('Creating new TavernWindow')
+            win = TavernWindow(application=self, package_to_open=self._package_to_open)
             window_time = (time.perf_counter() - window_start) * 1000
-            _log.info('PasarWindow created: %.1f ms', window_time)
+            _log.info('TavernWindow created: %.1f ms', window_time)
             self._package_to_open = None
         elif self._package_to_open:
             # Window exists, just open the package
@@ -119,7 +120,7 @@ class PasarApplication(Adw.Application):
         # Load CSS
         css_start = time.perf_counter()
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_resource('/dev/hanthor/Pasar/style.css')
+        css_provider.load_from_resource('/dev/hanthor/Tavern/style.css')
         Gtk.StyleContext.add_provider_for_display(
             win.get_display(),
             css_provider,
@@ -157,15 +158,15 @@ class PasarApplication(Adw.Application):
 
     def _on_about_action(self, *args):
         about = Adw.AboutDialog(
-            application_name='Pasar',
-            application_icon='dev.hanthor.Pasar',
+            application_name='Tavern',
+            application_icon='dev.hanthor.Tavern',
             developer_name='James',
             version=self.version,
             developers=['James'],
             copyright='© 2026 James',
             license_type=Gtk.License.GPL_3_0,
-            website='https://github.com/hanthor/pasar',
-            issue_url='https://github.com/hanthor/pasar/issues',
+            website='https://github.com/hanthor/tavern',
+            issue_url='https://github.com/hanthor/tavern/issues',
             comments='A Homebrew App Store for GNOME',
         )
         about.present(self.props.active_window)

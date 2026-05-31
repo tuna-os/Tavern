@@ -1,0 +1,5 @@
+[Shell Search Provider]
+DesktopId=dev.hanthor.Tavern.desktop
+BusName=dev.hanthor.Tavern
+ObjectPath=/dev/hanthor/Tavern/SearchProvider
+Version=2

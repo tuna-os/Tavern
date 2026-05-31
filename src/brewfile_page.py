@@ -13,15 +13,15 @@ import tempfile
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .backend import Package
-from .package_tile import PasarPackageTile
+from .package_tile import TavernPackageTile
 from .logging_util import get_logger, log_timing
 
 _log = get_logger('brewfile_page')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/brewfile-page.ui')
-class PasarBrewfilePage(Adw.Bin):
-    __gtype_name__ = 'PasarBrewfilePage'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/brewfile-page.ui')
+class TavernBrewfilePage(Adw.Bin):
+    __gtype_name__ = 'TavernBrewfilePage'
 
     __gsignals__ = {
         'package-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
@@ -457,7 +457,7 @@ class PasarBrewfilePage(Adw.Bin):
         if formulae:
             self.formulae_section.set_visible(True)
             for pkg in formulae:
-                tile = PasarPackageTile(package=pkg)
+                tile = TavernPackageTile(package=pkg)
                 tile.connect('clicked', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
                 # DON'T load icons yet - will be done after metadata fetches
@@ -467,7 +467,7 @@ class PasarBrewfilePage(Adw.Bin):
         if casks:
             self.casks_section.set_visible(True)
             for pkg in casks:
-                tile = PasarPackageTile(package=pkg)
+                tile = TavernPackageTile(package=pkg)
                 tile.connect('clicked', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
                 # DON'T load icons yet
@@ -477,7 +477,7 @@ class PasarBrewfilePage(Adw.Bin):
         if flatpaks:
             self.flatpaks_section.set_visible(True)
             for pkg in flatpaks:
-                tile = PasarPackageTile(package=pkg)
+                tile = TavernPackageTile(package=pkg)
                 tile.connect('clicked', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
                 # DON'T load icons yet
@@ -634,7 +634,7 @@ class PasarBrewfilePage(Adw.Bin):
                 mode='w',
                 encoding='utf-8',
                 suffix='.Brewfile',
-                prefix='pasar-bundle-',
+                prefix='tavern-bundle-',
                 delete=False,
             )
             with temp_file:

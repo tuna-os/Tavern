@@ -11,10 +11,10 @@ from .logging_util import get_logger
 _log = get_logger('version_history')
 
 
-class PasarVersionHistoryDialog(Adw.NavigationPage):
+class TavernVersionHistoryDialog(Adw.NavigationPage):
     """Show version history and changelogs for a package, with optional pinning."""
 
-    __gtype_name__ = 'PasarVersionHistoryDialog'
+    __gtype_name__ = 'TavernVersionHistoryDialog'
 
     __gsignals__ = {
         'pin-version': (GObject.SignalFlags.RUN_LAST, None, (str,)),  # version to pin

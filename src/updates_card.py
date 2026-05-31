@@ -15,7 +15,7 @@ _log = get_logger('updates_card')
 class UpdatesCard(Gtk.Box):
     """Card showing available Homebrew package updates."""
 
-    __gtype_name__ = 'PasarUpdatesCard'
+    __gtype_name__ = 'TavernUpdatesCard'
 
     __gsignals__ = {
         'update-all-requested': (GObject.SignalFlags.RUN_LAST, None, ()),

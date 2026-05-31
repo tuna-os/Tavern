@@ -1,7 +1,7 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $PasarPackageDetails: Adw.NavigationPage {
+template $TavernPackageDetails: Adw.NavigationPage {
   title: "Package Details";
 
   child: Adw.ToolbarView {
@@ -280,7 +280,6 @@ template $PasarPackageDetails: Adw.NavigationPage {
                         }
 
                         Stack installs_stack {
-                           visible-child-name: "spinner";
 
                            StackPage {
                              name: "spinner";

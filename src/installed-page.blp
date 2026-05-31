@@ -1,7 +1,7 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $PasarInstalledPage: Adw.Bin {
+template $TavernInstalledPage: Adw.Bin {
   child: Adw.BreakpointBin {
     width-request: 360;
     height-request: 300;
@@ -49,44 +49,65 @@ template $PasarInstalledPage: Adw.Bin {
       StackPage {
         name: "content";
 
-        child: ScrolledWindow {
-          hscrollbar-policy: never;
-          vexpand: true;
+        child: Box {
+          orientation: vertical;
 
-          child: Adw.Clamp {
-            maximum-size: 1200;
+          /* Search bar */
+          Box {
+            orientation: horizontal;
+            margin-start: 20;
+            margin-end: 20;
+            margin-top: 10;
+            margin-bottom: 2;
+            spacing: 8;
 
-            child: Box content_box {
-              orientation: vertical;
-              spacing: 16;
-              margin-start: 20;
-              margin-end: 20;
-              margin-top: 12;
-              margin-bottom: 40;
+            SearchEntry search_entry {
+              hexpand: true;
+              placeholder-text: "Search installed packages…";
+            }
+          }
 
-              $PasarUpdatesCard updates_card {
-                visible: false;
-                margin-bottom: 12;
-              }
+          ScrolledWindow {
+            hscrollbar-policy: never;
+            vexpand: true;
 
-              Label {
-                label: "Installed Packages";
-                xalign: 0.0;
-                margin-start: 4;
+            child: Adw.Clamp {
+              maximum-size: 1200;
 
-                styles ["title-1"]
-              }
+              child: Box content_box {
+                orientation: vertical;
+                spacing: 16;
+                margin-start: 20;
+                margin-end: 20;
+                margin-top: 8;
+                margin-bottom: 40;
 
-              FlowBox installed_flow {
-                homogeneous: true;
-                min-children-per-line: 1;
-                max-children-per-line: 2;
-                column-spacing: 8;
-                row-spacing: 8;
-                selection-mode: none;
-              }
+                $TavernUpdatesCard updates_card {
+                  visible: false;
+                  margin-bottom: 4;
+                }
+
+                /* Shown when filter matches nothing */
+                Label no_results_label {
+                  label: "No packages match your search";
+                  xalign: 0.0;
+                  margin-start: 4;
+                  visible: false;
+
+                  styles ["dim-label"]
+                }
+
+                FlowBox installed_flow {
+                  homogeneous: true;
+                  min-children-per-line: 1;
+                  max-children-per-line: 2;
+                  column-spacing: 8;
+                  row-spacing: 8;
+                  selection-mode: none;
+                }
+              };
             };
-          };
+          }
         };
       }
     };

@@ -45,7 +45,7 @@ SEARCH_PROVIDER_XML = """
 """
 
 
-class PasarSearchProvider:
+class TavernSearchProvider:
     """Implements the org.gnome.Shell.SearchProvider2 D-Bus interface."""
 
     def __init__(self, application):
@@ -66,7 +66,7 @@ class PasarSearchProvider:
         self.connection = connection
         try:
             self.registration_id = self.connection.register_object(
-                "/dev/hanthor/Pasar/SearchProvider",
+                "/dev/hanthor/Tavern/SearchProvider",
                 self._interface_info,
                 self._handle_method_call,
                 None,  # get_property
@@ -89,7 +89,7 @@ class PasarSearchProvider:
             if self._cache_loaded:
                 return
 
-            cache_dir = os.path.join(GLib.get_user_cache_dir(), 'pasar')
+            cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
             cache_path = os.path.join(cache_dir, 'linux_packages.json')
 
             if os.path.exists(cache_path):
@@ -151,7 +151,7 @@ class PasarSearchProvider:
             
             # Map of name -> package struct for quick lookup
             pkg_map = {p.get('name'): p for p in self._packages_cache}
-            cache_dir = os.path.join(GLib.get_user_cache_dir(), 'pasar')
+            cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
 
             metas = []
             for pkg_id in ids:
@@ -173,7 +173,7 @@ class PasarSearchProvider:
                     meta["icon"] = icon.serialize()
                 else:
                     # Assign default icon based on package type
-                    icon_name = "dev.hanthor.Pasar-symbolic" # Default
+                    icon_name = "dev.hanthor.Tavern-symbolic" # Default
                     meta["icon"] = Gio.Icon.new_for_string(icon_name).serialize()
                 
                 metas.append(meta)

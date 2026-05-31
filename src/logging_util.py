@@ -1,12 +1,12 @@
-# logging_util.py - Centralized logging and profiling for Pasar
+# logging_util.py - Centralized logging and profiling for Tavern
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # OFF by default.  Enable via environment variables:
 #
-#   PASAR_LOG=1          – turn on informational logging  (INFO level)
-#   PASAR_LOG=debug      – turn on verbose logging        (DEBUG level)
-#   PASAR_PROFILE=1      – turn on performance profiling  (timing of key ops)
-#   PASAR_LOG_FILE=path  – also write logs to a file
+#   TAVERN_LOG=1          – turn on informational logging  (INFO level)
+#   TAVERN_LOG=debug      – turn on verbose logging        (DEBUG level)
+#   TAVERN_PROFILE=1      – turn on performance profiling  (timing of key ops)
+#   TAVERN_LOG_FILE=path  – also write logs to a file
 #
 # When disabled, the helpers are essentially no-ops (the stdlib logger stays
 # at WARNING, so all our info/debug calls are silently discarded).
@@ -25,20 +25,20 @@ _profiling_enabled = False
 # ── Public helpers ───────────────────────────────────────────────────────────
 
 def get_logger(name: str) -> logging.Logger:
-    """Return a namespaced logger for *name* (e.g. ``'backend'`` → ``Pasar.backend``)."""
-    return logging.getLogger(f'Pasar.{name}')
+    """Return a namespaced logger for *name* (e.g. ``'backend'`` → ``Tavern.backend``)."""
+    return logging.getLogger(f'Tavern.{name}')
 
 
 def init_logging():
     """
-    Set up the Pasar logging subsystem.  Safe to call more than once
+    Set up the Tavern logging subsystem.  Safe to call more than once
     (subsequent calls are no-ops).
 
     Reads the following environment variables:
 
-    * ``PASAR_LOG``       – ``"1"`` or ``"info"`` for INFO, ``"debug"`` for DEBUG.
-    * ``PASAR_PROFILE``   – ``"1"`` to enable ``@profile`` timing output.
-    * ``PASAR_LOG_FILE``  – optional path; logs are *also* written there.
+    * ``TAVERN_LOG``       – ``"1"`` or ``"info"`` for INFO, ``"debug"`` for DEBUG.
+    * ``TAVERN_PROFILE``   – ``"1"`` to enable ``@profile`` timing output.
+    * ``TAVERN_LOG_FILE``  – optional path; logs are *also* written there.
     """
     global _initialized, _profiling_enabled
 
@@ -46,9 +46,9 @@ def init_logging():
         return
     _initialized = True
 
-    env_log = os.environ.get('PASAR_LOG', '').strip().lower()
-    env_profile = os.environ.get('PASAR_PROFILE', '').strip().lower()
-    env_log_file = os.environ.get('PASAR_LOG_FILE', '').strip()
+    env_log = os.environ.get('TAVERN_LOG', '').strip().lower()
+    env_profile = os.environ.get('TAVERN_PROFILE', '').strip().lower()
+    env_log_file = os.environ.get('TAVERN_LOG_FILE', '').strip()
 
     # Profiling flag (read by the @profile decorator)
     _profiling_enabled = env_profile in ('1', 'true', 'yes')
@@ -66,7 +66,7 @@ def init_logging():
         # Default: only warnings/errors (effectively silent for our messages)
         level = logging.WARNING
 
-    root = logging.getLogger('Pasar')
+    root = logging.getLogger('Tavern')
     root.setLevel(level)
 
     # Avoid duplicate handlers on repeated calls
@@ -104,7 +104,7 @@ def init_logging():
 
 
 def is_profiling() -> bool:
-    """Return True when ``PASAR_PROFILE=1`` is set."""
+    """Return True when ``TAVERN_PROFILE=1`` is set."""
     return _profiling_enabled
 
 
@@ -114,7 +114,7 @@ def profile(fn=None, *, threshold_ms: float = 0):
     """
     Decorator that logs wall-clock time of a function call.
 
-    Only emits output when profiling is enabled (``PASAR_PROFILE=1``).
+    Only emits output when profiling is enabled (``TAVERN_PROFILE=1``).
 
     Parameters
     ----------

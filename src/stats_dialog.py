@@ -11,9 +11,9 @@ from .logging_util import get_logger
 _log = get_logger('stats_dialog')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/stats-dialog.ui')
-class PasarStatsDialog(Adw.Dialog):
-    __gtype_name__ = 'PasarStatsDialog'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/stats-dialog.ui')
+class TavernStatsDialog(Adw.Dialog):
+    __gtype_name__ = 'TavernStatsDialog'
 
     total_installs_label = Gtk.Template.Child()
     count_30d = Gtk.Template.Child()

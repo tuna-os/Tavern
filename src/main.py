@@ -1,4 +1,4 @@
-# main.py - Entry point for Pasar
+# main.py - Entry point for Tavern
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import sys
@@ -38,12 +38,12 @@ def _load_resources():
             except Exception as e:
                 _log.debug('Failed to load Adwaita library %s: %s', lib_path, e)
     
-    # Try multiple possible locations for pasar's resource bundle
+    # Try multiple possible locations for tavern's resource bundle
     resource_paths = [
-        os.path.join(os.path.dirname(__file__), 'pasar.gresource'),  # In-source
-        os.path.join(os.path.expanduser('~'), '.local', 'share', 'pasar', 'pasar.gresource'),  # Installed
-        '/usr/local/share/pasar/pasar.gresource',  # System install
-        '/usr/share/pasar/pasar.gresource',  # System install (distro)
+        os.path.join(os.path.dirname(__file__), 'tavern.gresource'),  # In-source
+        os.path.join(os.path.expanduser('~'), '.local', 'share', 'tavern', 'tavern.gresource'),  # Installed
+        '/usr/local/share/tavern/tavern.gresource',  # System install
+        '/usr/share/tavern/tavern.gresource',  # System install (distro)
     ]
     
     for path in resource_paths:
@@ -65,12 +65,12 @@ def main(version):
     startup_start = time.perf_counter()
     
     # Initialise logging/profiling subsystem (off by default;
-    # set PASAR_LOG=1 and/or PASAR_PROFILE=1 to activate).
+    # set TAVERN_LOG=1 and/or TAVERN_PROFILE=1 to activate).
     init_logging()
     _log.info('=' * 70)
-    _log.info('PASAR DESKTOP STARTUP')
+    _log.info('TAVERN DESKTOP STARTUP')
     _log.info('=' * 70)
-    _log.info('Starting Pasar  version=%s  python=%s', version, sys.version.split()[0])
+    _log.info('Starting Tavern  version=%s  python=%s', version, sys.version.split()[0])
 
     # Load resources before importing modules that use Gtk.Template
     resource_start = time.perf_counter()
@@ -80,13 +80,13 @@ def main(version):
 
     # Now import application after resources are loaded
     import_start = time.perf_counter()
-    from .application import PasarApplication
+    from .application import TavernApplication
     import_time = (time.perf_counter() - import_start) * 1000
     _log.info('Application module imported: %.1f ms', import_time)
 
     # Create application
     app_start = time.perf_counter()
-    app = PasarApplication(version=version)
+    app = TavernApplication(version=version)
     app_time = (time.perf_counter() - app_start) * 1000
     _log.info('Application instance created: %.1f ms', app_time)
 

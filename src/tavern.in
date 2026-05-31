@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# pasar - Homebrew App Store for GNOME
+# tavern - Homebrew App Store for GNOME
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
@@ -9,8 +9,8 @@ import locale
 import gettext
 
 VERSION = '@VERSION@'
-pkgdatadir = os.environ.get('PASAR_DATADIR', '@PKGDATADIR@')
-localedir = os.environ.get('PASAR_LOCALEDIR', '@localedir@')
+pkgdatadir = os.environ.get('TAVERN_DATADIR', '@PKGDATADIR@')
+localedir = os.environ.get('TAVERN_LOCALEDIR', '@localedir@')
 
 # Resolve absolute paths if they are relative to the executable (for portable macOS bundles)
 if not pkgdatadir.startswith('/'):
@@ -22,11 +22,11 @@ sys.path.insert(1, pkgdatadir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 try:
-    locale.bindtextdomain('pasar', localedir)
-    locale.textdomain('pasar')
+    locale.bindtextdomain('tavern', localedir)
+    locale.textdomain('tavern')
 except AttributeError:
     pass
-gettext.install('pasar', localedir)
+gettext.install('tavern', localedir)
 
 if __name__ == '__main__':
     import gi
@@ -34,8 +34,8 @@ if __name__ == '__main__':
     gi.require_version('Adw', '1')
 
     from gi.repository import Gio
-    resource = Gio.Resource.load(os.path.join(pkgdatadir, 'pasar.gresource'))
+    resource = Gio.Resource.load(os.path.join(pkgdatadir, 'tavern.gresource'))
     resource._register()
 
-    from pasar.main import main
+    from tavern.main import main
     sys.exit(main(VERSION))

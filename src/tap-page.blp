@@ -1,0 +1,174 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TavernTapPage: Adw.Bin {
+  child: Adw.BreakpointBin {
+    width-request: 360;
+    height-request: 300;
+
+    Adw.Breakpoint {
+      condition ("max-width: 600sp")
+
+      setters {
+        tap_sidebar.visible: false;
+        tap_sidebar_separator.visible: false;
+        packages_flow.max-children-per-line: 2;
+        content_box.margin-start: 8;
+        content_box.margin-end: 8;
+      }
+    }
+
+    child: Stack tap_page_stack {
+      transition-type: crossfade;
+
+      StackPage {
+        name: "no-taps";
+
+        child: Adw.StatusPage {
+          icon-name: "package-x-generic-symbolic";
+          title: "No Custom Taps";
+          description: "Add Homebrew taps with brew tap user/repo to see their packages here.";
+
+          child: Button add_tap_empty_button {
+            label: "Add Tap";
+            halign: center;
+
+            styles ["pill", "suggested-action"]
+          };
+        };
+      }
+
+      StackPage {
+        name: "content";
+
+        child: Box {
+          orientation: horizontal;
+
+          /* ── Tap Sidebar ── */
+          Box tap_sidebar {
+            orientation: vertical;
+            width-request: 240;
+
+            Box {
+              orientation: horizontal;
+              margin-start: 16;
+              margin-end: 8;
+              margin-top: 8;
+              margin-bottom: 8;
+              spacing: 4;
+
+              Label {
+                label: "Taps";
+                hexpand: true;
+                xalign: 0.0;
+
+                styles ["heading"]
+              }
+
+              Button add_tap_button {
+                icon-name: "list-add-symbolic";
+                tooltip-text: "Add Tap";
+
+                styles ["flat", "circular"]
+              }
+
+              Button remove_tap_button {
+                icon-name: "list-remove-symbolic";
+                tooltip-text: "Remove Selected Tap";
+                sensitive: false;
+
+                styles ["flat", "circular"]
+              }
+            }
+
+            Separator {}
+
+            ScrolledWindow {
+              hscrollbar-policy: never;
+              vexpand: true;
+
+              child: ListBox tap_list {
+                selection-mode: single;
+
+                styles ["navigation-sidebar"]
+              };
+            }
+          }
+
+          Separator tap_sidebar_separator {
+            orientation: vertical;
+          }
+
+          /* ── Package Content ── */
+          Stack tap_content_stack {
+            hexpand: true;
+            vexpand: true;
+            transition-type: crossfade;
+
+            StackPage {
+              name: "select";
+
+              child: Adw.StatusPage {
+                icon-name: "view-grid-symbolic";
+                title: "Select a Tap";
+                description: "Choose a tap from the sidebar to browse its packages.";
+              };
+            }
+
+            StackPage {
+              name: "packages";
+
+              child: ScrolledWindow {
+                hscrollbar-policy: never;
+                vexpand: true;
+
+                child: Adw.Clamp {
+                  maximum-size: 1200;
+                  tightening-threshold: 1100;
+
+                  child: Box content_box {
+                    orientation: vertical;
+                    spacing: 16;
+                    margin-start: 20;
+                    margin-end: 20;
+                    margin-top: 12;
+                    margin-bottom: 40;
+
+                    Box {
+                      orientation: vertical;
+                      spacing: 4;
+
+                      Label tap_name_label {
+                        xalign: 0.0;
+                        margin-start: 4;
+                        ellipsize: end;
+
+                        styles ["title-1"]
+                      }
+
+                      Label tap_count_label {
+                        xalign: 0.0;
+                        margin-start: 4;
+
+                        styles ["dim-label"]
+                      }
+                    }
+
+                    FlowBox packages_flow {
+                      homogeneous: true;
+                      min-children-per-line: 1;
+                      max-children-per-line: 3;
+                      column-spacing: 8;
+                      row-spacing: 8;
+                      selection-mode: none;
+                    }
+                  };
+                };
+              };
+            }
+          }
+        };
+      }
+    };
+  };
+}

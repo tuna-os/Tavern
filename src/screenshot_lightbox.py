@@ -10,8 +10,8 @@ from .logging_util import get_logger
 
 _log = get_logger('screenshot_lightbox')
 
-class PasarScreenshotLightbox(Adw.Window):
-    __gtype_name__ = 'PasarScreenshotLightbox'
+class TavernScreenshotLightbox(Adw.Window):
+    __gtype_name__ = 'TavernScreenshotLightbox'
 
     def __init__(self, paintable, **kwargs):
         super().__init__(**kwargs)

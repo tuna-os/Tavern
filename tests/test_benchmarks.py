@@ -1,4 +1,4 @@
-# test_benchmarks.py - Performance benchmarks for Pasar
+# test_benchmarks.py - Performance benchmarks for Tavern
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Run with: pytest tests/test_benchmarks.py --benchmark-enable -v
@@ -11,8 +11,8 @@ import time
 import pytest
 
 from gi.repository import GLib
-from pasar.backend import Package, BrewBackend
-from pasar.logging_util import init_logging, get_logger, profile, log_timing
+from tavern.backend import Package, BrewBackend
+from tavern.logging_util import init_logging, get_logger, profile, log_timing
 
 
 # ─── Package construction ────────────────────────────────────────────────────
@@ -119,13 +119,13 @@ class TestLoggingOverhead:
 
     def test_disabled_logger_info_call(self, benchmark, monkeypatch):
         """Calling logger.info() 1000× with logging off."""
-        monkeypatch.delenv('PASAR_LOG', raising=False)
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
-        import pasar.logging_util as lu
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
+        import tavern.logging_util as lu
         lu._initialized = False
         lu._profiling_enabled = False
         import logging
-        root = logging.getLogger('Pasar')
+        root = logging.getLogger('Tavern')
         root.handlers.clear()
         root.setLevel(logging.WARNING)
         init_logging()
@@ -139,9 +139,9 @@ class TestLoggingOverhead:
 
     def test_profile_decorator_disabled(self, benchmark, monkeypatch):
         """Calling a @profile-decorated function 1000× with profiling off."""
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
-        monkeypatch.delenv('PASAR_LOG', raising=False)
-        import pasar.logging_util as lu
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
+        import tavern.logging_util as lu
         lu._initialized = False
         lu._profiling_enabled = False
 
@@ -157,9 +157,9 @@ class TestLoggingOverhead:
 
     def test_log_timing_disabled(self, benchmark, monkeypatch):
         """Using log_timing context manager 1000× with profiling off."""
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
-        monkeypatch.delenv('PASAR_LOG', raising=False)
-        import pasar.logging_util as lu
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
+        import tavern.logging_util as lu
         lu._initialized = False
         lu._profiling_enabled = False
 

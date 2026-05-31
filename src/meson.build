@@ -9,6 +9,7 @@ blueprints = custom_target('blueprints',
     'search-page.blp',
     'browse-page.blp',
     'installed-page.blp',
+    'tap-page.blp',
     'task-panel.blp',
     'brewfile-dialog.blp',
     'brewfile-page.blp',
@@ -24,8 +25,8 @@ blueprints = custom_target('blueprints',
   ],
 )
 
-gnome.compile_resources('pasar',
-  'pasar.gresource.xml',
+gnome.compile_resources('tavern',
+  'tavern.gresource.xml',
   gresource_bundle: true,
   install: true,
   install_dir: pkgdatadir,
@@ -33,8 +34,8 @@ gnome.compile_resources('pasar',
 )
 
 configure_file(
-  input: 'pasar.in',
-  output: 'pasar',
+  input: 'tavern.in',
+  output: 'tavern',
   configuration: conf,
   install: true,
   install_dir: get_option('bindir'),
@@ -42,7 +43,7 @@ configure_file(
 )
 
 # Install Python sources
-pasar_sources = [
+tavern_sources = [
   '__init__.py',
   'main.py',
   'application.py',
@@ -56,6 +57,7 @@ pasar_sources = [
   'search_page.py',
   'browse_page.py',
   'installed_page.py',
+  'tap_page.py',
   'task_manager.py',
   'task_panel.py',
   'global_progress.py',
@@ -68,7 +70,7 @@ pasar_sources = [
   'stats_dialog.py',
 ]
 
-install_data(pasar_sources, install_dir: pkgdatadir / 'pasar')
+install_data(tavern_sources, install_dir: pkgdatadir / 'tavern')
 
 install_data(
   'shell-search-provider-dbus-interfaces.xml',

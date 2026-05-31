@@ -7,7 +7,7 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GObject
 from .backend import BrewBackend
-from .package_tile import PasarPackageTile
+from .package_tile import TavernPackageTile
 from .logging_util import get_logger
 
 _log = get_logger('browse_page')
@@ -28,13 +28,14 @@ POPULAR_CASKS = [
 ]
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/browse-page.ui')
-class PasarBrowsePage(Adw.Bin):
-    __gtype_name__ = 'PasarBrowsePage'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/browse-page.ui')
+class TavernBrowsePage(Adw.Bin):
+    __gtype_name__ = 'TavernBrowsePage'
 
     __gsignals__ = {
         'package-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'install-requested': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'remove-requested':  (GObject.SignalFlags.RUN_LAST, None, (object,)),
     }
 
     browse_stack = Gtk.Template.Child()
@@ -93,9 +94,10 @@ class PasarBrowsePage(Adw.Bin):
         shown.extend(remaining[: 24 - len(shown)])
 
         for pkg in shown:
-            tile = PasarPackageTile(package=pkg)
-            tile.connect('clicked', self._on_tile_clicked)
+            tile = TavernPackageTile(package=pkg)
+            tile.connect('activated', self._on_tile_clicked)
             tile.connect('install-requested', self._on_tile_install_requested)
+            tile.connect('remove-requested', self._on_tile_remove_requested)
             self._load_tile_icon(tile, pkg)
             flowbox.append(tile)
 
@@ -116,9 +118,10 @@ class PasarBrowsePage(Adw.Bin):
         selected = rng.sample(packages, min(12, len(packages)))
         
         for pkg in selected:
-            tile = PasarPackageTile(package=pkg)
-            tile.connect('clicked', self._on_tile_clicked)
+            tile = TavernPackageTile(package=pkg)
+            tile.connect('activated', self._on_tile_clicked)
             tile.connect('install-requested', self._on_tile_install_requested)
+            tile.connect('remove-requested', self._on_tile_remove_requested)
             self._load_tile_icon(tile, pkg)
             self.recent_flow.append(tile)
 
@@ -137,3 +140,8 @@ class PasarBrowsePage(Adw.Bin):
         pkg = tile.get_package()
         if pkg:
             self.emit('install-requested', pkg)
+
+    def _on_tile_remove_requested(self, tile):
+        pkg = tile.get_package()
+        if pkg:
+            self.emit('remove-requested', pkg)

@@ -1,9 +1,9 @@
 {
-    "app-id": "dev.hanthor.Pasar",
+    "app-id": "dev.hanthor.Tavern",
     "runtime": "org.gnome.Platform",
     "runtime-version": "49",
     "sdk": "org.gnome.Sdk",
-    "command": "pasar",
+    "command": "tavern",
     "finish-args": [
         "--share=ipc",
         "--socket=fallback-x11",
@@ -14,7 +14,7 @@
         "--filesystem=home",
         "--filesystem=/home/linuxbrew:ro",
         "--env=HOMEBREW_NO_AUTO_UPDATE=1",
-        "--own-name=dev.hanthor.Pasar.SearchProvider"
+        "--own-name=dev.hanthor.Tavern.SearchProvider"
     ],
     "cleanup": [
         "/include",
@@ -52,7 +52,7 @@
             ]
         },
         {
-            "name": "pasar",
+            "name": "tavern",
             "buildsystem": "meson",
             "sources": [
                 {

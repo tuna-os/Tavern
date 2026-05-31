@@ -1,8 +1,8 @@
 from gi.repository import Gtk, GObject, Adw
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/package-rich-tile.ui')
-class PasarRichPackageTile(Gtk.Box):
-    __gtype_name__ = 'PasarRichPackageTile'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/package-rich-tile.ui')
+class TavernRichPackageTile(Gtk.Box):
+    __gtype_name__ = 'TavernRichPackageTile'
 
     __gsignals__ = {
         'clicked': (GObject.SignalFlags.RUN_LAST, None, ()),
@@ -28,12 +28,12 @@ class PasarRichPackageTile(Gtk.Box):
         self.name_label.set_text(package.name)
         
         # Display short desc (or type as fallback)
-        desc = package.desc if package.desc else (
-            "GUI Application" if package.is_cask else "Command Line Utility"
+        desc = package.description if package.description else (
+            "GUI Application" if package.pkg_type == 'cask' else "Command Line Utility"
         )
         self.short_desc.set_text(desc)
         
-        if package.is_cask:
+        if package.pkg_type == 'cask':
             self.type_badge.set_text("cask")
             self.type_badge.add_css_class("cask-badge")
             # For aesthetics, let's vary the color of the cover slightly
@@ -51,7 +51,7 @@ class PasarRichPackageTile(Gtk.Box):
     def _update_state(self):
         if self.package.installed:
             self.install_button.set_label("Open")
-            self.install_button.set_visible(self.package.is_cask)
+            self.install_button.set_visible(self.package.pkg_type == 'cask')
             # Make the button visually distinct when installed
             self.install_button.remove_css_class("suggested-action")
         else:

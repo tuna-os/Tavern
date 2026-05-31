@@ -108,7 +108,7 @@ Successfully parsed:
 ## Recommendations
 
 1. **Monitor logs** for patterns of consistently failing taps/apps
-   - Filter: `grep -i "failed\|error" pasar.log` during Brewfile loads
+   - Filter: `grep -i "failed\|error" tavern.log` during Brewfile loads
    
 2. **User feedback** about which specific items failed
    - Add badge/indicator count on Brewfile tab: "58 apps (57 loaded)"

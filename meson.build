@@ -1,4 +1,4 @@
-project('pasar',
+project('tavern',
   version: '0.1.0',
   meson_version: '>= 1.0.0',
   default_options: [
@@ -15,7 +15,7 @@ py_installation = python.find_installation('python3')
 dependency('gtk4', version: '>= 4.12')
 dependency('libadwaita-1', version: '>= 1.4')
 
-APPLICATION_ID = 'dev.hanthor.Pasar'
+APPLICATION_ID = 'dev.hanthor.Tavern'
 PKGDATADIR = get_option('prefix') / get_option('datadir') / meson.project_name()
 
 conf = configuration_data()

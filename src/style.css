@@ -1,10 +1,10 @@
-/* style.css - Pasar app stylesheet */
+/* style.css - Tavern app stylesheet */
 
 /* ===== Package Tile ===== */
 .package-tile {
   min-width: 260px;
   min-height: 80px;
-  transition: all 150ms ease;
+  transition: background-color 100ms ease, box-shadow 100ms ease;
 }
 
 .package-tile label {
@@ -16,7 +16,8 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
-.package-tile:active {
+/* .activating is added/removed in Python on gesture press/release */
+.package-tile.activating {
   background-color: alpha(@window_fg_color, 0.08);
   transform: scale(0.98);
 }
@@ -329,6 +330,63 @@ button.updates-button:hover {
 .clickable-screenshot:hover {
   transform: scale(1.02);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== Header task button ===== */
+.task-header-button {
+  border-radius: 999px;
+}
+
+.task-count-badge {
+  font-weight: 700;
+  font-size: 0.75em;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+/* ===== Active task pill (inside package tile) ===== */
+.active-task-pill {
+  background-color: alpha(@window_fg_color, 0.08);
+  color: alpha(@window_fg_color, 0.65);
+  border: 1px solid alpha(@window_fg_color, 0.12);
+}
+
+/* ===== Task status pills (task panel rows) ===== */
+.task-status-pill {
+  font-size: 0.72em;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.task-status-pill.pill-waiting {
+  background-color: alpha(@window_fg_color, 0.10);
+  color: alpha(@window_fg_color, 0.65);
+}
+
+.task-status-pill.pill-done {
+  background-color: alpha(@success_color, 0.15);
+  color: @success_color;
+}
+
+.task-status-pill.pill-error {
+  background-color: alpha(@error_color, 0.15);
+  color: @error_color;
+}
+
+/* ===== Inline progress bar on tiles ===== */
+.task-inline-progress trough {
+  border-radius: 999px;
+  min-height: 5px;
+  background-color: alpha(@window_fg_color, 0.10);
+}
+
+.task-inline-progress progress {
+  border-radius: 999px;
+  background-color: @accent_color;
 }
 
 /* ===== Stats Check ===== */

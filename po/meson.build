@@ -1,1 +1,1 @@
-i18n.gettext('pasar', preset: 'glib')
+i18n.gettext('tavern', preset: 'glib')

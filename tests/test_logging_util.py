@@ -8,8 +8,8 @@ import time
 
 import pytest
 
-import pasar.logging_util as lu
-from pasar.logging_util import get_logger, init_logging, is_profiling, profile, log_timing
+import tavern.logging_util as lu
+from tavern.logging_util import get_logger, init_logging, is_profiling, profile, log_timing
 
 
 # ─── get_logger ──────────────────────────────────────────────────────────────
@@ -17,65 +17,65 @@ from pasar.logging_util import get_logger, init_logging, is_profiling, profile, 
 class TestGetLogger:
     def test_returns_namespaced_logger(self):
         log = get_logger('backend')
-        assert log.name == 'Pasar.backend'
+        assert log.name == 'Tavern.backend'
 
     def test_returns_same_instance_for_same_name(self):
         a = get_logger('foo')
         b = get_logger('foo')
         assert a is b
 
-    def test_child_of_root_pasar_logger(self):
+    def test_child_of_root_tavern_logger(self):
         log = get_logger('window')
-        assert log.parent.name == 'Pasar'
+        assert log.parent.name == 'Tavern'
 
 
 # ─── init_logging ────────────────────────────────────────────────────────────
 
 class TestInitLogging:
     def test_default_is_warning_level(self, fresh_logging, monkeypatch):
-        monkeypatch.delenv('PASAR_LOG', raising=False)
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
         fresh_logging._initialized = False
         init_logging()
-        root = logging.getLogger('Pasar')
+        root = logging.getLogger('Tavern')
         assert root.level == logging.WARNING
 
-    def test_pasar_log_1_sets_info(self, fresh_logging, monkeypatch):
-        monkeypatch.setenv('PASAR_LOG', '1')
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
+    def test_tavern_log_1_sets_info(self, fresh_logging, monkeypatch):
+        monkeypatch.setenv('TAVERN_LOG', '1')
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
         init_logging()
-        root = logging.getLogger('Pasar')
+        root = logging.getLogger('Tavern')
         assert root.level == logging.INFO
 
-    def test_pasar_log_debug_sets_debug(self, fresh_logging, monkeypatch):
-        monkeypatch.setenv('PASAR_LOG', 'debug')
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
+    def test_tavern_log_debug_sets_debug(self, fresh_logging, monkeypatch):
+        monkeypatch.setenv('TAVERN_LOG', 'debug')
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
         init_logging()
-        root = logging.getLogger('Pasar')
+        root = logging.getLogger('Tavern')
         assert root.level == logging.DEBUG
 
     def test_profile_only_sets_info(self, fresh_logging, monkeypatch):
-        monkeypatch.delenv('PASAR_LOG', raising=False)
-        monkeypatch.setenv('PASAR_PROFILE', '1')
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
+        monkeypatch.setenv('TAVERN_PROFILE', '1')
         init_logging()
-        root = logging.getLogger('Pasar')
+        root = logging.getLogger('Tavern')
         assert root.level == logging.INFO
 
     def test_idempotent(self, fresh_logging, monkeypatch):
-        monkeypatch.setenv('PASAR_LOG', '1')
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
+        monkeypatch.setenv('TAVERN_LOG', '1')
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
         init_logging()
-        handlers_after_first = len(logging.getLogger('Pasar').handlers)
+        handlers_after_first = len(logging.getLogger('Tavern').handlers)
         init_logging()  # second call
-        assert len(logging.getLogger('Pasar').handlers) == handlers_after_first
+        assert len(logging.getLogger('Tavern').handlers) == handlers_after_first
 
     def test_file_handler_created(self, fresh_logging, monkeypatch, tmp_path):
         log_file = str(tmp_path / 'test.log')
-        monkeypatch.setenv('PASAR_LOG', '1')
-        monkeypatch.setenv('PASAR_LOG_FILE', log_file)
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
+        monkeypatch.setenv('TAVERN_LOG', '1')
+        monkeypatch.setenv('TAVERN_LOG_FILE', log_file)
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
         init_logging()
-        root = logging.getLogger('Pasar')
+        root = logging.getLogger('Tavern')
         # Should have console + file handler
         assert len(root.handlers) >= 2
         # Write a message and check the file
@@ -87,9 +87,9 @@ class TestInitLogging:
         assert 'hello file' in contents
 
     def test_startup_banner_emitted(self, fresh_logging, monkeypatch, capsys):
-        monkeypatch.setenv('PASAR_LOG', 'info')
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
-        monkeypatch.delenv('PASAR_LOG_FILE', raising=False)
+        monkeypatch.setenv('TAVERN_LOG', 'info')
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
+        monkeypatch.delenv('TAVERN_LOG_FILE', raising=False)
         init_logging()
         # Banner goes to stderr via StreamHandler
         captured = capsys.readouterr()
@@ -100,14 +100,14 @@ class TestInitLogging:
 
 class TestIsProfiling:
     def test_false_by_default(self, fresh_logging, monkeypatch):
-        monkeypatch.delenv('PASAR_LOG', raising=False)
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
         init_logging()
         assert is_profiling() is False
 
     def test_true_when_env_set(self, fresh_logging, monkeypatch):
-        monkeypatch.setenv('PASAR_PROFILE', '1')
-        monkeypatch.delenv('PASAR_LOG', raising=False)
+        monkeypatch.setenv('TAVERN_PROFILE', '1')
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
         init_logging()
         assert is_profiling() is True
 
@@ -116,8 +116,8 @@ class TestIsProfiling:
 
 class TestProfileDecorator:
     def test_passthrough_when_disabled(self, fresh_logging, monkeypatch):
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
-        monkeypatch.delenv('PASAR_LOG', raising=False)
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
         init_logging()
 
         @profile
@@ -127,8 +127,8 @@ class TestProfileDecorator:
         assert add(2, 3) == 5
 
     def test_logs_when_enabled(self, fresh_logging, monkeypatch, capfd):
-        monkeypatch.setenv('PASAR_PROFILE', '1')
-        monkeypatch.setenv('PASAR_LOG', '1')
+        monkeypatch.setenv('TAVERN_PROFILE', '1')
+        monkeypatch.setenv('TAVERN_LOG', '1')
         init_logging()
 
         @profile
@@ -143,8 +143,8 @@ class TestProfileDecorator:
         assert 'took' in captured.err
 
     def test_threshold_filters_fast_calls(self, fresh_logging, monkeypatch, capfd):
-        monkeypatch.setenv('PASAR_PROFILE', '1')
-        monkeypatch.setenv('PASAR_LOG', '1')
+        monkeypatch.setenv('TAVERN_PROFILE', '1')
+        monkeypatch.setenv('TAVERN_LOG', '1')
         init_logging()
 
         @profile(threshold_ms=5000)
@@ -166,8 +166,8 @@ class TestProfileDecorator:
         assert documented.__doc__ == 'My docstring.'
 
     def test_exceptions_propagate(self, fresh_logging, monkeypatch):
-        monkeypatch.setenv('PASAR_PROFILE', '1')
-        monkeypatch.setenv('PASAR_LOG', '1')
+        monkeypatch.setenv('TAVERN_PROFILE', '1')
+        monkeypatch.setenv('TAVERN_LOG', '1')
         init_logging()
 
         @profile
@@ -182,8 +182,8 @@ class TestProfileDecorator:
 
 class TestLogTiming:
     def test_no_output_when_disabled(self, fresh_logging, monkeypatch, capfd):
-        monkeypatch.delenv('PASAR_PROFILE', raising=False)
-        monkeypatch.delenv('PASAR_LOG', raising=False)
+        monkeypatch.delenv('TAVERN_PROFILE', raising=False)
+        monkeypatch.delenv('TAVERN_LOG', raising=False)
         init_logging()
 
         with log_timing('some operation'):
@@ -192,8 +192,8 @@ class TestLogTiming:
         assert 'some operation' not in captured.err
 
     def test_logs_when_profiling(self, fresh_logging, monkeypatch, capfd):
-        monkeypatch.setenv('PASAR_PROFILE', '1')
-        monkeypatch.setenv('PASAR_LOG', '1')
+        monkeypatch.setenv('TAVERN_PROFILE', '1')
+        monkeypatch.setenv('TAVERN_LOG', '1')
         init_logging()
 
         with log_timing('my block'):
@@ -203,8 +203,8 @@ class TestLogTiming:
         assert 'took' in captured.err
 
     def test_does_not_suppress_exceptions(self, fresh_logging, monkeypatch):
-        monkeypatch.setenv('PASAR_PROFILE', '1')
-        monkeypatch.setenv('PASAR_LOG', '1')
+        monkeypatch.setenv('TAVERN_PROFILE', '1')
+        monkeypatch.setenv('TAVERN_LOG', '1')
         init_logging()
 
         with pytest.raises(RuntimeError):

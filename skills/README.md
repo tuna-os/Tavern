@@ -1,6 +1,6 @@
-# Pasar Skills Reference
+# Tavern Skills Reference
 
-This directory contains skill definitions for AI agents working on the Pasar project. Each skill covers a major area of the codebase.
+This directory contains skill definitions for AI agents working on the Tavern project. Each skill covers a major area of the codebase.
 
 ## Quick Navigation
 
@@ -38,13 +38,13 @@ Quick reference for all profiling flags:
 
 ```bash
 # Logging only
-PASAR_LOG=info ./run.sh
+TAVERN_LOG=info ./run.sh
 
 # Full profiling
-PASAR_PROFILE=1 PASAR_LOG=info ./run.sh
+TAVERN_PROFILE=1 TAVERN_LOG=info ./run.sh
 
 # Debugging with file output
-PASAR_LOG=debug PASAR_LOG_FILE=/tmp/pasar.log ./run.sh
+TAVERN_LOG=debug TAVERN_LOG_FILE=/tmp/tavern.log ./run.sh
 ```
 
 See [profiling.md](profiling.md#environment-variables) for full details.
@@ -68,7 +68,7 @@ See [build.md](build.md) for full details.
 ## File Organization
 
 ```
-pasar/
+tavern/
 ├── agents.md                    # Main developer guide (start here)
 ├── skills/                      # AI agent skill definitions
 │   ├── README.md               # This file
@@ -96,7 +96,7 @@ Every module has timing checkpoints that log startup progress:
 - `window.py` — Backend init and page setup (9 checkpoints)
 - `brewfile_page.py` — Per-package timing with statistics
 
-Enable with: `PASAR_LOG=info`
+Enable with: `TAVERN_LOG=info`
 
 ### Async Operations
 All I/O (network, file, subprocess) runs in background threads:
@@ -123,21 +123,21 @@ Single interface to:
 |---------|-----|----------|
 | Build fails with "symbol not found" | [build.md](build.md#troubleshooting) | Create pkg-config symlinks |
 | "Unable to load resource" error | [build.md](build.md#troubleshooting) | Check XDG_DATA_DIRS and gresource |
-| Slow startup | [profiling.md](profiling.md#startup-profiling) | Profile with PASAR_LOG=info |
+| Slow startup | [profiling.md](profiling.md#startup-profiling) | Profile with TAVERN_LOG=info |
 | Feature not working | [features.md](features.md) | Check module, write test |
-| Test failures | [build.md](build.md#testing) | Run with PASAR_LOG=debug |
+| Test failures | [build.md](build.md#testing) | Run with TAVERN_LOG=debug |
 
 ## Common Tasks
 
 ### Profile Application Startup
 ```bash
-PASAR_LOG=info ./run.sh 2>&1 | tee startup.log
+TAVERN_LOG=info ./run.sh 2>&1 | tee startup.log
 # Now look at startup.log for timing breakdown
 ```
 
 ### Debug a Specific Operation
 ```bash
-PASAR_LOG=debug PASAR_LOG_FILE=/tmp/debug.log ./run.sh
+TAVERN_LOG=debug TAVERN_LOG_FILE=/tmp/debug.log ./run.sh
 # Open the Brewfile you're testing
 # Check /tmp/debug.log for detailed logs
 grep "your_operation" /tmp/debug.log
@@ -146,7 +146,7 @@ grep "your_operation" /tmp/debug.log
 ### Add Timing to New Code
 ```python
 # In your_module.py
-from pasar.logging_util import log_timing
+from tavern.logging_util import log_timing
 
 with log_timing("Operation description", "module_name"):
     slow_operation()
@@ -154,7 +154,7 @@ with log_timing("Operation description", "module_name"):
 
 Then enable profiling:
 ```bash
-PASAR_LOG=info ./run.sh
+TAVERN_LOG=info ./run.sh
 ```
 
 ### Rebuild After Changes
@@ -168,7 +168,7 @@ meson install -C builddir     # Quick rebuild
 ```bash
 pytest tests/
 pytest tests/test_backend.py::test_parse_brewfile -v
-PASAR_LOG=debug pytest tests/ -s
+TAVERN_LOG=debug pytest tests/ -s
 ```
 
 ## Architecture Diagrams

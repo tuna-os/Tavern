@@ -51,7 +51,7 @@ class GitHubForge(GitForge):
             api_url = f'{self.API_BASE}/{owner}/{repo}/releases'
             _log.debug('Fetching GitHub releases: %s', api_url)
             
-            req = Request(api_url, headers={'User-Agent': 'Pasar/0.1'})
+            req = Request(api_url, headers={'User-Agent': 'Tavern/0.1'})
             with urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
             
@@ -103,7 +103,7 @@ class GitLabForge(GitForge):
             api_url = f'{base_url}/api/v4/projects/{project_path}/releases'
             _log.debug('Fetching GitLab releases: %s', api_url)
             
-            req = Request(api_url, headers={'User-Agent': 'Pasar/0.1'})
+            req = Request(api_url, headers={'User-Agent': 'Tavern/0.1'})
             with urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
             
@@ -148,7 +148,7 @@ class CodebergForge(GitForge):
             api_url = f'{self.API_BASE}/{owner}/{repo}/releases'
             _log.debug('Fetching Codeberg releases: %s', api_url)
             
-            req = Request(api_url, headers={'User-Agent': 'Pasar/0.1'})
+            req = Request(api_url, headers={'User-Agent': 'Tavern/0.1'})
             with urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
             
@@ -195,7 +195,7 @@ class GiteaForge(GitForge):
             api_url = f'{self.base_url}/api/v1/repos/{owner}/{repo}/releases'
             _log.debug('Fetching Gitea releases: %s', api_url)
             
-            req = Request(api_url, headers={'User-Agent': 'Pasar/0.1'})
+            req = Request(api_url, headers={'User-Agent': 'Tavern/0.1'})
             with urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
             

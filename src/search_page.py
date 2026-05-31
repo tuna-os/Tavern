@@ -7,19 +7,20 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GLib, GObject
 from .backend import BrewBackend
-from .package_tile import PasarPackageTile
+from .package_tile import TavernPackageTile
 from .logging_util import get_logger
 
 _log = get_logger('search_page')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/search-page.ui')
-class PasarSearchPage(Adw.Bin):
-    __gtype_name__ = 'PasarSearchPage'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/search-page.ui')
+class TavernSearchPage(Adw.Bin):
+    __gtype_name__ = 'TavernSearchPage'
 
     __gsignals__ = {
         'package-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'install-requested': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'remove-requested':  (GObject.SignalFlags.RUN_LAST, None, (object,)),
     }
 
     search_entry = Gtk.Template.Child()
@@ -99,9 +100,10 @@ class PasarSearchPage(Adw.Bin):
         else:
             self.search_stack.set_visible_child_name('results')
             for pkg in results[:120]:  # cap display at 120
-                tile = PasarPackageTile(package=pkg)
-                tile.connect('clicked', self._on_tile_clicked)
+                tile = TavernPackageTile(package=pkg)
+                tile.connect('activated', self._on_tile_clicked)
                 tile.connect('install-requested', self._on_tile_install_requested)
+                tile.connect('remove-requested', self._on_tile_remove_requested)
                 self._load_tile_icon(tile, pkg)
                 self.results_flow.append(tile)
 
@@ -134,3 +136,8 @@ class PasarSearchPage(Adw.Bin):
         pkg = tile.get_package()
         if pkg:
             self.emit('install-requested', pkg)
+
+    def _on_tile_remove_requested(self, tile):
+        pkg = tile.get_package()
+        if pkg:
+            self.emit('remove-requested', pkg)

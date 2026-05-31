@@ -1,4 +1,4 @@
-# Pasar Developer & AI Agent Guide
+# Tavern Developer & AI Agent Guide
 
 ## Quick Start
 
@@ -12,7 +12,7 @@ just run-direct             # Run without rebuilding
 ## Project Structure
 
 ```
-pasar/
+tavern/
 ├── agents.md              # This file
 ├── skills/                # AI agent skill definitions
 ├── run.sh                 # Local dev wrapper (Homebrew build)
@@ -73,29 +73,29 @@ just clean                  # Remove all build artifacts
 
 ### Overview
 
-Pasar has a comprehensive instrumentation system for debugging and performance analysis. All major operations are timed and logged.
+Tavern has a comprehensive instrumentation system for debugging and performance analysis. All major operations are timed and logged.
 
 **Design:** Logging is **OFF by default**. Enable via environment variables for zero overhead in normal operation.
 
 ### Environment Variables
 
 ```bash
-PASAR_LOG=1|info           # Enable INFO-level logging
-PASAR_LOG=debug            # Enable DEBUG-level logging (verbose)
-PASAR_PROFILE=1            # Enable @profile decorator timing (requires PASAR_LOG)
-PASAR_LOG_FILE=/tmp/p.log  # Also write logs to this file
+TAVERN_LOG=1|info           # Enable INFO-level logging
+TAVERN_LOG=debug            # Enable DEBUG-level logging (verbose)
+TAVERN_PROFILE=1            # Enable @profile decorator timing (requires TAVERN_LOG)
+TAVERN_LOG_FILE=/tmp/p.log  # Also write logs to this file
 ```
 
 **Example:**
 ```bash
 # Full startup profiling to console
-PASAR_LOG=info ./run.sh
+TAVERN_LOG=info ./run.sh
 
 # Detailed backend debugging to file
-PASAR_LOG=debug PASAR_LOG_FILE=/tmp/pasar.log ./run.sh
+TAVERN_LOG=debug TAVERN_LOG_FILE=/tmp/tavern.log ./run.sh
 
 # Performance profiling only
-PASAR_PROFILE=1 PASAR_LOG=info ./run.sh
+TAVERN_PROFILE=1 TAVERN_LOG=info ./run.sh
 ```
 
 ### Logging Infrastructure
@@ -104,20 +104,20 @@ PASAR_PROFILE=1 PASAR_LOG=info ./run.sh
 
 **Key functions:**
 - `init_logging()` — Initialize logging system (called at startup)
-- `get_logger(name)` — Get a logger for a module (e.g., `get_logger('backend')` → `Pasar.backend`)
+- `get_logger(name)` — Get a logger for a module (e.g., `get_logger('backend')` → `Tavern.backend`)
 - `log_timing(label, category)` — Context manager for timing blocks
 - `@profile` — Decorator for function-level timing
 
 **Log format:**
 ```
-HH:MM:SS.mmm [LEVEL] Pasar.module: message
+HH:MM:SS.mmm [LEVEL] Tavern.module: message
 ```
 
 Example output:
 ```
-15:35:49.725 [INFO ] Pasar.window: Kicking off backend.load_all_async()
-15:35:49.726 [DEBUG] Pasar.backend: _load_all_thread started
-15:35:50.768 [INFO ] Pasar.window: Formulae loaded: 14 packages
+15:35:49.725 [INFO ] Tavern.window: Kicking off backend.load_all_async()
+15:35:49.726 [DEBUG] Tavern.backend: _load_all_thread started
+15:35:50.768 [INFO ] Tavern.window: Formulae loaded: 14 packages
 ```
 
 ### Startup Profiling
@@ -128,9 +128,9 @@ The application startup is fully instrumented with timing breakpoints:
 
 ```
 ============================================================================
-PASAR DESKTOP STARTUP
+TAVERN DESKTOP STARTUP
 ============================================================================
-Starting Pasar  version=0.1.0  python=3.12.12
+Starting Tavern  version=0.1.0  python=3.12.12
 Resources loaded: 2.3 ms
 Application module imported: 145.2 ms
 Application instance created: 4.5 ms
@@ -141,7 +141,7 @@ Then followed by `do_activate()` in `application.py`:
 
 ```
 do_activate: called
-PasarWindow created: 125.3 ms
+TavernWindow created: 125.3 ms
 CSS loaded and applied: 3.2 ms
 Window presented: 8.1 ms
 ```
@@ -149,14 +149,14 @@ Window presented: 8.1 ms
 And window initialization in `window.py`:
 
 ```
-PasarWindow.__init__: starting
+TavernWindow.__init__: starting
 Backend created: 2.1 ms
 Task manager created: 1.3 ms
 Pages wired: 0.8 ms
 Window actions setup: 2.2 ms
 Settings restored: 1.5 ms
 Backend.load_all_async() started: 0.6 ms
-PasarWindow.__init__: completed in 137.8 ms
+TavernWindow.__init__: completed in 137.8 ms
 ```
 
 **Available timing points:**
@@ -202,19 +202,19 @@ TOTAL BREWFILE LOAD TIME: 7234.5 ms
 
 ## Command-Line Arguments
 
-Pasar supports opening packages and Brewfiles from the command line:
+Tavern supports opening packages and Brewfiles from the command line:
 
 ```bash
 # Open a specific package (if available)
-pasar --package=<name>
-pasar -p <name>
+tavern --package=<name>
+tavern -p <name>
 
 # Open a Brewfile
-pasar --brewfile=/path/to/file.Brewfile
-pasar -b /path/to/file.Brewfile
+tavern --brewfile=/path/to/file.Brewfile
+tavern -b /path/to/file.Brewfile
 
 # Open with logging enabled
-PASAR_LOG=info pasar --brewfile ~/mybrewfile
+TAVERN_LOG=info tavern --brewfile ~/mybrewfile
 ```
 
 **Implementation:** `src/application.py` — `do_command_line()` method
@@ -226,7 +226,7 @@ Uses direct `sys.argv` parsing (more reliable than GTK's OptionArg system for cu
 ### Homebrew Integration
 - **Backend:** `backend.py` — Homebrew API, local brew CLI, tap scanning
 - **Data:** Package class with formula, cask, flatpak types
-- **Caching:** `~/.cache/pasar/` for formulae/casks JSON
+- **Caching:** `~/.cache/tavern/` for formulae/casks JSON
 
 ### Flatpak Support
 - **Discovery:** Flathub appstream API (`https://flathub.org/api/v2/appstream/{app_id}`)
@@ -243,7 +243,7 @@ Uses direct `sys.argv` parsing (more reliable than GTK's OptionArg system for cu
 - **Framework:** GTK 4.20.3 + Libadwaita 1.8.4
 - **UI Definition:** Blueprint `.blp` files compiled to `.ui` XML
 - **Styling:** `src/style.css` with custom theme variables
-- **Resources:** Compiled into `pasar.gresource` bundle
+- **Resources:** Compiled into `tavern.gresource` bundle
 
 ## Troubleshooting
 
@@ -262,7 +262,7 @@ Enable logging and check output for GTK assertion failures. Often caused by temp
 ### Slow Homebrew builds
 Homebrew formulae downloads/parsing happens in a background thread. Check logs:
 ```bash
-PASAR_LOG=debug ./run.sh 2>&1 | grep -E "Installed|Tap scan|Cache"
+TAVERN_LOG=debug ./run.sh 2>&1 | grep -E "Installed|Tap scan|Cache"
 ```
 
 ## Testing
@@ -276,7 +276,7 @@ pytest tests/test_backend.py::test_parse -v      # Specific test
 
 **With logging:**
 ```bash
-PASAR_LOG=debug pytest tests/ -s                 # Show all output
+TAVERN_LOG=debug pytest tests/ -s                 # Show all output
 ```
 
 ## Environment Notes

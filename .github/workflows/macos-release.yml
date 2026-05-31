@@ -21,11 +21,11 @@ jobs:
       run: ./run.sh --cask
 
     - name: Zip App Bundle
-      run: zip -r Pasar-macOS.zip Pasar.app
+      run: zip -r Tavern-macOS.zip Tavern.app
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
       with:
-        files: Pasar-macOS.zip
+        files: Tavern-macOS.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

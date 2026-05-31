@@ -1,18 +1,27 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $PasarWindow: Adw.ApplicationWindow {
-  title: "Pasar";
+template $TavernWindow: Adw.ApplicationWindow {
+  title: "Tavern";
   default-width: 1100;
   default-height: 750;
   width-request: 360;
   height-request: 500;
 
+  Adw.Breakpoint {
+    condition ("max-width: 550sp")
+
+    setters {
+      view_switcher.visible: false;
+      view_switcher_bar.reveal: true;
+    }
+  }
+
   content: Adw.ToastOverlay toast_overlay {
     child: Adw.NavigationView navigation_view {
       Adw.NavigationPage {
         tag: "main";
-        title: "Pasar";
+        title: "Tavern";
 
         child: Adw.ToolbarView {
           [top]
@@ -27,17 +36,42 @@ template $PasarWindow: Adw.ApplicationWindow {
             Button task_button {
               tooltip-text: "Downloads & Tasks";
 
-              styles ["global-progress-button", "flat"]
+              styles ["flat", "task-header-button"]
 
-              child: $PasarGlobalProgress global_progress {
-                expand-size: 100;
+              child: Box {
+                spacing: 4;
+                margin-start: 2;
+                margin-end: 2;
 
-                child: Image {
-                  icon-name: "folder-download-symbolic";
-                };
+                Stack task_indicator_stack {
+                  transition-type: crossfade;
+                  transition-duration: 200;
+
+                  StackPage {
+                    name: "idle";
+                    child: Image {
+                      icon-name: "folder-download-symbolic";
+                      pixel-size: 16;
+                    };
+                  }
+
+                  StackPage {
+                    name: "active";
+                    child: Adw.Spinner task_header_spinner {
+                      width-request: 16;
+                      height-request: 16;
+                    };
+                  }
+                }
+
+                Label task_count_label {
+                  label: "";
+                  visible: false;
+
+                  styles ["caption", "task-count-badge"]
+                }
               };
             }
-
 
             [end]
             MenuButton {
@@ -46,6 +80,12 @@ template $PasarWindow: Adw.ApplicationWindow {
               tooltip-text: "Main Menu";
               menu-model: primary_menu;
             }
+          }
+
+          [bottom]
+          Adw.ViewSwitcherBar view_switcher_bar {
+            stack: main_stack;
+            reveal: false;
           }
 
           content: Stack content_stack {
@@ -80,13 +120,21 @@ template $PasarWindow: Adw.ApplicationWindow {
 
                 Adw.ViewStack main_stack {
                   vexpand: true;
-                  
+
                   Adw.ViewStackPage {
                     name: "browse";
                     title: "Browse";
                     icon-name: "view-grid-symbolic";
 
-                    child: $PasarBrowsePage browse_page {};
+                    child: $TavernBrowsePage browse_page {};
+                  }
+
+                  Adw.ViewStackPage {
+                    name: "taps";
+                    title: "Taps";
+                    icon-name: "folder-symbolic";
+
+                    child: $TavernTapPage tap_page {};
                   }
 
                   Adw.ViewStackPage {
@@ -94,7 +142,7 @@ template $PasarWindow: Adw.ApplicationWindow {
                     title: "Search";
                     icon-name: "system-search-symbolic";
 
-                    child: $PasarSearchPage search_page {};
+                    child: $TavernSearchPage search_page {};
                   }
 
                   Adw.ViewStackPage {
@@ -102,7 +150,7 @@ template $PasarWindow: Adw.ApplicationWindow {
                     title: "Installed";
                     icon-name: "view-list-symbolic";
 
-                    child: $PasarInstalledPage installed_page {};
+                    child: $TavernInstalledPage installed_page {};
                   }
                 }
               };
@@ -129,7 +177,7 @@ menu primary_menu {
 
   section {
     item {
-      label: "_About Pasar";
+      label: "_About Tavern";
       action: "app.about";
     }
 

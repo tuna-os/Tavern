@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# test_assets.py - Test harness for fetching icons and screenshots for Pasar packages using actual logic from backend.py
+# test_assets.py - Test harness for fetching icons and screenshots for Tavern packages using actual logic from backend.py
 
 import json
 import os
@@ -13,7 +13,7 @@ import struct
 FORMULA_API = 'https://formulae.brew.sh/api/formula.json'
 CASK_API = 'https://formulae.brew.sh/api/cask.json'
 
-BASE_HEADERS = {'User-Agent': 'Pasar-Asset-Test-Harness/1.0'}
+BASE_HEADERS = {'User-Agent': 'Tavern-Asset-Test-Harness/1.0'}
 
 # 15 popular formulae (mostly CLI/dev tools) + 15 popular casks (GUI apps)
 TEST_PACKAGES = {
@@ -147,7 +147,7 @@ def get_homepage_favicon(homepage):
     for path in ('/favicon.png', '/favicon.ico'):
         url = base + path
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Pasar/0.1'})
+            req = urllib.request.Request(url, headers={'User-Agent': 'Tavern/0.1'})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 if resp.status == 200 and int(resp.headers.get('Content-Length', '9999')) > 200:
                     return url
@@ -234,7 +234,7 @@ def check_url_validity_and_resolution(url):
     if url.startswith('data:'):
         return False, None
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 Pasar/0.1'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 Tavern/0.1'})
         with urllib.request.urlopen(req, timeout=5) as resp:
             # Read 8KB to cover headers of PNG, GIF, JPEG, and a good chunk of SVGs
             data = resp.read(8192)  
@@ -255,8 +255,8 @@ def get_assets(pkg):
     potential_icons = []
     potential_screenshots = []
 
-    # 0. Curated Pasar Metadata Repo
-    potential_screenshots.append((f'https://raw.githubusercontent.com/hanthor/pasar-metadata/main/screenshots/{name}.jpg', 'Pasar Metadata Repo', 100))
+    # 0. Curated Tavern Metadata Repo
+    potential_screenshots.append((f'https://raw.githubusercontent.com/hanthor/tavern-metadata/main/screenshots/{name}.jpg', 'Tavern Metadata Repo', 100))
     
     # 1. GitHub Org logic
     if homepage:
@@ -429,7 +429,7 @@ def main():
         f.write('''<!DOCTYPE html>
 <html>
 <head>
-<title>Pasar Asset Harness Report</title>
+<title>Tavern Asset Harness Report</title>
 <style>
   body { font-family: sans-serif; background: #fdfdfd; margin: 40px; color: #333; }
   table { border-collapse: collapse; width: 100%; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -442,7 +442,7 @@ def main():
 </style>
 </head>
 <body>
-<h1>Pasar Asset Test Harness Report</h1>
+<h1>Tavern Asset Test Harness Report</h1>
 <table>
   <tr>
     <th>Package</th>

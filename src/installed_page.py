@@ -7,20 +7,21 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GObject
 from .backend import BrewBackend
-from .package_tile import PasarPackageTile
+from .package_tile import TavernPackageTile
 from .updates_card import UpdatesCard
 from .logging_util import get_logger
 
 _log = get_logger('installed_page')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Pasar/installed-page.ui')
-class PasarInstalledPage(Adw.Bin):
-    __gtype_name__ = 'PasarInstalledPage'
+@Gtk.Template(resource_path='/dev/hanthor/Tavern/installed-page.ui')
+class TavernInstalledPage(Adw.Bin):
+    __gtype_name__ = 'TavernInstalledPage'
 
     __gsignals__ = {
         'package-activated': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'install-requested': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'remove-requested':  (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'outdated-count-changed': (GObject.SignalFlags.RUN_LAST, None, (int,)),
     }
 
@@ -82,9 +83,10 @@ class PasarInstalledPage(Adw.Bin):
             return
 
         for pkg in installed:
-            tile = PasarPackageTile(package=pkg)
-            tile.connect('clicked', self._on_tile_clicked)
+            tile = TavernPackageTile(package=pkg)
+            tile.connect('activated', self._on_tile_clicked)
             tile.connect('install-requested', self._on_tile_install_requested)
+            tile.connect('remove-requested', self._on_tile_remove_requested)
             self._load_tile_icon(tile, pkg)
             self.installed_flow.append(tile)
 
@@ -99,3 +101,8 @@ class PasarInstalledPage(Adw.Bin):
         pkg = tile.get_package()
         if pkg:
             self.emit('install-requested', pkg)
+
+    def _on_tile_remove_requested(self, tile):
+        pkg = tile.get_package()
+        if pkg:
+            self.emit('remove-requested', pkg)

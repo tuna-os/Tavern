@@ -1,13 +1,10 @@
 using Gtk 4.0;
+using Adw 1;
 
-template $PasarPackageTile: Button {
-  focusable: true;
-  can-target: true;
-
+template $TavernPackageTile: Adw.Bin {
   styles [
     "card",
     "package-tile",
-    "flat",
   ]
 
   child: Box {
@@ -20,7 +17,7 @@ template $PasarPackageTile: Button {
     valign: center;
 
     /* Icon */
-    Box icon_box {
+    Box {
       valign: center;
       width-request: 64;
       margin-start: 8;
@@ -35,7 +32,7 @@ template $PasarPackageTile: Button {
       }
     }
 
-    /* Text info */
+    /* Text + inline progress info */
     Box {
       orientation: vertical;
       valign: center;
@@ -73,6 +70,7 @@ template $PasarPackageTile: Button {
         styles ["dim-label", "caption"]
       }
 
+      /* Installed pill — hidden while task active */
       Box installed_row {
         halign: start;
         spacing: 4;
@@ -89,17 +87,86 @@ template $PasarPackageTile: Button {
           label: "Installed";
         }
       }
+
+      /* Inline progress bar — revealed while task is active */
+      Revealer progress_revealer {
+        reveal-child: false;
+        transition-type: slide_down;
+        transition-duration: 200;
+
+        child: Box {
+          orientation: vertical;
+          spacing: 2;
+          margin-top: 4;
+
+          ProgressBar task_progress_bar {
+            hexpand: true;
+
+            styles ["task-inline-progress"]
+          }
+
+          Label task_status_label {
+            xalign: 0.0;
+            ellipsize: end;
+
+            styles ["dim-label", "caption"]
+          }
+        };
+      }
     }
 
-    Box {
+    /* Right-side action stack */
+    Stack action_stack {
       valign: center;
-      margin-end: 12;
+      margin-end: 4;
+      transition-type: crossfade;
+      transition-duration: 150;
 
-      Button install_button {
-        label: "Install";
-        visible: true;
-        
-        styles ["medium-pill"]
+      /* Install button — not installed, not active */
+      StackPage {
+        name: "install";
+        child: Button install_button {
+          label: "Install";
+
+          styles ["medium-pill", "suggested-action"]
+        };
+      }
+
+      /* Installed state — show Remove button */
+      StackPage {
+        name: "installed";
+        child: Button remove_button {
+          label: "Remove";
+
+          styles ["medium-pill"]
+        };
+      }
+
+      /* Task active — spinner + label inside a pill-shaped button */
+      StackPage {
+        name: "active";
+        child: Button active_button {
+          sensitive: false;
+
+          styles ["medium-pill", "active-task-pill"]
+
+          child: Box {
+            spacing: 6;
+            valign: center;
+
+            Adw.Spinner task_spinner {
+              width-request: 14;
+              height-request: 14;
+            }
+
+            Label task_action_label {
+              label: "Working…";
+              ellipsize: end;
+
+              styles ["caption"]
+            }
+          };
+        };
       }
     }
   };

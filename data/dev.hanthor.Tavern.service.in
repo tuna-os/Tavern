@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=dev.hanthor.Tavern
+Exec=@bindir@/tavern --gapplication-service

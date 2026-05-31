@@ -1,7 +1,7 @@
 # Feature Implementation & Architecture Skills
 
 ## Overview
-Pasar is a GTK4 + Libadwaita desktop application for managing Homebrew packages and Brewfiles. The architecture is modular and designed for extension.
+Tavern is a GTK4 + Libadwaita desktop application for managing Homebrew packages and Brewfiles. The architecture is modular and designed for extension.
 
 **Technology Stack:**
 - **UI Framework:** GTK 4.20.3 + Libadwaita 1.8.4
@@ -15,7 +15,7 @@ Pasar is a GTK4 + Libadwaita desktop application for managing Homebrew packages 
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  GTK4 Application Window (PasarWindow)              │
+│  GTK4 Application Window (TavernWindow)              │
 │  ┌──────────────────────────────────────────────────┤
 │  │ Tab Container                                    │
 │  │ ├─ Browse Page (BrowsePage)                      │
@@ -45,7 +45,7 @@ Pasar is a GTK4 + Libadwaita desktop application for managing Homebrew packages 
 │ │  ├─ Brewfile parsing                             │
 │ │  └─ Configuration storage                        │
 │ └─ Caching                                         │
-│    └─ ~/.cache/pasar/ for metadata                 │
+│    └─ ~/.cache/tavern/ for metadata                 │
 └─────────────────────────────────────────────────────┘
           │
           ▼
@@ -127,9 +127,9 @@ Key methods:
 - File I/O — Read Brewfiles
 
 **Caching:**
-- `~/.cache/pasar/formulae.json` — Cached formulae list
-- `~/.cache/pasar/casks.json` — Cached cask list
-- `~/.cache/pasar/icons/` — Downloaded package icons
+- `~/.cache/tavern/formulae.json` — Cached formulae list
+- `~/.cache/tavern/casks.json` — Cached cask list
+- `~/.cache/tavern/icons/` — Downloaded package icons
 
 #### Task Management
 
@@ -160,7 +160,7 @@ Core infrastructure:
 ### 3. Desktop Integration
 
 #### Application Entry Point
-**application.py / Pasar**
+**application.py / Tavern**
 
 - GTK application singleton
 - Command-line argument parsing (sys.argv direct)
@@ -169,8 +169,8 @@ Core infrastructure:
 
 Command-line support:
 ```bash
-pasar --brewfile=/path/to/file.Brewfile
-pasar --package=formula_name
+tavern --brewfile=/path/to/file.Brewfile
+tavern --package=formula_name
 ```
 
 #### Search Provider
@@ -362,7 +362,7 @@ Running:
 ```bash
 pytest tests/
 pytest tests/test_*.py -v
-PASAR_LOG=debug pytest tests/ -s
+TAVERN_LOG=debug pytest tests/ -s
 ```
 
 ## Performance Tips
@@ -386,14 +386,14 @@ self.task_manager.enqueue(task, self.on_packages_loaded)
 ```
 
 ### Cache aggressively
-- Flathub icons → `~/.cache/pasar/icons/`
-- Formulae list → `~/.cache/pasar/formulae.json`
+- Flathub icons → `~/.cache/tavern/icons/`
+- Formulae list → `~/.cache/tavern/formulae.json`
 - Search index → In-memory hash with mtime check
 
 ### Profile before optimizing
 Use environment variables:
 ```bash
-PASAR_LOG=info PASAR_PROFILE=1 ./run.sh
+TAVERN_LOG=info TAVERN_PROFILE=1 ./run.sh
 ```
 
 See [profiling.md](profiling.md) for details.
@@ -423,13 +423,13 @@ class MyPage(Adw.Bin):
 
 ## Dependencies (Flatpak)
 
-Managed in `dev.hanthor.Pasar.json`:
+Managed in `dev.hanthor.Tavern.json`:
 
 - **Runtime:** freedesktop 23.08 (GTK4, Python, etc.)
 - **Build tools:** blueprint-compiler, meson, pkg-config
 - **Python packages:** via pip (requests, etc.)
 
 To add a new dependency:
-1. Update `pyproject.toml` or `dev.hanthor.Pasar.json`
+1. Update `pyproject.toml` or `dev.hanthor.Tavern.json`
 2. Rebuild: `just build`
 3. Test: `just run`
