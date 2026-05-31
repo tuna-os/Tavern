@@ -1,6 +1,8 @@
 # application.py - GtkApplication subclass
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
+import threading
 import gi
 
 gi.require_version('Gtk', '4.0')
@@ -52,6 +54,112 @@ class TavernApplication(Adw.Application):
         if self._search_provider:
             self._search_provider.unexport()
         Gio.Application.do_dbus_unregister(self, connection, object_path)
+
+    # ── Startup & Background Cache Refresher Worker ─────────────────
+    def do_startup(self):
+        """Initialize the background service worker once on startup."""
+        Adw.Application.do_startup(self)
+        self.start_background_refresher()
+
+    def start_background_refresher(self):
+        """Start a periodic background worker to keep the package cache fresh."""
+        _log.info('Starting periodic background cache refresher worker')
+        
+        def check_and_refresh():
+            # Run in a background thread to avoid blocking the main D-Bus loop
+            thread = threading.Thread(target=self._refresh_cache_thread, daemon=True)
+            thread.start()
+            return True # Keep the GLib timer active
+        
+        # Check every 2 hours (7200 seconds)
+        GLib.timeout_add_seconds(7200, check_and_refresh)
+        # Also run once shortly after startup (e.g. after 10 seconds) to ensure fresh cache
+        GLib.timeout_add_seconds(10, lambda: threading.Thread(target=self._refresh_cache_thread, daemon=True).start() or False)
+
+    def _refresh_cache_thread(self):
+        _log.debug('Background cache refresh check started')
+        cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
+        cache_path = os.path.join(cache_dir, 'formulae.json')
+        
+        # Check if cache is stale (older than 4 hours for background worker)
+        needs_refresh = True
+        if os.path.exists(cache_path):
+            try:
+                age = GLib.get_real_time() / 1e6 - os.path.getmtime(cache_path)
+                if age < 14400: # 4 hours
+                    needs_refresh = False
+                    _log.debug('Cache is fresh (age=%.0fs), skipping background refresh', age)
+            except Exception as e:
+                _log.warning('Failed to check cache age: %s', e)
+        
+        if needs_refresh:
+            _log.info('Cache is stale, performing background refresh of Homebrew metadata...')
+            try:
+                import urllib.request
+                import json
+                import sys
+                from .backend import BrewBackend
+                
+                # 1. Download formulae
+                req_f = urllib.request.Request(
+                    'https://formulae.brew.sh/api/formula.json',
+                    headers={'User-Agent': 'Tavern/0.1'}
+                )
+                with urllib.request.urlopen(req_f, timeout=30) as resp:
+                    formulae_data = json.loads(resp.read().decode('utf-8'))
+                
+                # Save cache
+                os.makedirs(cache_dir, exist_ok=True)
+                with open(cache_path, 'w') as f:
+                    json.dump(formulae_data, f)
+                
+                # 2. Download casks
+                cask_path = os.path.join(cache_dir, 'casks.json')
+                req_c = urllib.request.Request(
+                    'https://formulae.brew.sh/api/cask.json',
+                    headers={'User-Agent': 'Tavern/0.1'}
+                )
+                with urllib.request.urlopen(req_c, timeout=30) as resp:
+                    casks_data = json.loads(resp.read().decode('utf-8'))
+                
+                with open(cask_path, 'w') as f:
+                    json.dump(casks_data, f)
+                
+                # 3. Build search provider cache
+                is_linux = sys.platform.startswith('linux')
+                if is_linux:
+                    filtered_casks = []
+                    for d in casks_data:
+                        depends_on = d.get('depends_on', {})
+                        if 'macos' not in depends_on:
+                            filtered_casks.append(d)
+                    casks_data = filtered_casks
+                
+                # Create lightweight search cache list
+                packages_data = []
+                for pkg_data in formulae_data:
+                    packages_data.append({
+                        'name': pkg_data.get('name', ''),
+                        'display_name': pkg_data.get('name', ''),
+                        'description': pkg_data.get('desc', '') or '',
+                        'pkg_type': 'formula',
+                    })
+                for pkg_data in casks_data:
+                    names = pkg_data.get('name', [])
+                    packages_data.append({
+                        'name': pkg_data.get('token', ''),
+                        'display_name': names[0] if names else pkg_data.get('token', ''),
+                        'description': pkg_data.get('desc', '') or '',
+                        'pkg_type': 'cask',
+                    })
+                
+                sp_cache_path = os.path.join(cache_dir, 'linux_packages.json')
+                with open(sp_cache_path, 'w') as f:
+                    json.dump(packages_data, f)
+                
+                _log.info('Background cache refresh completed successfully!')
+            except Exception as e:
+                _log.error('Background cache refresh failed: %s', e)
 
     # ── Show-package action (search provider deep-link) ──────────
     def _on_show_package(self, action, param):

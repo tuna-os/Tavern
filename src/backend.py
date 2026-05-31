@@ -650,7 +650,7 @@ class BrewBackend(GObject.Object):
             _log.debug('Could not read outdated-check-enabled setting: %s', e)
 
         # Load formulae from cache first
-        data, is_stale = self._load_cached('formulae')
+        data, is_stale = self._load_cached('formulae', max_age=43200)
         if data:
             with log_timing('parse formulae from cache', 'backend'):
                 self._formulae = [
@@ -672,7 +672,7 @@ class BrewBackend(GObject.Object):
                 GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
 
         # Load casks from cache first
-        data, is_stale = self._load_cached('casks')
+        data, is_stale = self._load_cached('casks', max_age=43200)
         if data:
             import sys
             is_linux = sys.platform.startswith('linux')
