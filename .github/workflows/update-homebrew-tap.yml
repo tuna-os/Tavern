@@ -1,0 +1,117 @@
+name: Update Homebrew Tap
+
+on:
+  release:
+    types: [published, created]
+
+jobs:
+  update-tap:
+    name: "Update Homebrew Tap Casks"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@v4
+        with:
+          repository: hanthor/homebrew-tap
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download release assets and compute SHA256
+        id: download
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"  # Remove 'v' prefix
+          
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          
+          # Download macOS app
+          echo "Downloading Tavern-macOS.zip..."
+          curl -sL -o /tmp/Tavern-macOS.zip "${{ github.event.release.assets[1].browser_download_url }}" 2>/dev/null || \
+          curl -sL -o /tmp/Tavern-macOS.zip "https://github.com/hanthor/Tavern/releases/download/v${VERSION}/Tavern-macOS.zip"
+          
+          MACOS_SHA256=$(sha256sum /tmp/Tavern-macOS.zip | awk '{print $1}')
+          echo "macos_sha256=${MACOS_SHA256}" >> $GITHUB_OUTPUT
+          
+          # Download Linux Flatpak
+          echo "Downloading Tavern-Linux.flatpak..."
+          curl -sL -o /tmp/Tavern-Linux.flatpak "https://github.com/hanthor/Tavern/releases/download/v${VERSION}/Tavern-Linux.flatpak"
+          
+          LINUX_SHA256=$(sha256sum /tmp/Tavern-Linux.flatpak | awk '{print $1}')
+          echo "linux_sha256=${LINUX_SHA256}" >> $GITHUB_OUTPUT
+
+      - name: Update macOS cask
+        run: |
+          cat > Casks/tavern.rb << 'EOF'
+          cask "tavern" do
+            version "${{ steps.download.outputs.version }}"
+            sha256 "${{ steps.download.outputs.macos_sha256 }}"
+          
+            url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-macOS.zip"
+            name "Tavern"
+            desc "Modern Homebrew client for macOS built with Python and GTK 4"
+            homepage "https://github.com/hanthor/Tavern"
+          
+            livecheck do
+              url "https://github.com/hanthor/Tavern/releases.atom"
+              strategy :github_latest
+            end
+          
+            app "Tavern.app"
+          
+            zap trash: [
+              "~/Library/Application Support/Tavern",
+              "~/Library/Preferences/dev.hanthor.Tavern.*",
+              "~/Library/Caches/dev.hanthor.Tavern",
+            ]
+          end
+          EOF
+
+      - name: Update Linux cask
+        run: |
+          cat > Casks/tavern-linux.rb << 'EOF'
+          cask "tavern-linux" do
+            version "${{ steps.download.outputs.version }}"
+            sha256 "${{ steps.download.outputs.linux_sha256 }}"
+          
+            url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-Linux.flatpak"
+            name "Tavern"
+            desc "Modern Homebrew client for Linux built with Python and GTK 4"
+            homepage "https://github.com/hanthor/Tavern"
+          
+            livecheck do
+              url "https://github.com/hanthor/Tavern/releases.atom"
+              strategy :github_latest
+            end
+          
+            depends_on formula: "flatpak"
+          
+            postflight do
+              system "flatpak", "install", "--user", "--noninteractive", staged_path/"Tavern-Linux.flatpak"
+            end
+          
+            uninstall_postflight do
+              system "flatpak", "remove", "--user", "--noninteractive", "dev.hanthor.Tavern", err: :ignore
+            end
+          
+            zap trash: "~/.var/app/dev.hanthor.Tavern"
+          end
+          EOF
+
+      - name: Commit and push updates
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add Casks/tavern.rb Casks/tavern-linux.rb
+          
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Tavern casks to v${{ steps.download.outputs.version }}
+          
+          - tavern: macOS app bundle installer
+          - tavern-linux: Flatpak installer for Linux
+          
+          Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+            git push origin main
+          fi
