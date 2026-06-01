@@ -3,7 +3,7 @@
 Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **Python**, **GTK 4**, and **Libadwaita**. It provides a premium "App Store" experience for managing your Homebrew formulae and casks.
 
 ```bash
-flatpak install --user https://nightly.link/hanthor/Tavern/workflows/flatpak/main/tavern-x86_64.flatpak.zip
+curl -L https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip -o Tavern-Linux-CI.zip && unzip -o Tavern-Linux-CI.zip && flatpak install --user Tavern-Linux-CI.flatpak
 ```
 
 > [!IMPORTANT]
@@ -11,6 +11,21 @@ flatpak install --user https://nightly.link/hanthor/Tavern/workflows/flatpak/mai
 > Tavern is a **completely AI-generated** project and limited in it's use to just Homebrew. The UI design is a heavy "tribute" (read: shameless ripoff) of [Bazaar](https://github.com/kolunmi/bazaar), which is the best App Store for Linux. If you like this design, you should definitely check out the original project, made by humans and consider supporting the fine folks that make it.
 
 ![Tavern Screenshot](https://raw.githubusercontent.com/hanthor/tavern/main/data/screenshots/main-window.png)
+
+## 📸 Screenshot Walkthrough
+
+### Main window
+![Main window](data/screenshots/main-window.png)
+
+### Search workflow
+![GNOME search](data/screenshots/gnome%20search.png)
+![Search results](data/screenshots/search%20results.png)
+
+### Package details
+![App view](data/screenshots/App%20View.png)
+
+### Taps browser
+![Tap view](data/screenshots/Tap%20View.png)
 
 ## ✨ Features
 
@@ -71,12 +86,12 @@ Download and install the latest Flatpak bundle built from the `main` branch:
 
 ```bash
 # Download the latest CI build
-wget https://nightly.link/hanthor/Tavern/workflows/flatpak/main/tavern-x86_64.flatpak.zip
-unzip tavern-x86_64.flatpak.zip
-flatpak install --user tavern.flatpak
+wget https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip
+unzip Tavern-Linux-CI.zip
+flatpak install --user Tavern-Linux-CI.flatpak
 ```
 
-Or just grab the zip directly: [tavern.flatpak.zip](https://nightly.link/hanthor/Tavern/workflows/flatpak/main/tavern-x86_64.flatpak.zip)
+Or just grab the zip directly: [Tavern-Linux-CI.zip](https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip)
 
 ### Build from source
 
