@@ -2,6 +2,19 @@
 
 Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **Python**, **GTK 4**, and **Libadwaita**. It provides a premium "App Store" experience for managing your Homebrew formulae and casks.
 
+### Quick Install
+
+**macOS:**
+```bash
+brew tap hanthor/homebrew-tap && brew install tavern
+```
+
+**Linux:**
+```bash
+brew tap hanthor/homebrew-tap && brew install --cask tavern-linux
+```
+
+Or install the latest CI build directly:
 ```bash
 curl -L https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip -o Tavern-Linux-CI.zip && unzip -o Tavern-Linux-CI.zip && flatpak install --user Tavern-Linux-CI.flatpak
 ```
@@ -38,6 +51,22 @@ curl -L https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-
 - **🐧 Linux First**: Smart filtering to hide macOS-only casks on Linux systems.
 
 ## 🚀 Getting Started
+
+### Quick Installation via Homebrew
+
+The easiest way to install Tavern is via Homebrew using the `hanthor/tap`:
+
+**macOS:**
+```bash
+brew tap hanthor/homebrew-tap
+brew install tavern
+```
+
+**Linux:**
+```bash
+brew tap hanthor/homebrew-tap
+brew install --cask tavern-linux
+```
 
 ### Prerequisites
 
