@@ -4,19 +4,15 @@ Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **
 
 ### Quick Install
 
-**macOS:**
-```bash
-brew tap hanthor/homebrew-tap && brew install tavern
-```
-
-**Linux:**
-```bash
-brew tap hanthor/homebrew-tap && brew install --cask tavern-linux
-```
-
-Or install the latest CI build directly:
+**Flatpak (Linux):**
 ```bash
 curl -L https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip -o Tavern-Linux-CI.zip && unzip -o Tavern-Linux-CI.zip && flatpak install --user Tavern-Linux-CI.flatpak
+```
+
+**Homebrew:**
+```bash
+brew tap hanthor/homebrew-tap && brew install tavern        # macOS
+brew tap hanthor/homebrew-tap && brew install --cask tavern-linux  # Linux
 ```
 
 > [!IMPORTANT]
