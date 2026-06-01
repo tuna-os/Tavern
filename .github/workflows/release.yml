@@ -17,7 +17,7 @@ jobs:
     - name: Install dependencies
       run: |
         brew update
-        brew install gtk4 libadwaita blueprint-compiler meson ninja pkg-config
+        brew install gtk4 libadwaita blueprint-compiler meson ninja pkg-config desktop-file-utils
 
     - name: Build App Bundle
       run: ./run.sh --cask
