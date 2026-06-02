@@ -33,12 +33,12 @@ jobs:
           MACOS_SHA256=$(sha256sum /tmp/Tavern-macOS.zip | awk '{print $1}')
           echo "macos_sha256=${MACOS_SHA256}" >> $GITHUB_OUTPUT
 
-          # Download Linux AppImage
-          echo "Downloading Tavern-Linux.AppImage..."
-          curl -sL -o /tmp/Tavern-Linux.AppImage "https://github.com/hanthor/Tavern/releases/download/v${VERSION}/Tavern-Linux.AppImage"
+          # Download Linux Flatpak
+          echo "Downloading Tavern-Linux.flatpak..."
+          curl -sL -o /tmp/Tavern-Linux.flatpak "https://github.com/hanthor/Tavern/releases/download/v${VERSION}/Tavern-Linux.flatpak"
 
-          LINUX_SHA256=$(sha256sum /tmp/Tavern-Linux.AppImage | awk '{print $1}')
-          echo "linux_sha256=${LINUX_SHA256}" >> $GITHUB_OUTPUT
+          FLATPAK_SHA256=$(sha256sum /tmp/Tavern-Linux.flatpak | awk '{print $1}')
+          echo "flatpak_sha256=${FLATPAK_SHA256}" >> $GITHUB_OUTPUT
 
       - name: Update macOS cask
         run: |
@@ -69,33 +69,38 @@ jobs:
 
       - name: Update Linux cask
         run: |
-          cat > Casks/tavern-linux.rb << 'EOF'
-          cask "tavern-linux" do
+          cat > Casks/tavern.rb << 'EOF'
+          cask "tavern" do
             version "${{ steps.download.outputs.version }}"
-            sha256 "${{ steps.download.outputs.linux_sha256 }}"
+            sha256 "${{ steps.download.outputs.flatpak_sha256 }}"
 
-            url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-Linux.AppImage"
+            url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-Linux.flatpak"
             container type: :naked
             name "Tavern"
             desc "Modern Homebrew client for Linux built with Python and GTK 4"
             homepage "https://github.com/hanthor/Tavern"
-            depends_on arch: :x86_64
+
+            depends_on formula: "flatpak"
 
             livecheck do
               url "https://github.com/hanthor/Tavern/releases.atom"
               strategy :github_latest
             end
 
-            preflight do
-              system_command "/bin/chmod", args: ["+x", staged_path/"Tavern-Linux.AppImage"]
+            postflight do
+              system_command "flatpak",
+                args: ["install", "--user", "-y", staged_path/"Tavern-Linux.flatpak"],
+                sudo: false
             end
 
-            binary staged_path/"Tavern-Linux.AppImage", target: "tavern"
+            uninstall_postflight do
+              system_command "flatpak",
+                args: ["uninstall", "--user", "-y", "dev.hanthor.Tavern"],
+                sudo: false
+            end
 
             zap trash: [
-              "~/.cache/tavern",
-              "~/.local/share/tavern",
-              "~/.config/tavern",
+              "~/.var/app/dev.hanthor.Tavern",
             ]
           end
           EOF
@@ -105,15 +110,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git rm --ignore-unmatch Formula/tavern.rb
-          git add Casks/tavern.rb Casks/tavern-linux.rb
+          git add Casks/tavern.rb
           
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update Tavern casks to v${{ steps.download.outputs.version }}
+            git commit -m "Update Tavern cask to v${{ steps.download.outputs.version }}
           
-          - tavern: macOS app bundle installer
-          - tavern-linux: Linux AppImage installer
+          - tavern: Linux Flatpak installer (macOS coming soon)
           
           Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
             git push origin main
