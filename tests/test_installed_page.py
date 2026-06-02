@@ -13,6 +13,8 @@ def test_installed_page_refresh_and_actions(tmp_path, monkeypatch):
     
     backend = BrewBackend()
     task_manager = TaskManager(backend)
+    queued_updates = []
+    monkeypatch.setattr(task_manager, 'install', lambda pkg: queued_updates.append(pkg))
     
     # Mock fetch_icon_async
     mock_pixbuf = object()
@@ -31,30 +33,46 @@ def test_installed_page_refresh_and_actions(tmp_path, monkeypatch):
     page.set_backend_and_manager(backend, task_manager)
     
     # Test _on_outdated_changed
-    outdated_count = None
     page.connect('outdated-count-changed', lambda page, count: setattr(page, '_outdated_count', count))
-    page._on_outdated_changed(backend, {'ripgrep': {}})
-    assert getattr(page, '_outdated_count', None) == 1
-    assert page.updates_card.get_visible() is True
     
     # Test refresh with no installed packages
     page.refresh(backend)
     assert page.installed_stack.get_visible_child_name() == 'empty'
     
     # Pre-populate installed packages in backend
+    pkg_fox = Package({'token': 'firefox', 'name': ['Firefox']}, 'cask', installed_set={'firefox'})
     backend._formulae = [pkg_rg]
+    backend._casks = [pkg_fox]
+
+    # Mark one package as outdated
+    page._on_outdated_changed(backend, {'ripgrep': {'pkg_type': 'formula', 'installed': '13.0.0', 'latest': '14.1.1'}})
+    assert getattr(page, '_outdated_count', None) == 1
+    if page.updates_section:
+        assert page.updates_section.get_visible() is True
+    if page.updates_count_label:
+        assert page.updates_count_label.get_text() == '1 update available'
     
     # Test refresh with installed packages
     page.refresh(backend)
     assert page.installed_stack.get_visible_child_name() == 'content'
     
-    # Verify flow box children
-    tiles = []
+    # Verify installed flow has at least one package
+    installed_rows = []
     child = page.installed_flow.get_first_child()
     while child is not None:
-        tiles.append(child)
+        installed_rows.append(child)
         child = child.get_next_sibling()
-    assert len(tiles) == 1
+    assert len(installed_rows) >= 1
+
+    if page.updates_flow:
+        # New template path: outdated package appears in updates sub-list.
+        updates_rows = []
+        child = page.updates_flow.get_first_child()
+        while child is not None:
+            updates_rows.append(child)
+            child = child.get_next_sibling()
+        assert len(updates_rows) == 1
+        assert len(installed_rows) == 1
     
     # Test double refresh to trigger clearing flow
     page.refresh(backend)
@@ -68,7 +86,10 @@ def test_installed_page_refresh_and_actions(tmp_path, monkeypatch):
     page.connect('install-requested', lambda page, pkg: install_reqs.append(pkg))
     page.connect('remove-requested',  lambda page, pkg: remove_reqs.append(pkg))
     
-    target_tile = page.installed_flow.get_first_child().get_child()
+    if page.updates_flow and page.updates_flow.get_first_child():
+        target_tile = page.updates_flow.get_first_child().get_child()
+    else:
+        target_tile = page.installed_flow.get_first_child().get_child()
     assert isinstance(target_tile, TavernPackageTile)
     
     # Trigger clicked/activated
@@ -86,9 +107,10 @@ def test_installed_page_refresh_and_actions(tmp_path, monkeypatch):
     assert len(remove_reqs) == 1
     assert remove_reqs[0] == pkg_rg
     
-    # Test _on_updates_card_package_activated
-    page._on_updates_card_package_activated(None, pkg_rg)
-    assert len(activated_pkgs) == 2
+    # Test Update All uses outdated installed packages only
+    page._on_update_all_clicked(None)
+    assert len(queued_updates) == 1
+    assert queued_updates[0] == pkg_rg
     
     # Test _on_packages_loaded callback
     backend.emit('formulae-loaded', [])

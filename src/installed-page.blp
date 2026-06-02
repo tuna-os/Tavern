@@ -82,9 +82,36 @@ template $TavernInstalledPage: Adw.Bin {
                 margin-top: 8;
                 margin-bottom: 40;
 
-                $TavernUpdatesCard updates_card {
+                Box updates_section {
+                  orientation: vertical;
+                  spacing: 8;
                   visible: false;
                   margin-bottom: 4;
+
+                  Box {
+                    orientation: horizontal;
+                    spacing: 8;
+
+                    Label updates_count_label {
+                      xalign: 0.0;
+                      hexpand: true;
+
+                      styles ["title-2"]
+                    }
+
+                    Button update_all_button {
+                      label: "Update All";
+                    }
+                  }
+
+                  FlowBox updates_flow {
+                    homogeneous: true;
+                    min-children-per-line: 1;
+                    max-children-per-line: 2;
+                    column-spacing: 8;
+                    row-spacing: 8;
+                    selection-mode: none;
+                  }
                 }
 
                 /* Shown when filter matches nothing */

@@ -20,7 +20,6 @@ from .installed_page import TavernInstalledPage  # noqa: F401
 from .tap_page import TavernTapPage            # noqa: F401
 from .global_progress import TavernGlobalProgress # noqa: F401
 from .brewfile_page import TavernBrewfilePage  # noqa: F401
-from .updates_card import UpdatesCard  # noqa: F401
 from .version_history_dialog import TavernVersionHistoryDialog  # noqa: F401
 
 

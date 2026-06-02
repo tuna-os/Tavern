@@ -56,7 +56,7 @@ brew tap hanthor/homebrew-tap
 brew install --cask hanthor/tap/tavern-linux
 ```
 
-This Linux cask installs the published Flatpak bundle, so `flatpak` must already be available on your system.
+This Linux cask installs a prebuilt AppImage, so you do not need Tavern build dependencies on your machine.
 
 ### Prerequisites
 

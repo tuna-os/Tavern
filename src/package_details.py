@@ -7,7 +7,13 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, Gdk, Gio, GLib, GObject, Pango
 
-# Removed WebKit dependencies for macOS build
+# Optional README renderer for Linux builds with WebKitGTK available.
+try:
+    gi.require_version('WebKit', '6.0')
+    from gi.repository import WebKit
+except Exception:
+    WebKit = None
+
 from .backend import Package, BrewBackend
 from .task_manager import Task, TaskStatus, TaskOperation
 from .logging_util import get_logger
@@ -70,6 +76,7 @@ class TavernPackageDetails(Adw.NavigationPage):
         self._task = None
         self._hover_link = None
         self._readme_text = None
+        self._readme_webview = None
 
         self.install_button.connect('clicked', self._on_install_clicked)
         self.remove_button.connect('clicked', self._on_remove_clicked)
@@ -93,6 +100,8 @@ class TavernPackageDetails(Adw.NavigationPage):
         self.readme_bin.set_visible(False)
         self.readme_overlay.set_visible(True)
         self.readme_preview_label.set_label('')
+        self.readme_preview_box.set_visible(True)
+        self.readme_fade_overlay.set_visible(True)
         self._readme_text = None
         
         self.detail_name.set_label(package.name)
@@ -297,6 +306,13 @@ class TavernPackageDetails(Adw.NavigationPage):
         if not text or package != self._package:
             return
         self._readme_text = text
+
+        # Prefer inline README rendering when WebKit is available, so animated
+        # GIF/WebM embedded in READMEs can play directly in the details view.
+        if self._render_readme_webview(text):
+            self.readme_bin.set_visible(True)
+            return
+
         # Build a plain-text preview from the first ~6 lines, skipping headings/blanks
         preview_lines = []
         for line in text.splitlines():
@@ -312,7 +328,84 @@ class TavernPackageDetails(Adw.NavigationPage):
                 break
         preview_text = '\n'.join(preview_lines) if preview_lines else text[:300]
         self.readme_preview_label.set_label(preview_text)
+        self.readme_preview_box.set_visible(True)
+        self.readme_fade_overlay.set_visible(True)
         self.readme_bin.set_visible(True)
+
+    def _readme_base_uri(self):
+        """Return a base URI for resolving relative README assets."""
+        if not self._package or not self._package.source_url:
+            return None
+
+        # Typical source_url: https://github.com/<owner>/<repo>
+        src = self._package.source_url.rstrip('/')
+        if not src.startswith('https://github.com/'):
+            return None
+
+        parts = src.split('/')
+        if len(parts) < 5:
+            return None
+        owner, repo = parts[3], parts[4]
+        return f'https://raw.githubusercontent.com/{owner}/{repo}/HEAD/'
+
+    def _render_readme_webview(self, text):
+        if WebKit is None:
+            return False
+
+        try:
+            if self._readme_webview is None:
+                self._readme_webview = WebKit.WebView()
+                self._readme_webview.set_vexpand(True)
+                self._readme_webview.set_hexpand(True)
+                self._readme_webview.set_size_request(-1, 420)
+                self._readme_webview.add_css_class('readme-webview')
+
+                settings = self._readme_webview.get_settings()
+                if settings is not None:
+                    settings.set_enable_javascript(False)
+
+                self.readme_preview_box.remove(self.readme_preview_label)
+                self.readme_preview_box.append(self._readme_webview)
+
+            try:
+                import markdown as md
+                html_body = md.markdown(
+                    text,
+                    extensions=['fenced_code', 'tables', 'nl2br'],
+                    output_format='html5',
+                )
+            except Exception:
+                # Fallback if python-markdown is missing or errors.
+                escaped = GLib.markup_escape_text(text)
+                html_body = f'<pre>{escaped}</pre>'
+
+            html = f"""
+<!doctype html>
+<html>
+  <head>
+    <meta charset=\"utf-8\" />
+    <style>
+      body {{
+        font-family: sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #d8d8d8;
+        background: transparent;
+      }}
+      a {{ color: #8ab4ff; }}
+      img, video {{ max-width: 100%; height: auto; border-radius: 8px; }}
+      pre, code {{ white-space: pre-wrap; word-break: break-word; }}
+    </style>
+  </head>
+  <body>{html_body}</body>
+</html>
+"""
+            self._readme_webview.load_html(html, self._readme_base_uri())
+            self.readme_fade_overlay.set_visible(False)
+            return True
+        except Exception as e:
+            _log.debug('README webview render failed, using text preview: %s', e)
+            return False
 
     @Gtk.Template.Callback()
     def on_show_readme_clicked(self, *args):
