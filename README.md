@@ -6,7 +6,7 @@ Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **
 
 **Flatpak (Linux):**
 ```bash
-curl -L https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip -o Tavern-Linux-CI.zip && unzip -o Tavern-Linux-CI.zip && flatpak install --user Tavern-Linux-CI.flatpak
+curl -L https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip -o Tavern-Linux-CI.zip && unzip -o Tavern-Linux-CI.zip && flatpak install --user --reinstall Tavern-Linux-CI.flatpak
 ```
 
 **Homebrew:**
@@ -107,7 +107,7 @@ Download and install the latest Flatpak bundle built from the `main` branch:
 # Download the latest CI build
 wget https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip
 unzip Tavern-Linux-CI.zip
-flatpak install --user Tavern-Linux-CI.flatpak
+flatpak install --user --reinstall Tavern-Linux-CI.flatpak
 ```
 
 Or just grab the zip directly: [Tavern-Linux-CI.zip](https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip)
