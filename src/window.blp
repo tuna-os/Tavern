@@ -57,7 +57,7 @@ template $TavernWindow: Adw.ApplicationWindow {
 
                   StackPage {
                     name: "active";
-                    child: Adw.Spinner task_header_spinner {
+                    child: Gtk.Spinner task_header_spinner {
                       width-request: 16;
                       height-request: 16;
                     };
@@ -97,7 +97,7 @@ template $TavernWindow: Adw.ApplicationWindow {
                 orientation: vertical;
                 spacing: 6;
 
-                Adw.Spinner {
+                Gtk.Spinner {
                   width-request: 64;
                   height-request: 64;
                   margin-bottom: 18;
