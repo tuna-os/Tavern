@@ -83,8 +83,12 @@ jobs:
               url "https://github.com/hanthor/Tavern/releases.atom"
               strategy :github_latest
             end
-          
-            depends_on formula: "flatpak"
+
+            preflight do
+              unless system_command("/usr/bin/env", args: ["sh", "-c", "command -v flatpak >/dev/null 2>&1"]).success?
+                raise CaskError, "Flatpak must be installed separately before installing Tavern."
+              end
+            end
           
             postflight do
               system "flatpak", "install", "--user", "--noninteractive", staged_path/"Tavern-Linux.flatpak"

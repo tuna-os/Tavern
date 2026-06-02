@@ -11,7 +11,7 @@ curl -L https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-
 
 **Homebrew:**
 ```bash
-brew tap hanthor/homebrew-tap && brew install hanthor/tap/tavern
+brew tap hanthor/homebrew-tap && brew install --cask hanthor/tap/tavern-linux
 ```
 
 > [!IMPORTANT]
@@ -53,8 +53,10 @@ The easiest way to install Tavern is via Homebrew using the `hanthor/tap`:
 
 ```bash
 brew tap hanthor/homebrew-tap
-brew install hanthor/tap/tavern
+brew install --cask hanthor/tap/tavern-linux
 ```
+
+This Linux cask installs the published Flatpak bundle, so `flatpak` must already be available on your system.
 
 ### Prerequisites
 
