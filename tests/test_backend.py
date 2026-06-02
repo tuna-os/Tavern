@@ -210,6 +210,44 @@ class TestBrewBackend:
         assert len(installed) == 1
         assert installed[0].name == 'ripgrep'
 
+    def test_check_outdated_preserves_pkg_type(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+
+        outdated_json = {
+            'formulae': [
+                {
+                    'name': 'ripgrep',
+                    'installed_versions': ['13.0.0'],
+                    'current_version': '14.1.1',
+                }
+            ],
+            'casks': [
+                {
+                    'name': 'codex',
+                    'installed_versions': ['1.0.0'],
+                    'current_version': '1.1.0',
+                }
+            ],
+        }
+
+        monkeypatch.setattr(
+            'tavern.backend.subprocess.run',
+            lambda *args, **kwargs: MockCompletedProcess(0, json.dumps(outdated_json))
+        )
+        monkeypatch.setattr('tavern.backend.GLib.idle_add', lambda func, *args: func(*args))
+
+        emitted = []
+        backend.connect('outdated-changed', lambda _backend, data: emitted.append(data))
+
+        backend._check_outdated()
+
+        assert backend._outdated_formulae['ripgrep']['pkg_type'] == 'formula'
+        assert backend._outdated_casks['codex']['pkg_type'] == 'cask'
+        assert emitted
+        emitted_map = dict(emitted[-1])
+        assert emitted_map['codex']['pkg_type'] == 'cask'
+
 
 # ─── Brewfile parsing ────────────────────────────────────────────────────────
 

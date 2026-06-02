@@ -1875,6 +1875,7 @@ class BrewBackend(GObject.Object):
                     name = item.get('name', '')
                     if name:
                         outdated_f[name] = {
+                            'pkg_type': 'formula',
                             'installed': item.get('installed_versions', [''])[0] if item.get('installed_versions') else '',
                             'latest': item.get('current_version', ''),
                         }
@@ -1884,6 +1885,7 @@ class BrewBackend(GObject.Object):
                     name = item.get('name', '')
                     if name:
                         outdated_c[name] = {
+                            'pkg_type': 'cask',
                             'installed': item.get('installed_versions', [''])[0] if item.get('installed_versions') else '',
                             'latest': item.get('current_version', ''),
                         }

@@ -212,6 +212,9 @@ class TavernWindow(Adw.ApplicationWindow):
                 ))
         # Refresh installed page
         self.installed_page.refresh(self.backend)
+        if mgr.active_count == 0:
+            _log.info('All queued tasks finished; reloading backend state')
+            self.backend.load_all_async()
 
     def _on_active_count_changed(self, mgr, pspec):
         count = mgr.active_count

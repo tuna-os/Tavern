@@ -64,6 +64,8 @@ def test_window_workflows(tmp_path, monkeypatch):
     
     win = TavernWindow(application=app)
     assert win is not None
+    backend_reload_calls = []
+    monkeypatch.setattr(win.backend, 'load_all_async', lambda: backend_reload_calls.append(True))
     
     # Pre-populate backend with mock packages
     pkg_rg = Package({'name': 'ripgrep', 'desc': 'rg'}, 'formula')
@@ -96,10 +98,15 @@ def test_window_workflows(tmp_path, monkeypatch):
     
     # Trigger task-finished success (install)
     win._on_task_finished(win.task_manager, MockTask(pkg_rg, 'install', TaskStatus.COMPLETED))
+    assert backend_reload_calls == [True]
     # Trigger task-finished success (uninstall)
+    win.task_manager.active_count = 1
     win._on_task_finished(win.task_manager, MockTask(pkg_rg, 'uninstall', TaskStatus.COMPLETED))
+    assert backend_reload_calls == [True]
     # Trigger task-finished success (upgrade)
+    win.task_manager.active_count = 0
     win._on_task_finished(win.task_manager, MockTask(pkg_rg, 'upgrade', TaskStatus.COMPLETED))
+    assert backend_reload_calls == [True, True]
     # Trigger task-finished failed
     win._on_task_finished(win.task_manager, MockTask(pkg_rg, 'install', TaskStatus.FAILED))
     
