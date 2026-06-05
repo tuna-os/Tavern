@@ -29,6 +29,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: Tavern-macOS.zip
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -105,5 +106,6 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: Tavern-Linux.flatpak
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
