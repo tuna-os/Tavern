@@ -591,6 +591,264 @@ class TestBrewBackendExtensions:
         assert callback_args[0][0] is True
         assert "Successful operation" in callback_args[0][1]
 
+    def test_get_related_packages_uses_dependencies_first(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        from tavern.backend import Package
+
+        def _mk(name, deps=(), tap=''):
+            d = {'name': name, 'desc': 'x', 'homepage': '',
+                 'versions': {'stable': '1'}, 'dependencies': list(deps), 'tap': tap}
+            return Package(d, 'formula', set())
+
+        target = _mk('rg-tool', deps=['ripgrep', 'fd'])
+        rg = _mk('ripgrep')
+        fd = _mk('fd')
+        other = _mk('unrelated')
+        backend._formulae = [target, rg, fd, other]
+        backend._casks = []
+
+        related = backend.get_related_packages(target, limit=6)
+        names = [p.name for p in related]
+        assert names[:2] == ['ripgrep', 'fd']
+        assert 'unrelated' not in names
+
+    def test_get_related_packages_falls_back_to_tap_siblings(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        from tavern.backend import Package
+
+        def _mk(name, deps=(), tap=''):
+            return Package({'name': name, 'desc': 'x', 'homepage': '',
+                            'versions': {'stable': '1'},
+                            'dependencies': list(deps), 'tap': tap},
+                           'formula', set())
+
+        target = _mk('pkg-a', tap='foo/bar')
+        sibling = _mk('pkg-b', tap='foo/bar')
+        core = _mk('coreutils', tap='homebrew/core')
+        backend._formulae = [target, sibling, core]
+        backend._casks = []
+
+        related = backend.get_related_packages(target, limit=6)
+        names = [p.name for p in related]
+        assert 'pkg-b' in names
+        assert 'coreutils' not in names  # same-tap rule skips core
+
+    def test_get_variants_returns_versioned_siblings(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        from tavern.backend import Package
+
+        def _mk(name):
+            return Package({'name': name, 'desc': 'x', 'homepage': '',
+                            'versions': {'stable': '1'}}, 'formula', set())
+
+        target = _mk('python')
+        v310 = _mk('python@3.10')
+        v311 = _mk('python@3.11')
+        unrelated = _mk('ruby')
+        backend._formulae = [target, v310, v311, unrelated]
+        backend._casks = []
+
+        variants = backend.get_variants(target)
+        names = sorted(p.name for p in variants)
+        assert names == ['python@3.10', 'python@3.11']
+
+    def test_update_tap_runs_git_pull_and_reloads(self, tmp_path, monkeypatch):
+        """update_tap_async should `git pull` the tap directory and re-scan it."""
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+
+        tap_path = tmp_path / 'tap'
+        tap_path.mkdir()
+        backend._tap_list = [{'name': 'foo/bar', 'path': str(tap_path)}]
+
+        observed = []
+        reload_called = []
+
+        def fake_run(cmd, **kwargs):
+            observed.append(cmd)
+            class R:
+                returncode = 0
+                stdout = 'Already up to date.'
+                stderr = ''
+            return R()
+
+        monkeypatch.setattr('subprocess.run', fake_run)
+        monkeypatch.setattr(backend, '_load_tap_packages',
+                            lambda: reload_called.append(True))
+
+        results = []
+        backend.update_tap_async('foo/bar', lambda ok, msg: results.append((ok, msg)))
+
+        import time
+        start = time.time()
+        while not results and time.time() - start < 2.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+
+        assert results and results[0][0] is True
+        assert any(c[:3] == ['git', '-C', str(tap_path)] and 'pull' in c
+                   for c in observed)
+        # Reload happens on a background thread; wait briefly for it.
+        start = time.time()
+        while not reload_called and time.time() - start < 1.0:
+            time.sleep(0.01)
+        assert reload_called
+
+    def test_update_tap_unknown_tap_reports_failure(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        backend._tap_list = []
+
+        results = []
+        backend.update_tap_async('nope/missing',
+                                 lambda ok, msg: results.append((ok, msg)))
+
+        import time
+        start = time.time()
+        while not results and time.time() - start < 1.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+
+        assert results == [(False, 'Tap nope/missing not installed')]
+
+    def test_get_tap_metadata_reads_git_state(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        tap_path = tmp_path / 'tap'
+        (tap_path / '.git').mkdir(parents=True)
+        backend._tap_list = [{'name': 'foo/bar', 'path': str(tap_path)}]
+
+        def fake_run(cmd, **kwargs):
+            class R:
+                returncode = 0
+                stderr = ''
+            if 'remote.origin.url' in cmd:
+                R.stdout = 'https://github.com/foo/homebrew-bar\n'
+            elif 'rev-parse' in cmd:
+                R.stdout = 'abc1234\n'
+            elif 'log' in cmd:
+                R.stdout = '2026-01-15T12:00:00Z\n'
+            else:
+                R.stdout = ''
+            return R()
+
+        monkeypatch.setattr('subprocess.run', fake_run)
+        meta = backend.get_tap_metadata('foo/bar')
+        assert meta['remote_url'] == 'https://github.com/foo/homebrew-bar'
+        assert meta['head_rev'] == 'abc1234'
+        assert meta['last_commit_date'].startswith('2026-01-15')
+
+    def test_get_tap_metadata_missing_tap_returns_empty(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        backend._tap_list = []
+        assert backend.get_tap_metadata('foo/bar') == {}
+
+    def test_pin_unpin_async(self, tmp_path, monkeypatch):
+        """pin_async / unpin_async run brew pin|unpin, reload pinned, fire callback."""
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+
+        calls = []
+
+        class _Result:
+            def __init__(self, args):
+                self.args = args
+                self.returncode = 0
+                # `brew list --pinned` returns the names, one per line; everything
+                # else returns success with no output.
+                if args[1:] == ['list', '--pinned']:
+                    self.stdout = 'ripgrep\n' if calls_pinned_state['pinned'] else ''
+                else:
+                    self.stdout = ''
+                self.stderr = ''
+
+        calls_pinned_state = {'pinned': False}
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            if cmd[1:] == ['pin', 'ripgrep']:
+                calls_pinned_state['pinned'] = True
+            elif cmd[1:] == ['unpin', 'ripgrep']:
+                calls_pinned_state['pinned'] = False
+            return _Result(cmd)
+
+        monkeypatch.setattr('subprocess.run', fake_run)
+        monkeypatch.setattr('tavern.backend._brew_cmd', lambda args: ['brew'] + args)
+
+        from tavern.backend import Package
+        pkg = Package({'name': 'ripgrep', 'desc': 'x', 'homepage': '',
+                       'versions': {'stable': '1'}}, 'formula', set())
+
+        results = []
+        backend.pin_async(pkg, lambda ok, msg: results.append(('pin', ok)))
+        backend.unpin_async(pkg, lambda ok, msg: results.append(('unpin', ok)))
+
+        import time
+        start = time.time()
+        while len(results) < 2 and time.time() - start < 2.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+
+        assert results == [('pin', True), ('unpin', True)]
+        assert ['brew', 'pin', 'ripgrep'] in calls
+        assert ['brew', 'unpin', 'ripgrep'] in calls
+
+    def test_pin_only_applies_to_formulae(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+
+        called = []
+        monkeypatch.setattr('subprocess.run',
+                            lambda *a, **kw: called.append(a) or None)
+
+        from tavern.backend import Package
+        cask = Package({'token': 'firefox', 'name': ['Firefox'], 'desc': '',
+                        'homepage': '', 'version': '1'}, 'cask', set())
+
+        results = []
+        backend.pin_async(cask, lambda ok, msg: results.append((ok, msg)))
+
+        import time
+        start = time.time()
+        while not results and time.time() - start < 1.0:
+            GLib.MainContext.default().iteration(False)
+            time.sleep(0.01)
+
+        assert results == [(False, 'Pinning only applies to formulae')]
+        assert called == []  # subprocess.run should not have been invoked
+
+    def test_load_pinned_filters_outdated(self, tmp_path, monkeypatch):
+        """_load_pinned should strip pinned names from the outdated set."""
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+        backend._outdated_formulae = {
+            'ripgrep': {'installed': '1', 'latest': '2'},
+            'fd': {'installed': '1', 'latest': '2'},
+        }
+        backend._outdated_casks = {}
+
+        class _R:
+            returncode = 0
+            stdout = 'ripgrep\n'
+            stderr = ''
+        monkeypatch.setattr('subprocess.run', lambda *a, **kw: _R())
+        monkeypatch.setattr('tavern.backend._brew_cmd', lambda args: ['brew'] + args)
+
+        # Synchronous idle_add so we can assert directly afterward.
+        monkeypatch.setattr(GLib, 'idle_add',
+                            lambda fn, *a, **kw: (fn(*a, **kw), False)[1])
+
+        backend._load_pinned()
+
+        assert backend.is_pinned('ripgrep')
+        assert not backend.is_pinned('fd')
+        assert 'ripgrep' not in backend._outdated_formulae
+        assert 'fd' in backend._outdated_formulae
+
     def test_load_all_async_full_flow(self, tmp_path, monkeypatch):
         monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
         

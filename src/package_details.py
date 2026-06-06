@@ -81,6 +81,14 @@ class TavernPackageDetails(Adw.NavigationPage):
         self.install_button.connect('clicked', self._on_install_clicked)
         self.remove_button.connect('clicked', self._on_remove_clicked)
         self.update_button.connect('clicked', self._on_update_clicked)
+        # pin_button is added in newer templates only; gracefully fall back to None
+        # if the bundled .ui hasn't been rebuilt yet.
+        self.pin_button = self.get_template_child(TavernPackageDetails, 'pin_button')
+        self._pin_handler_id = None
+        if self.pin_button is not None:
+            self._pin_handler_id = self.pin_button.connect('toggled', self._on_pin_toggled)
+        if self._backend:
+            self._backend.connect('pinned-changed', lambda b, _s: self._update_buttons())
         self.info_listbox.connect('row-activated', self._on_info_row_activated)
         self.screenshot_button.connect('clicked', self._on_screenshot_clicked)
 
@@ -162,23 +170,24 @@ class TavernPackageDetails(Adw.NavigationPage):
     def _load_related_packages(self):
         if not self._backend or not self._package:
             return
-            
-        search_term = self._package.name.split('@')[0]
-        results = self._backend.search(search_term)
-        
-        # Categorize results into variants and related
+
+        # Prefer explicit dependency / same-tap relationships from the backend.
+        # Fall back to substring search only if both lookups come back empty.
         variants = []
         related = []
-        
-        for p in results:
-            if p.name == self._package.name or p.full_name == self._package.full_name:
-                continue
-            
-            p_base = p.name.split('@')[0]
-            if p_base == search_term:
-                variants.append(p)
-            else:
-                related.append(p)
+        if hasattr(self._backend, 'get_variants') and hasattr(self._backend, 'get_related_packages'):
+            variants = self._backend.get_variants(self._package, limit=6)
+            related = self._backend.get_related_packages(self._package, limit=6)
+
+        if not variants and not related:
+            search_term = self._package.name.split('@')[0]
+            for p in self._backend.search(search_term):
+                if p.name == self._package.name or p.full_name == self._package.full_name:
+                    continue
+                if p.name.split('@')[0] == search_term:
+                    variants.append(p)
+                else:
+                    related.append(p)
         
         # Process Variants
         if variants:
@@ -252,6 +261,33 @@ class TavernPackageDetails(Adw.NavigationPage):
             self.remove_button.set_visible(False)
             self.update_button.set_visible(False)
             self.install_button.set_sensitive(not busy)
+
+        # Pin button: only meaningful for installed formulae.
+        if self.pin_button is not None:
+            show_pin = pkg.installed and pkg.pkg_type == 'formula'
+            self.pin_button.set_visible(show_pin)
+            if show_pin and self._backend is not None:
+                is_pinned = self._backend.is_pinned(pkg.name)
+                # Avoid re-firing `toggled` while we sync from backend state.
+                self.pin_button.handler_block(self._pin_handler_id)
+                self.pin_button.set_active(is_pinned)
+                self.pin_button.handler_unblock(self._pin_handler_id)
+                self.pin_button.set_tooltip_text(
+                    'Unpin (allow upgrades)' if is_pinned else 'Pin this version (prevent upgrades)'
+                )
+                self.pin_button.set_sensitive(not busy)
+
+    def _on_pin_toggled(self, button):
+        if not self._backend or not self._package:
+            return
+        pkg = self._package
+        if pkg.pkg_type != 'formula':
+            return
+        currently_pinned = self._backend.is_pinned(pkg.name)
+        if button.get_active() and not currently_pinned:
+            self._backend.pin_async(pkg)
+        elif not button.get_active() and currently_pinned:
+            self._backend.unpin_async(pkg)
 
     def _on_info_loaded(self, package, data):
         if package != self._package:

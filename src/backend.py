@@ -74,98 +74,7 @@ IN_FLATPAK = _is_flatpak()
 BREW_BIN = _find_brew()
 
 
-def _ico_to_png(ico_data):
-    """
-    Extract the best image from an ICO file and return PNG bytes,
-    or None if conversion fails.
-
-    ICO files are containers holding multiple images.  Each entry is
-    either an embedded PNG or a raw 32-bit BGRA BMP DIB.  We pick the
-    largest one and, if it's already PNG, return it directly; otherwise
-    we decode the BGRA pixel data and build a PNG with zlib.
-    """
-    import zlib
-
-    try:
-        if len(ico_data) < 6:
-            return None
-
-        # ICO header: reserved(2) + type(2) + count(2)
-        _reserved, ico_type, count = struct.unpack_from('<HHH', ico_data, 0)
-        if ico_type not in (1, 2) or count == 0 or count > 256:
-            return None
-
-        # Parse directory entries (16 bytes each, starting at offset 6)
-        best_entry = None
-        best_size = 0
-        for i in range(count):
-            offset = 6 + i * 16
-            if offset + 16 > len(ico_data):
-                break
-            w = ico_data[offset] or 256
-            h = ico_data[offset + 1] or 256
-            data_size = struct.unpack_from('<I', ico_data, offset + 8)[0]
-            data_offset = struct.unpack_from('<I', ico_data, offset + 12)[0]
-            pixels = w * h
-            if pixels >= best_size and data_offset + data_size <= len(ico_data):
-                best_size = pixels
-                best_entry = (w, h, data_size, data_offset)
-
-        if not best_entry:
-            return None
-
-        w, h, data_size, data_offset = best_entry
-        image_data = ico_data[data_offset:data_offset + data_size]
-
-        # Check if the embedded image is already PNG
-        if image_data[:8] == b'\x89PNG\r\n\x1a\n':
-            return image_data
-
-        # --- BMP DIB → PNG (pure Python) ---
-        dib_header_size = struct.unpack_from('<I', image_data, 0)[0]
-        bpp = struct.unpack_from('<H', image_data, 14)[0]
-        if bpp != 32:
-            return None  # Only handle 32-bit BGRA
-
-        # Pixel data starts right after the DIB header
-        pixel_start = dib_header_size
-        row_bytes = w * 4  # 32-bit = 4 bytes per pixel
-        # BMP rows are bottom-up; also there may be an AND mask after the XOR data
-        # The XOR (colour) bitmap is w*h*4 bytes
-        xor_size = w * h * 4
-
-        if pixel_start + xor_size > len(image_data):
-            return None
-
-        # Build RGBA rows (top-to-bottom) for PNG
-        raw_rows = bytearray()
-        for y in range(h - 1, -1, -1):  # BMP is bottom-up
-            row_off = pixel_start + y * row_bytes
-            raw_rows.append(0)  # PNG filter byte: None
-            for x in range(w):
-                px = row_off + x * 4
-                b = image_data[px]
-                g = image_data[px + 1]
-                r = image_data[px + 2]
-                a = image_data[px + 3]
-                raw_rows.extend((r, g, b, a))
-
-        # Construct minimal PNG file
-        def _png_chunk(chunk_type, data):
-            chunk = chunk_type + data
-            crc = struct.pack('>I', zlib.crc32(chunk) & 0xFFFFFFFF)
-            return struct.pack('>I', len(data)) + chunk + crc
-
-        signature = b'\x89PNG\r\n\x1a\n'
-        ihdr_data = struct.pack('>IIBBBBB', w, h, 8, 6, 0, 0, 0)  # 8-bit RGBA
-        ihdr = _png_chunk(b'IHDR', ihdr_data)
-        idat = _png_chunk(b'IDAT', zlib.compress(bytes(raw_rows), 9))
-        iend = _png_chunk(b'IEND', b'')
-
-        return signature + ihdr + idat + iend
-
-    except Exception:
-        return None
+from .backend_icons import ico_to_png as _ico_to_png  # noqa: E402  (re-exported)
 
 
 def _brew_cmd(args):
@@ -204,6 +113,8 @@ class Package(GObject.Object):
         props = {}
         self._raw_analytics = {}
         self.source_url = ''
+        self.dependencies = []  # list[str] — formula names this package depends on
+        self.tap = ''           # e.g. 'homebrew/core' or 'foo/bar' for tapped pkgs
         self._installs_30d = None
         self._installs_90d = None
         self._installs_365d = None
@@ -224,6 +135,9 @@ class Package(GObject.Object):
                 urls = data.get('urls', {})
                 stable = urls.get('stable', {}) if isinstance(urls, dict) else {}
                 self.source_url = stable.get('url', '') or '' if isinstance(stable, dict) else ''
+                deps = data.get('dependencies', []) or []
+                self.dependencies = [d for d in deps if isinstance(d, str)]
+                self.tap = data.get('tap', '') or ''
             elif pkg_type == 'cask':
                 name = data.get('token', '')
                 props['name'] = name
@@ -236,6 +150,7 @@ class Package(GObject.Object):
                 props['license_'] = ''
                 # Cask download URL
                 self.source_url = data.get('url', '') or ''
+                self.tap = data.get('tap', '') or ''
             else:
                 # Flatpak appstream object
                 app_id = data.get('id', '')
@@ -283,6 +198,9 @@ class Package(GObject.Object):
             urls = data.get('urls', {})
             stable = urls.get('stable', {}) if isinstance(urls, dict) else {}
             self.source_url = stable.get('url', '') or '' if isinstance(stable, dict) else ''
+            deps = data.get('dependencies', []) or []
+            self.dependencies = [d for d in deps if isinstance(d, str)]
+            self.tap = data.get('tap', '') or ''
         elif pkg_type == 'cask':
             name = data.get('token', '')
             self.name = name
@@ -295,6 +213,7 @@ class Package(GObject.Object):
             self.license_ = ''
             # Cask download URL
             self.source_url = data.get('url', '') or ''
+            self.tap = data.get('tap', '') or ''
         else:
             app_id = data.get('id', '')
             self.name = app_id
@@ -386,6 +305,7 @@ class BrewBackend(GObject.Object):
         'installed-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'taps-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'outdated-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'pinned-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'operation-complete': (GObject.SignalFlags.RUN_LAST, None, (bool, str)),
         'operation-output': (GObject.SignalFlags.RUN_LAST, None, (str,)),
     }
@@ -401,6 +321,8 @@ class BrewBackend(GObject.Object):
         self._outdated_formulae = {}  # {name: {installed, latest}}
         self._outdated_casks = {}  # {name: {installed, latest}}
         self._outdated_lock = threading.Lock()
+        self._pinned = set()  # formula names pinned via `brew pin`
+        self._pinned_lock = threading.Lock()
         self._cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
         os.makedirs(self._cache_dir, exist_ok=True)
         _log.debug('BrewBackend init  cache_dir=%s', self._cache_dir)
@@ -762,16 +684,17 @@ class BrewBackend(GObject.Object):
                 formulae = data.get('formulae', [])
                 casks = data.get('casks', [])
                 
+                pinned = self.get_pinned()
                 with self._outdated_lock:
                     self._outdated_formulae = {}
                     for f in formulae:
                         name = f.get('name', '')
-                        if name:
+                        if name and name not in pinned:
                             self._outdated_formulae[name] = {
                                 'installed': f.get('installed_versions', [''])[0],
                                 'latest': f.get('current_version', '')
                             }
-                    
+
                     self._outdated_casks = {}
                     for c in casks:
                         name = c.get('name', '')
@@ -780,7 +703,7 @@ class BrewBackend(GObject.Object):
                                 'installed': c.get('installed_versions', [''])[0],
                                 'latest': c.get('current_version', '')
                             }
-                
+
                 outdated_list = list(self._outdated_formulae.items()) + list(self._outdated_casks.items())
                 _log.info('Found %d outdated packages (formulae=%d, casks=%d)',
                          len(outdated_list), len(self._outdated_formulae), len(self._outdated_casks))
@@ -815,6 +738,11 @@ class BrewBackend(GObject.Object):
         # Emit installed signal
         installed_pkgs = []
         GLib.idle_add(self.emit, 'installed-loaded', installed_pkgs)
+
+        # Load pinned formulae in the background — the result feeds back into
+        # the next `outdated-changed` emission so pinned packages don't show
+        # up in the Updates card.
+        threading.Thread(target=self._load_pinned, daemon=True).start()
 
         # Load formulae from cache first
         self._update_status("Loading Homebrew formulae catalog...")
@@ -1354,6 +1282,234 @@ class BrewBackend(GObject.Object):
             if callback:
                 GLib.idle_add(callback, False, str(e))
 
+    def get_related_packages(self, package, limit=6):
+        """Return packages related to `package` for the details-page carousel.
+
+        Combines three signals, in priority order:
+          1. Direct runtime dependencies (formulae listed in `dependencies`)
+          2. Same-tap siblings (other packages from the same non-core tap)
+          3. Name-prefix matches (fallback for the @-versioned variant case)
+
+        Deduplicates against `package` itself and caps the result at `limit`.
+        Variants (e.g. `python@3.10`, `python@3.11`) are returned separately
+        via `get_variants()` so they can be displayed in their own row.
+        """
+        by_name = {p.name: p for p in self._formulae}
+        by_name.update({p.name: p for p in self._casks})
+
+        related = []
+        seen = {package.name, package.full_name}
+
+        # 1. Direct deps
+        for dep_name in getattr(package, 'dependencies', []) or []:
+            if dep_name in seen:
+                continue
+            p = by_name.get(dep_name)
+            if p:
+                related.append(p)
+                seen.add(p.name)
+                if len(related) >= limit:
+                    return related
+
+        # 2. Same-tap siblings (skip core taps — too noisy)
+        tap = getattr(package, 'tap', '') or ''
+        if tap and tap not in ('homebrew/core', 'homebrew/cask'):
+            for p in self._formulae + self._casks:
+                if p.name in seen:
+                    continue
+                if getattr(p, 'tap', '') == tap:
+                    related.append(p)
+                    seen.add(p.name)
+                    if len(related) >= limit:
+                        return related
+
+        # 3. Name-prefix fallback (preserves prior behavior)
+        base = package.name.split('@')[0]
+        if base:
+            for p in self._formulae + self._casks:
+                if p.name in seen:
+                    continue
+                if p.name.startswith(base) and p.name.split('@')[0] != base:
+                    # Skip; that's a variant, handled by get_variants
+                    continue
+                if p.name.startswith(base) or base in p.name:
+                    related.append(p)
+                    seen.add(p.name)
+                    if len(related) >= limit:
+                        break
+
+        return related
+
+    def get_variants(self, package, limit=6):
+        """Return versioned siblings like `python@3.10` for `python`."""
+        base = package.name.split('@')[0]
+        if not base:
+            return []
+        out = []
+        for p in self._formulae + self._casks:
+            if p.name == package.name or p.full_name == package.full_name:
+                continue
+            if p.name.split('@')[0] == base:
+                out.append(p)
+                if len(out) >= limit:
+                    break
+        return out
+
+    def get_tap_metadata(self, tap_name):
+        """Return {remote_url, head_rev, last_commit_date} for an installed tap.
+
+        Reads straight from the tap's git working tree, so this is fast and
+        works without network access. Returns empty dict if the tap isn't
+        installed or git inspection fails.
+        """
+        path = None
+        for tap in self._tap_list:
+            if tap.get('name') == tap_name:
+                path = tap.get('path')
+                break
+        if not path or not os.path.isdir(os.path.join(path, '.git')):
+            return {}
+        meta = {}
+        try:
+            r = subprocess.run(
+                ['git', '-C', path, 'config', '--get', 'remote.origin.url'],
+                capture_output=True, text=True, timeout=5,
+            )
+            if r.returncode == 0:
+                meta['remote_url'] = r.stdout.strip()
+            r = subprocess.run(
+                ['git', '-C', path, 'rev-parse', '--short', 'HEAD'],
+                capture_output=True, text=True, timeout=5,
+            )
+            if r.returncode == 0:
+                meta['head_rev'] = r.stdout.strip()
+            r = subprocess.run(
+                ['git', '-C', path, 'log', '-1', '--format=%cI', 'HEAD'],
+                capture_output=True, text=True, timeout=5,
+            )
+            if r.returncode == 0:
+                meta['last_commit_date'] = r.stdout.strip()
+        except Exception as e:
+            _log.debug('get_tap_metadata(%s) failed: %s', tap_name, e)
+        return meta
+
+    def update_tap_async(self, tap_name, callback=None):
+        """Refresh a single tap by `git pull`-ing its working tree."""
+        thread = threading.Thread(
+            target=self._run_tap_update,
+            args=(tap_name, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def _run_tap_update(self, tap_name, callback=None):
+        path = None
+        for tap in self._tap_list:
+            if tap.get('name') == tap_name:
+                path = tap.get('path')
+                break
+        if not path:
+            if callback:
+                GLib.idle_add(callback, False, f'Tap {tap_name} not installed')
+            return
+        try:
+            r = subprocess.run(
+                ['git', '-C', path, 'pull', '--ff-only'],
+                capture_output=True, text=True, timeout=120,
+            )
+            success = r.returncode == 0
+            msg = (r.stdout + r.stderr).strip()
+            _log.info('git pull in %s rc=%d', tap_name, r.returncode)
+            if success:
+                threading.Thread(target=self._load_tap_packages, daemon=True).start()
+            if callback:
+                GLib.idle_add(callback, success, msg)
+        except Exception as e:
+            _log.error('update_tap %s failed: %s', tap_name, e)
+            if callback:
+                GLib.idle_add(callback, False, str(e))
+
+    def is_pinned(self, name):
+        with self._pinned_lock:
+            return name in self._pinned
+
+    def get_pinned(self):
+        with self._pinned_lock:
+            return set(self._pinned)
+
+    def _load_pinned(self):
+        """Refresh the pinned-formula set by listing the pinned-symlinks dir."""
+        try:
+            with log_timing('brew list --pinned', 'backend'):
+                result = subprocess.run(
+                    _brew_cmd(['list', '--pinned']),
+                    capture_output=True, text=True, timeout=15,
+                )
+            pinned = set()
+            if result.returncode == 0:
+                for line in result.stdout.splitlines():
+                    name = line.strip()
+                    if name:
+                        pinned.add(name)
+            else:
+                _log.debug('brew list --pinned rc=%d: %s', result.returncode, result.stderr.strip())
+            with self._pinned_lock:
+                self._pinned = pinned
+            _log.info('Pinned formulae: %d', len(pinned))
+            # Strip pinned packages from the outdated emission so the
+            # Updates card doesn't keep nagging.
+            with self._outdated_lock:
+                for name in list(self._outdated_formulae.keys()):
+                    if name in pinned:
+                        del self._outdated_formulae[name]
+                outdated_list = (
+                    list(self._outdated_formulae.items())
+                    + list(self._outdated_casks.items())
+                )
+            GLib.idle_add(self.emit, 'pinned-changed', set(pinned))
+            GLib.idle_add(self.emit, 'outdated-changed', outdated_list)
+        except Exception as e:
+            _log.error('Failed to load pinned set: %s', e)
+
+    def pin_async(self, package, callback=None):
+        """Pin a formula so `brew upgrade` skips it."""
+        thread = threading.Thread(
+            target=self._run_pin_operation,
+            args=('pin', package, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def unpin_async(self, package, callback=None):
+        """Unpin a formula."""
+        thread = threading.Thread(
+            target=self._run_pin_operation,
+            args=('unpin', package, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def _run_pin_operation(self, operation, package, callback=None):
+        if package.pkg_type != 'formula':
+            _log.warning('Cannot %s %s: pinning only works on formulae', operation, package.name)
+            if callback:
+                GLib.idle_add(callback, False, 'Pinning only applies to formulae')
+            return
+        cmd = _brew_cmd([operation, package.name])
+        _log.info('_run_pin_operation: %s', ' '.join(cmd))
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            success = result.returncode == 0
+            msg = (result.stdout + result.stderr).strip()
+            if success:
+                self._load_pinned()
+            if callback:
+                GLib.idle_add(callback, success, msg)
+        except Exception as e:
+            _log.error('_run_pin_operation exception: %s %s: %s', operation, package.name, e)
+            if callback:
+                GLib.idle_add(callback, False, str(e))
+
     def install_async(self, package, callback=None):
         """Install a package asynchronously."""
         thread = threading.Thread(
@@ -1870,10 +2026,11 @@ class BrewBackend(GObject.Object):
                 outdated_f = {}
                 outdated_c = {}
 
+                pinned = self.get_pinned()
                 # Parse formulae
                 for item in data.get('formulae', []):
                     name = item.get('name', '')
-                    if name:
+                    if name and name not in pinned:
                         outdated_f[name] = {
                             'pkg_type': 'formula',
                             'installed': item.get('installed_versions', [''])[0] if item.get('installed_versions') else '',

@@ -121,6 +121,10 @@ class TavernWindow(Adw.ApplicationWindow):
         open_brewfile_action.connect('activate', self._on_open_brewfile)
         self.add_action(open_brewfile_action)
         self.get_application().set_accels_for_action('win.open-brewfile', ['<Ctrl>o'])
+
+        update_tap_action = Gio.SimpleAction.new('update-selected-tap', None)
+        update_tap_action.connect('activate', self._on_update_selected_tap)
+        self.add_action(update_tap_action)
         actions_time = (time.perf_counter() - actions_start) * 1000
         _log.info('Window actions setup: %.1f ms', actions_time)
 
@@ -450,10 +454,36 @@ class TavernWindow(Adw.ApplicationWindow):
         self.navigation_view.push(version_dialog)
 
     def _on_pin_version_requested(self, dialog, version):
-        """Handle version pinning request (stretch goal feature)."""
-        _log.info('Pin version requested: %s (not yet implemented)', version)
-        # TODO: Implement version pinning
-        # This would store preference and prevent upgrades
+        """Pin the currently displayed package's installed version.
+
+        Homebrew's `brew pin` always pins the currently-installed version
+        rather than an arbitrary historical one, so the `version` argument
+        is informational only — the actual behavior is "stop upgrading
+        whichever version you have right now".
+        """
+        package = getattr(dialog, '_package', None) or getattr(dialog, 'package', None)
+        if package is None:
+            _log.warning('Pin requested but dialog has no package attached')
+            return
+        if package.pkg_type != 'formula':
+            self.toast_overlay.add_toast(Adw.Toast.new('Pinning is only supported for formulae'))
+            return
+
+        def _on_pin_done(success, msg):
+            text = (
+                f'Pinned {package.name}'
+                if success
+                else f'Failed to pin {package.name}'
+            )
+            self.toast_overlay.add_toast(Adw.Toast.new(text))
+
+        _log.info('Pinning %s (requested version %s)', package.name, version)
+        self.backend.pin_async(package, _on_pin_done)
+
+    def _on_update_selected_tap(self, action, param):
+        """Run `git pull` on whichever tap is currently selected in the Tap page."""
+        if hasattr(self.tap_page, 'update_selected_tap'):
+            self.tap_page.update_selected_tap()
 
     def _on_refresh(self, action, param):
         _log.info('Manual refresh triggered')

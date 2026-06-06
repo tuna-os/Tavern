@@ -68,8 +68,55 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 gi.require_version('GdkPixbuf', '2.0')
 
-from gi.repository import Adw
+from gi.repository import Adw, Gio
 Adw.init()
+
+
+# ── Headless dialog/settings mocks ──────────────────────────────────────────
+# Stub Gio.Settings so missing GSettings schemas don't crash test setup, and
+# stub the `.present()` of every Adwaita dialog type so test runs never pop
+# real windows on a developer's screen. Tests that need to assert presentation
+# can monkeypatch a more specific replacement on top of this.
+
+class _MockSettings:
+    _defaults = {
+        'window-width': 1024,
+        'window-height': 768,
+        'window-maximized': False,
+    }
+
+    def __init__(self, schema_id):
+        self._store = dict(self._defaults)
+
+    def get_int(self, name):
+        return self._store.get(name, 0)
+
+    def get_boolean(self, name):
+        return self._store.get(name, False)
+
+    def get_string(self, name):
+        return self._store.get(name, '')
+
+    def set_int(self, name, value):
+        self._store[name] = value
+
+    def set_boolean(self, name, value):
+        self._store[name] = value
+
+    def set_string(self, name, value):
+        self._store[name] = value
+
+
+@pytest.fixture(autouse=True)
+def _headless_gtk(monkeypatch):
+    monkeypatch.setattr(Gio, 'Settings', type('Settings', (), {'new': _MockSettings}))
+    for cls_name in ('MessageDialog', 'AlertDialog', 'AboutDialog', 'Dialog'):
+        cls = getattr(Adw, cls_name, None)
+        if cls is None:
+            continue
+        # `.present()` signatures vary across dialog types — accept any args.
+        monkeypatch.setattr(cls, 'present', lambda self, *a, **kw: None)
+    yield
 
 # Load compiled gresource if present so Gtk.Template imports don't fail
 compiled_gresource = os.path.join(REPO_ROOT, '.flatpak-build', 'files', 'share', 'tavern', 'tavern.gresource')

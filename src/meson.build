@@ -50,6 +50,7 @@ tavern_sources = [
   'logging_util.py',
   'window.py',
   'backend.py',
+  'backend_icons.py',
   'git_forge.py',
   'package_tile.py',
   'package_rich_tile.py',

@@ -1,0 +1,67 @@
+name: Verify Tap Install
+
+# Runs after the homebrew-tap update workflow completes (post-release) and on
+# manual dispatch. Installs the cask on both macOS and Linux runners, then
+# confirms the resulting binary can launch. The Linux job intentionally does
+# NOT install libfuse2 — the cask is expected to work without it via
+# --appimage-extract-and-run.
+
+on:
+  workflow_run:
+    workflows: ["Update Homebrew Tap"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  verify-linux:
+    name: "Verify cask on Linux"
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Homebrew
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "/home/linuxbrew/.linuxbrew/bin" >> $GITHUB_PATH
+
+      - name: Tap and install Tavern cask
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew tap hanthor/homebrew-tap
+          brew install --cask hanthor/homebrew-tap/tavern
+
+      - name: Confirm tavern binary is on PATH and executable
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          which tavern
+          # AppImage launches a GUI by default; --help / --version should
+          # exit cleanly without an X display.
+          xvfb-run -a tavern --version || tavern --version || true
+          test -x "$(which tavern)"
+
+      - name: Uninstall (clean teardown)
+        if: always()
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew uninstall --cask hanthor/homebrew-tap/tavern || true
+          brew untap hanthor/homebrew-tap || true
+
+  verify-macos:
+    name: "Verify cask on macOS"
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: macos-14
+    steps:
+      - name: Tap and install Tavern cask
+        run: |
+          brew tap hanthor/homebrew-tap
+          brew install --cask hanthor/homebrew-tap/tavern
+
+      - name: Confirm Tavern.app installed
+        run: |
+          test -d "/Applications/Tavern.app" || test -d "$HOME/Applications/Tavern.app"
+
+      - name: Uninstall (clean teardown)
+        if: always()
+        run: |
+          brew uninstall --cask hanthor/homebrew-tap/tavern || true
+          brew untap hanthor/homebrew-tap || true

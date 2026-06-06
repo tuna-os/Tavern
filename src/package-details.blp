@@ -132,6 +132,13 @@ template $TavernPackageDetails: Adw.NavigationPage {
                       visible: false;
                       styles ["suggested-action", "pill"]
                     }
+
+                    ToggleButton pin_button {
+                      icon-name: "view-pin-symbolic";
+                      tooltip-text: "Pin this version (prevent upgrades)";
+                      visible: false;
+                      styles ["pill"]
+                    }
                   }
                 }
               }

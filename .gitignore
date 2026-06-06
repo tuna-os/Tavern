@@ -13,6 +13,8 @@ flatpak-build/
 .venv/
 .pytest_cache/
 .coverage
+.benchmarks/
+builddir-appimage/
 app_log.txt
 app_log.txt*
 Tavern.app/

@@ -120,25 +120,7 @@ TAVERN_LOG=debug pytest tests/ -s          # run tests with verbose debug loggin
 
 ### Headless GUI Test Patterns
 
-Tavern is headlessly tested in environments that might not have an active display server (X11/Wayland) or installed GSettings schemas:
-
-1. **Mocking `GSettings`**: To prevent Gio GSettings initialization crashes when the schema is not installed in system folders, mock `Gio.Settings` inside the test setup:
-   ```python
-   class MockSettings:
-       def __init__(self, schema_id):
-           self._store = {'window-width': 1024, 'window-height': 768, 'window-maximized': False}
-       def get_int(self, name): return self._store[name]
-       def get_boolean(self, name): return self._store[name]
-       def set_int(self, name, value): self._store[name] = value
-       def set_boolean(self, name, value): self._store[name] = value
-   Gio.Settings = type('Settings', (), {'new': MockSettings})
-   ```
-
-2. **Suppressing Graphical Popups**: To prevent real windows or message boxes (`Adw.MessageDialog` or `Adw.AlertDialog`) from rendering or popping up on the developer's screen during test execution, always mock their `.present()` method:
-   ```python
-   monkeypatch.setattr(Adw.MessageDialog, 'present', lambda self: None)
-   monkeypatch.setattr(Adw.AlertDialog, 'present', lambda self, parent=None: None)
-   ```
+`tests/conftest.py` provides an autouse `_headless_gtk` fixture that stubs `Gio.Settings` and the `.present()` method on every Adwaita dialog type so tests run without a display server and without pop-ups appearing on screen. New tests get this for free — you only need to override if you specifically want to assert presentation behavior.
 
 ---
 

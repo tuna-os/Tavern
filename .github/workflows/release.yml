@@ -33,57 +33,57 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # build-appimage:
-  #   name: "Linux AppImage"
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     contents: write
-  #   steps:
-  #   - uses: actions/checkout@v4
+  build-appimage:
+    name: "Linux AppImage"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
 
-  #   - name: Install build dependencies
-  #     run: |
-  #       sudo apt-get update
-  #       sudo apt-get install -y \
-  #         meson ninja-build pkg-config gettext desktop-file-utils \
-  #         blueprint-compiler python3 python3-gi python3-requests python3-markdown \
-  #         libgtk-4-dev libadwaita-1-dev libgirepository1.0-dev gobject-introspection \
-  #         libfuse2 curl
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          meson ninja-build pkg-config gettext desktop-file-utils \
+          blueprint-compiler python3 python3-gi python3-requests python3-markdown \
+          libgtk-4-dev libadwaita-1-dev libgirepository1.0-dev gobject-introspection \
+          libfuse2 curl
 
-  #   - name: Build and stage AppDir
-  #     run: |
-  #       meson setup builddir-appimage --prefix=/usr
-  #       meson compile -C builddir-appimage
-  #       DESTDIR="$PWD/AppDir" meson install -C builddir-appimage
+    - name: Build and stage AppDir
+      run: |
+        meson setup builddir-appimage --prefix=/usr
+        meson compile -C builddir-appimage
+        DESTDIR="$PWD/AppDir" meson install -C builddir-appimage
 
-  #   - name: Build AppImage
-  #     run: |
-  #       curl -L -o linuxdeploy-x86_64.AppImage \
-  #         https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-  #       curl -L -o linuxdeploy-plugin-gtk.sh \
-  #         https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh
+    - name: Build AppImage
+      run: |
+        curl -L -o linuxdeploy-x86_64.AppImage \
+          https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        curl -L -o linuxdeploy-plugin-gtk.sh \
+          https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh
 
-  #       chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk.sh
+        chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk.sh
 
-  #       export ARCH=x86_64
-  #       export OUTPUT=appimage
-  #       export LINUXDEPLOY_PLUGIN_GTK=1
-  #       export UPDATE_INFORMATION="gh-releases-zsync|hanthor|Tavern|latest|Tavern-Linux.AppImage.zsync"
+        export ARCH=x86_64
+        export OUTPUT=appimage
+        export LINUXDEPLOY_PLUGIN_GTK=1
+        export UPDATE_INFORMATION="gh-releases-zsync|hanthor|Tavern|latest|Tavern-Linux.AppImage.zsync"
 
-  #       ./linuxdeploy-x86_64.AppImage \
-  #         --appdir AppDir \
-  #         --desktop-file AppDir/usr/share/applications/dev.hanthor.Tavern.desktop \
-  #         --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg \
-  #         --output appimage
+        ./linuxdeploy-x86_64.AppImage \
+          --appdir AppDir \
+          --desktop-file AppDir/usr/share/applications/dev.hanthor.Tavern.desktop \
+          --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg \
+          --output appimage
 
-  #       mv ./*-x86_64.AppImage Tavern-Linux.AppImage
+        mv ./*-x86_64.AppImage Tavern-Linux.AppImage
 
-  #   - name: Upload Release Asset
-  #     uses: softprops/action-gh-release@v2
-  #     with:
-  #       files: Tavern-Linux.AppImage
-  #     env:
-  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Tavern-Linux.AppImage
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-flatpak:
     name: "Flatpak Bundle"

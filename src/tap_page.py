@@ -181,7 +181,16 @@ class TavernTapPage(Adw.Bin):
 
         self.tap_name_label.set_label(tap_name)
         n = len(packages)
-        self.tap_count_label.set_label(f'{n} package{"s" if n != 1 else ""}')
+        count_text = f'{n} package{"s" if n != 1 else ""}'
+        if self._backend:
+            meta = self._backend.get_tap_metadata(tap_name) or {}
+            rev = meta.get('head_rev')
+            date = meta.get('last_commit_date')
+            if rev and date:
+                count_text = f'{count_text} • {rev} ({date[:10]})'
+            elif rev:
+                count_text = f'{count_text} • {rev}'
+        self.tap_count_label.set_label(count_text)
 
         while child := self.packages_flow.get_first_child():
             self.packages_flow.remove(child)
@@ -195,6 +204,20 @@ class TavernTapPage(Adw.Bin):
             self.packages_flow.append(tile)
 
         self.tap_content_stack.set_visible_child_name('packages')
+
+    def update_selected_tap(self):
+        """Run `git pull` on the currently selected tap, surfacing a toast."""
+        if not self._backend or not self._selected_tap:
+            return
+        tap_name = self._selected_tap
+
+        def _on_done(success, msg):
+            label = (f'Updated {tap_name}' if success
+                     else f'Failed to update {tap_name}: {msg.splitlines()[0] if msg else ""}'.strip())
+            self.emit('tap-operation', label)
+
+        self.emit('tap-operation', f'Updating {tap_name}…')
+        self._backend.update_tap_async(tap_name, _on_done)
 
     # ── Add tap ──────────────────────────────────────────────────────────────
 
