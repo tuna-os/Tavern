@@ -465,8 +465,8 @@ class TavernWindow(Adw.ApplicationWindow):
         if package is None:
             _log.warning('Pin requested but dialog has no package attached')
             return
-        if package.pkg_type != 'formula':
-            self.toast_overlay.add_toast(Adw.Toast.new('Pinning is only supported for formulae'))
+        if package.pkg_type not in ('formula', 'cask'):
+            self.toast_overlay.add_toast(Adw.Toast.new('Pinning is only supported for formulae and casks'))
             return
 
         def _on_pin_done(success, msg):

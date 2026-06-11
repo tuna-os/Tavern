@@ -138,7 +138,39 @@ class TavernTapPage(Adw.Bin):
         avatar.set_valign(Gtk.Align.CENTER)
         row.add_prefix(avatar)
         row._avatar_widget = avatar
+
+        # Tap trust indicator (Homebrew 6.0.0+)
+        trust_icon = Gtk.Image(icon_name='changes-prevent-symbolic', pixel_size=14)
+        trust_icon.set_valign(Gtk.Align.CENTER)
+        trust_icon.set_visible(False)
+        trust_icon.set_tooltip_text('Loading trust status…')
+        row.add_suffix(trust_icon)
+        row._trust_icon = trust_icon
+
+        # Look up trust status from backend if available
+        if self._backend:
+            for tap_info in self._backend.taps:
+                if tap_info.get('name') == tap_name:
+                    self._apply_trust_icon(row, tap_info)
+                    break
+
         return row
+
+    def _apply_trust_icon(self, row, tap_info):
+        """Update trust icon on a tap sidebar row."""
+        trust_icon = getattr(row, '_trust_icon', None)
+        if not trust_icon:
+            return
+        trusted = tap_info.get('trusted')
+        if trusted is True:
+            trust_icon.set_from_icon_name('lock-symbolic')
+            trust_icon.set_tooltip_text('Tap trusted')
+            trust_icon.set_visible(True)
+        elif trusted is False:
+            trust_icon.set_from_icon_name('changes-prevent-symbolic')
+            trust_icon.set_tooltip_text('Tap not trusted — packages may be unavailable')
+            trust_icon.set_visible(True)
+        # If trusted is None (pre-6.0.0 or still loading), stay hidden
 
     def _load_tap_avatar_async(self, row, tap_name):
         gh_user = tap_name.split('/')[0]
@@ -375,18 +407,68 @@ class TavernTapPage(Adw.Bin):
     def _run_tap(self, tap_name):
         self.add_tap_button.set_sensitive(False)
         self.add_tap_empty_button.set_sensitive(False)
+        self.emit('tap-operation', f'Checking trust for {tap_name}…')
+
+        def trust_check_done(trusted):
+            if trusted is None:
+                # Pre-6.0.0 or trust command unavailable — proceed directly
+                self._do_tap(tap_name)
+            elif trusted:
+                # Already trusted — proceed
+                self._do_tap(tap_name)
+            else:
+                # Untrusted — show confirmation dialog
+                self._show_trust_dialog(tap_name)
+
+        self._backend.check_tap_trust_async(tap_name, trust_check_done)
+
+    def _show_trust_dialog(self, tap_name):
+        """Show confirmation dialog before trusting and adding a tap."""
+        dialog = Adw.AlertDialog()
+        dialog.set_heading('Trust This Tap?')
+        dialog.set_body(
+            f'Homebrew requires explicit trust for third-party tap "{tap_name}" '
+            f'before its code can run.\n\n'
+            f'Only trust taps from sources you know and trust.'
+        )
+        dialog.add_response('cancel', 'Cancel')
+        dialog.add_response('trust', 'Trust and Add')
+        dialog.set_response_appearance('trust', Adw.ResponseAppearance.SUGGESTED)
+        dialog.set_default_response('cancel')
+        dialog.set_close_response('cancel')
+
+        def on_response(d, response):
+            if response == 'trust':
+                self.emit('tap-operation', f'Trusting and adding {tap_name}…')
+                def after_trust(success, msg):
+                    if success:
+                        self._do_tap(tap_name)
+                    else:
+                        self._on_tap_done(tap_name, False, msg)
+                self._backend.trust_tap_async(tap_name, after_trust)
+            else:
+                self._on_tap_done(tap_name, False, 'Tap not trusted — cancelled')
+
+        dialog.connect('response', on_response)
+        dialog.present(self.get_root())
+
+    def _do_tap(self, tap_name):
+        """Execute the actual brew tap command."""
         self.emit('tap-operation', f'Adding tap {tap_name}…')
 
         def on_done(success, msg):
-            self.add_tap_button.set_sensitive(True)
-            self.add_tap_empty_button.set_sensitive(True)
-            if success:
-                self.emit('tap-operation', f'Added tap {tap_name}')
-            else:
-                short = msg.split('\n')[0] if msg else 'Failed'
-                self.emit('tap-operation', f'Failed to add tap: {short}')
+            self._on_tap_done(tap_name, success, msg)
 
         self._backend.tap_async(tap_name, on_done)
+
+    def _on_tap_done(self, tap_name, success, msg):
+        self.add_tap_button.set_sensitive(True)
+        self.add_tap_empty_button.set_sensitive(True)
+        if success:
+            self.emit('tap-operation', f'Added tap {tap_name}')
+        else:
+            short = msg.split('\n')[0] if msg else 'Failed'
+            self.emit('tap-operation', f'Failed to add tap: {short}')
 
     # ── Remove tap ───────────────────────────────────────────────────────────
 
@@ -394,6 +476,15 @@ class TavernTapPage(Adw.Bin):
         if not self._selected_tap:
             return
         tap_name = self._selected_tap
+
+        # Check trust status for dialog options
+        tap_trusted = None
+        if self._backend:
+            for tap_info in self._backend.taps:
+                if tap_info.get('name') == tap_name:
+                    tap_trusted = tap_info.get('trusted')
+                    break
+
         dialog = Adw.AlertDialog()
         dialog.set_heading('Remove Tap')
         dialog.set_body(
@@ -401,6 +492,10 @@ class TavernTapPage(Adw.Bin):
             'Packages from this tap will no longer be available to install.'
         )
         dialog.add_response('cancel', 'Cancel')
+
+        if tap_trusted is True:
+            dialog.add_response('untrust', 'Remove Trust Only')
+
         dialog.add_response('remove', 'Remove')
         dialog.set_response_appearance('remove', Adw.ResponseAppearance.DESTRUCTIVE)
         dialog.set_default_response('cancel')
@@ -409,9 +504,21 @@ class TavernTapPage(Adw.Bin):
         dialog.present(self.get_root())
 
     def _on_remove_tap_response(self, dialog, response, tap_name):
-        if response != 'remove':
+        if response == 'untrust':
+            self.remove_tap_button.set_sensitive(False)
+            self.emit('tap-operation', f'Removing trust for {tap_name}…')
+            def on_done(success, msg):
+                if success:
+                    self.emit('tap-operation', f'Removed trust for {tap_name}')
+                else:
+                    short = msg.split('\n')[0] if msg else 'Failed'
+                    self.emit('tap-operation', f'Failed to untrust: {short}')
+                self.remove_tap_button.set_sensitive(bool(self._selected_tap))
+            self._backend.untrust_tap_async(tap_name, on_done)
+        elif response != 'remove':
             return
-        self._run_untap(tap_name)
+        else:
+            self._run_untap(tap_name)
 
     def _run_untap(self, tap_name):
         self.remove_tap_button.set_sensitive(False)

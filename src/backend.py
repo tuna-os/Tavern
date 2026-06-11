@@ -14,6 +14,9 @@ from urllib.error import URLError
 # This prevents random hangs and bandwidth waste on slow/capped connections.
 os.environ['HOMEBREW_NO_AUTO_UPDATE'] = '1'
 os.environ['HOMEBREW_API_AUTO_UPDATE_SECS'] = '604800'
+# Homebrew 6.0.0+ defaults to ask mode (confirmation prompt) — suppress it
+# so Tavern's subprocess-driven install/remove/upgrade operations don't hang.
+os.environ['HOMEBREW_NO_INSTALL_ASK'] = '1'
 
 import gi
 gi.require_version('GdkPixbuf', '2.0')
@@ -82,7 +85,7 @@ def _brew_cmd(args):
     if IN_FLATPAK:
         # Use flatpak-spawn to run brew on the host with updates disabled
         return ['flatpak-spawn', '--host', 'bash', '-c',
-                f'export HOMEBREW_NO_AUTO_UPDATE=1 && export HOMEBREW_API_AUTO_UPDATE_SECS=604800 && '
+                f'export HOMEBREW_NO_AUTO_UPDATE=1 && export HOMEBREW_API_AUTO_UPDATE_SECS=604800 && export HOMEBREW_NO_INSTALL_ASK=1 && '
                 f'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew {" ".join(args)}']
     else:
         return [BREW_BIN] + args
@@ -341,8 +344,9 @@ class BrewBackend(GObject.Object):
                     for line in f:
                         line = line.strip()
                         if line.startswith('tap '):
-                            m = re.match(r'tap\s+["\']([^"\']+)["\']', line)
-                            if m: taps.append(m.group(1))
+                            m = re.match(r'tap\s+["\']([^"\']+)["\'](?:,\s*trusted:\s*(true|false))?', line)
+                            if m:
+                                taps.append({'name': m.group(1), 'trusted': m.group(2) == 'true'})
                         elif line.startswith('brew '):
                             m = re.match(r'brew\s+["\']([^"\']+)["\']', line)
                             if m: formulae.append(m.group(1))
@@ -1024,6 +1028,9 @@ class BrewBackend(GObject.Object):
         _log.info('Tap scan complete: %d custom taps with packages', len(tap_packages))
         self.emit('taps-loaded', tap_packages)
 
+        # Defer trust status loading so the UI populates immediately
+        self._load_tap_trust_status()
+
         if formulae_changed:
             self._formulae = new_formulae
             _log.info('Tap scan added formulae, total now %d', len(new_formulae))
@@ -1244,6 +1251,142 @@ class BrewBackend(GObject.Object):
             taps = cached
 
         GLib.idle_add(callback, taps)
+
+    # ── Tap trust (Homebrew 6.0.0+) ──────────────────────────────────────────
+
+    @staticmethod
+    def _resolve_tap_url(tap_name):
+        """Convert 'user/repo' to its GitHub remote URL for trust lookups."""
+        parts = tap_name.split('/', 1)
+        if len(parts) != 2:
+            return None
+        return f'https://github.com/{parts[0]}/homebrew-{parts[1]}'
+
+    def check_tap_trust_async(self, tap_name, callback):
+        """Check if a tap is trusted. callback(trusted: bool|None).
+
+        Returns None if the trust command is unavailable (pre-6.0.0).
+        """
+        thread = threading.Thread(
+            target=self._check_tap_trust_thread,
+            args=(tap_name, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def _check_tap_trust_thread(self, tap_name, callback):
+        """Check trust by parsing `brew trust --json=v1` output."""
+        try:
+            result = subprocess.run(
+                _brew_cmd(['trust', '--json=v1']),
+                capture_output=True, text=True, timeout=15,
+            )
+            if result.returncode == 0:
+                data = json.loads(result.stdout)
+                if isinstance(data, dict):
+                    trusted = tap_name in data.get('taps', [])
+                    _log.debug('check_tap_trust %s: %s', tap_name, trusted)
+                    GLib.idle_add(callback, trusted)
+                    return
+            GLib.idle_add(callback, None)
+        except (FileNotFoundError, subprocess.SubprocessError) as e:
+            _log.debug('brew trust unavailable (pre-6.0.0?): %s', e)
+            GLib.idle_add(callback, None)
+
+    def trust_tap_async(self, tap_name, callback=None):
+        """Trust a tap by its remote URL. callback(success, message)."""
+        thread = threading.Thread(
+            target=self._trust_tap_thread,
+            args=(tap_name, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def _trust_tap_thread(self, tap_name, callback):
+        try:
+            result = subprocess.run(
+                _brew_cmd(['trust', '--tap', tap_name]),
+                capture_output=True, text=True, timeout=30,
+            )
+            success = result.returncode == 0
+            msg = (result.stdout + result.stderr).strip()
+            _log.info('brew trust --tap %s rc=%d', tap_name, result.returncode)
+            if callback:
+                GLib.idle_add(callback, success, msg)
+        except Exception as e:
+            _log.error('trust_tap_async %s failed: %s', tap_name, e)
+            if callback:
+                GLib.idle_add(callback, False, str(e))
+
+    def untrust_tap_async(self, tap_name, callback=None):
+        """Untrust a tap. callback(success, message)."""
+        thread = threading.Thread(
+            target=self._untrust_tap_thread,
+            args=(tap_name, callback),
+            daemon=True,
+        )
+        thread.start()
+
+    def _untrust_tap_thread(self, tap_name, callback):
+        try:
+            result = subprocess.run(
+                _brew_cmd(['untrust', '--tap', tap_name]),
+                capture_output=True, text=True, timeout=30,
+            )
+            success = result.returncode == 0
+            msg = (result.stdout + result.stderr).strip()
+            _log.info('brew untrust --tap %s rc=%d', tap_name, result.returncode)
+            if callback:
+                GLib.idle_add(callback, success, msg)
+        except Exception as e:
+            _log.error('untrust_tap_async %s failed: %s', tap_name, e)
+            if callback:
+                GLib.idle_add(callback, False, str(e))
+
+    def _load_tap_trust_status(self):
+        """Fetch trust status for all installed taps and update _tap_list."""
+        thread = threading.Thread(target=self._load_tap_trust_status_thread, daemon=True)
+        thread.start()
+
+    def _load_tap_trust_status_thread(self):
+        _log.debug('Loading tap trust status for %d taps', len(self._tap_list))
+        # Fetch the full trusted-taps list once
+        trusted_taps = set()
+        try:
+            result = subprocess.run(
+                _brew_cmd(['trust', '--json=v1']),
+                capture_output=True, text=True, timeout=10,
+            )
+            if result.returncode == 0:
+                data = json.loads(result.stdout)
+                if isinstance(data, dict):
+                    trusted_taps = set(data.get('taps', []))
+        except Exception as e:
+            _log.debug('brew trust --json=v1 failed: %s', e)
+
+        for tap in self._tap_list:
+            tap_name = tap.get('name', '')
+            if not tap_name:
+                continue
+            # Prefer brew tap-info for installed taps (gives per-tap detail)
+            try:
+                result = subprocess.run(
+                    _brew_cmd(['tap-info', '--json=v1', tap_name]),
+                    capture_output=True, text=True, timeout=10,
+                )
+                if result.returncode == 0:
+                    data = json.loads(result.stdout)
+                    if isinstance(data, list) and data:
+                        tap['trusted'] = data[0].get('trusted')
+                        continue
+            except Exception:
+                pass
+            # Fallback: check against the trusted set
+            tap['trusted'] = tap_name in trusted_taps if trusted_taps else None
+            _log.debug('tap trust %s: %s', tap_name, tap.get('trusted'))
+
+        # Emit taps-loaded again so UI can update trust icons
+        GLib.idle_add(self.emit, 'taps-loaded', self._tap_packages)
 
     def tap_async(self, tap_name, callback=None):
         """Add a Homebrew tap asynchronously. callback(success, message)."""
@@ -1490,10 +1633,11 @@ class BrewBackend(GObject.Object):
         thread.start()
 
     def _run_pin_operation(self, operation, package, callback=None):
-        if package.pkg_type != 'formula':
-            _log.warning('Cannot %s %s: pinning only works on formulae', operation, package.name)
+        # Homebrew 6.0.0+ supports pinning both formulae and casks.
+        if package.pkg_type not in ('formula', 'cask'):
+            _log.warning('Cannot %s %s: pinning only works on formulae and casks', operation, package.name)
             if callback:
-                GLib.idle_add(callback, False, 'Pinning only applies to formulae')
+                GLib.idle_add(callback, False, 'Pinning only applies to formulae and casks')
             return
         cmd = _brew_cmd([operation, package.name])
         _log.info('_run_pin_operation: %s', ' '.join(cmd))

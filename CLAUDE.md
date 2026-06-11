@@ -198,3 +198,17 @@ Things Bazaar has that Tavern intentionally omits:
 - Flatpak / polkit / auth (Homebrew runs as user, no sandboxing needed)
 - Curated JSON config (we use hardcoded popular lists for now)
 - D-Bus backend isolation (not needed at Tavern's scale)
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `hanthor/Tavern`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Defaults: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context (`CONTEXT.md` + `docs/adr/` at repo root). See `docs/agents/domain.md`.

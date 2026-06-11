@@ -120,7 +120,14 @@ class TavernBrewfilePage(Adw.Bin):
             else:
                 self._taps_done_event.set()
         
-        for tap in taps:
+        for tap_entry in taps:
+            # Support both old (string) and new (dict) tap formats
+            if isinstance(tap_entry, dict):
+                tap_name = tap_entry['name']
+                tap_trusted = tap_entry.get('trusted', False)
+            else:
+                tap_name = tap_entry
+                tap_trusted = False
             # Create a compact pill-style box
             box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
             box.add_css_class('pill')
@@ -130,12 +137,18 @@ class TavernBrewfilePage(Adw.Bin):
             box.set_margin_bottom(4)
             
             # Add tap label
-            label = Gtk.Label(label=tap)
+            label = Gtk.Label(label=tap_name)
             box.append(label)
+
+            # Show trust icon for Homebrew 6.0.0+ trusted taps
+            if tap_trusted:
+                trust_icon = Gtk.Image.new_from_icon_name('lock-symbolic')
+                trust_icon.set_tooltip_text('Tap explicitly trusted')
+                box.append(trust_icon)
 
             # Add click handler for failed taps
             click_gesture = Gtk.GestureClick.new()
-            click_gesture.connect('released', lambda _g, _n, _x, _y, tap_name=tap: self._on_tap_clicked(tap_name))
+            click_gesture.connect('released', lambda _g, _n, _x, _y, tap_name=tap_name: self._on_tap_clicked(tap_name))
             box.add_controller(click_gesture)
             
             # Add spinner
@@ -146,7 +159,7 @@ class TavernBrewfilePage(Adw.Bin):
             self.taps_flow.append(box)
             
             # Tap it
-            self._tap_async(tap, box, spinner, label)
+            self._tap_async(tap_name, box, spinner, label)
 
     def _tap_async(self, tap, box, spinner, label):
         """Tap a repository with profiling and detailed error reporting."""
@@ -614,13 +627,24 @@ class TavernBrewfilePage(Adw.Bin):
         with self._cask_error_lock:
             cask_errors = set(self._cask_errors.keys())
 
-        taps = [t for t in self.parsed_data.get('taps', []) if t not in tap_errors]
+        taps = [t if isinstance(t, str) else t['name'] for t in self.parsed_data.get('taps', []) if (t if isinstance(t, str) else t['name']) not in tap_errors]
         formulae = list(self.parsed_data.get('formulae', []))
         casks = [c for c in self.parsed_data.get('casks', []) if c not in cask_errors]
         flatpaks = [f for f in self.parsed_data.get('flatpaks', []) if f not in flatpak_errors]
 
         lines = []
-        lines.extend([f'tap "{tap}"' for tap in taps])
+        parsed_taps = self.parsed_data.get('taps', [])
+        for tap_entry in parsed_taps:
+            if isinstance(tap_entry, dict):
+                tap_name = tap_entry['name']
+            else:
+                tap_name = tap_entry
+            if tap_name not in tap_errors:
+                # Preserve trusted: field for Homebrew 6.0.0+ round-trips
+                if isinstance(tap_entry, dict) and tap_entry.get('trusted'):
+                    lines.append(f'tap "{tap_name}", trusted: true')
+                else:
+                    lines.append(f'tap "{tap_name}"')
         lines.extend([f'brew "{name}"' for name in formulae])
         lines.extend([f'cask "{name}"' for name in casks])
         lines.extend([f'flatpak "{app_id}"' for app_id in flatpaks])

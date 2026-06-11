@@ -262,9 +262,9 @@ class TavernPackageDetails(Adw.NavigationPage):
             self.update_button.set_visible(False)
             self.install_button.set_sensitive(not busy)
 
-        # Pin button: only meaningful for installed formulae.
+        # Pin button: only meaningful for installed packages.
         if self.pin_button is not None:
-            show_pin = pkg.installed and pkg.pkg_type == 'formula'
+            show_pin = pkg.installed and pkg.pkg_type in ('formula', 'cask')
             self.pin_button.set_visible(show_pin)
             if show_pin and self._backend is not None:
                 is_pinned = self._backend.is_pinned(pkg.name)
