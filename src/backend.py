@@ -32,6 +32,7 @@ FORMULA_API = 'https://formulae.brew.sh/api/formula.json'
 CASK_API = 'https://formulae.brew.sh/api/cask.json'
 FORMULA_DETAIL_API = 'https://formulae.brew.sh/api/formula/{}.json'
 CASK_DETAIL_API = 'https://formulae.brew.sh/api/cask/{}.json'
+ANALYTICS_ON_REQUEST_API = 'https://formulae.brew.sh/api/analytics/install-on-request/{}.json'
 FLATHUB_APPSTREAM_API = 'https://flathub.org/api/v2/appstream/{}'
 GITHUB_TAP_SEARCH_URL = (
     'https://api.github.com/search/repositories'
@@ -243,18 +244,11 @@ class Package(GObject.Object):
             self._installs_90d = 0
             self._installs_365d = 0
             return
-        metrics = self._raw_analytics.get('install_on_request', {})
-        if not metrics:
-            metrics = self._raw_analytics.get('install', {})
-
-        def _sum_period(period_data):
-            if not isinstance(period_data, dict):
-                return 0
-            return sum(val for val in period_data.values() if isinstance(val, int))
-
-        self._installs_30d = _sum_period(metrics.get('30d', {}))
-        self._installs_90d = _sum_period(metrics.get('90d', {}))
-        self._installs_365d = _sum_period(metrics.get('365d', {}))
+        # _raw_analytics is now a flat dict: {'installs_30d': int, ...}
+        # pre-populated from the separate analytics endpoints
+        self._installs_30d = self._raw_analytics.get('installs_30d', 0) or 0
+        self._installs_90d = self._raw_analytics.get('installs_90d', 0) or 0
+        self._installs_365d = self._raw_analytics.get('installs_365d', 0) or 0
 
     @GObject.Property(type=int, default=0)
     def installs_30d(self):
@@ -571,6 +565,61 @@ class BrewBackend(GObject.Object):
             _log.warning('Failed to parse system Homebrew JWS cache at %s: %s', path, e)
             return None
 
+    def _fetch_analytics_data(self):
+        """Fetch install-on-request analytics for 30d/90d/365d from the
+        separate analytics endpoints (Homebrew 6.0.0+ no longer embeds
+        analytics in formula.json).
+
+        Returns dict of {formula_name: {'installs_30d': int, ...}}.
+        """
+        cache_key = 'analytics'
+        cached, is_stale = self._load_cached(cache_key, max_age=86400)  # 24 h
+        if cached and not is_stale:
+            _log.debug('Analytics cache hit (%d entries)', len(cached))
+            return cached
+
+        analytics = {}
+        periods = ('30d', '90d', '365d')
+        for period in periods:
+            try:
+                url = ANALYTICS_ON_REQUEST_API.format(period)
+                data = self._fetch_json(url)
+                if data and isinstance(data, dict):
+                    items = data.get('items', [])
+                    for item in items:
+                        name = item.get('formula', '')
+                        if not name:
+                            continue
+                        count_str = item.get('count', '0')
+                        try:
+                            count = int(count_str.replace(',', ''))
+                        except (ValueError, AttributeError):
+                            count = 0
+                        entry = analytics.setdefault(name, {})
+                        entry[f'installs_{period}'] = count
+                    _log.info('Fetched %d analytics entries for %s', len(items), period)
+            except Exception as e:
+                _log.warning('Failed to fetch analytics for %s: %s', period, e)
+
+        if analytics:
+            self._save_cache(cache_key, analytics)
+        return analytics
+
+    def _patch_analytics(self, formulae):
+        """Fetch analytics and patch install counts onto formula Package objects."""
+        analytics = self._fetch_analytics_data()
+        if not analytics:
+            return
+        patched = 0
+        for pkg in formulae:
+            counts = analytics.get(pkg.name)
+            if counts:
+                pkg._raw_analytics = counts
+                patched += 1
+        _log.info('Patched analytics for %d/%d formulae', patched, len(formulae))
+        # Trigger UI update for popularity badges
+        GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
+
     def refresh_cache_files(self):
         """Fetch/load and save fresh formulae and casks cache files, and rebuild search cache."""
         with BrewBackend._refresh_lock:
@@ -592,6 +641,13 @@ class BrewBackend(GObject.Object):
                 self._formulae = [
                     Package(d, 'formula', self._installed_formulae) for d in new_data_f
                 ]
+                # Homebrew 6.0.0+: analytics are no longer embedded — fetch separately
+                analytics_thread = threading.Thread(
+                    target=self._patch_analytics,
+                    args=(self._formulae,),
+                    daemon=True,
+                )
+                analytics_thread.start()
                 
             # 2. Casks
             new_data_c = self._load_from_host_jws('cask')
@@ -1253,14 +1309,6 @@ class BrewBackend(GObject.Object):
         GLib.idle_add(callback, taps)
 
     # ── Tap trust (Homebrew 6.0.0+) ──────────────────────────────────────────
-
-    @staticmethod
-    def _resolve_tap_url(tap_name):
-        """Convert 'user/repo' to its GitHub remote URL for trust lookups."""
-        parts = tap_name.split('/', 1)
-        if len(parts) != 2:
-            return None
-        return f'https://github.com/{parts[0]}/homebrew-{parts[1]}'
 
     def check_tap_trust_async(self, tap_name, callback):
         """Check if a tap is trusted. callback(trusted: bool|None).
