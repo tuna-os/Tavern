@@ -128,5 +128,5 @@ jobs:
           Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
             TAP_TOKEN="${{ secrets.TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}"
             git remote set-url origin "https://x-access-token:${TAP_TOKEN}@github.com/hanthor/homebrew-tap"
-            git push origin main
+            git push origin main || echo "::warning::Push to homebrew-tap failed (token may lack write permission)"
           fi
