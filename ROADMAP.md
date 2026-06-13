@@ -1,23 +1,27 @@
-- [x] Brewfile support
+# Tavern Roadmap
 
-- Support for opening Brewfiles from the file system, bulk install or removal from a list of packages in a Brewfile. launching the app with a Brewfile as an argument should open the Brewfile and display the list of packages.
+**Last updated**: 2026-06-13
 
-- support taps? Brewfiles dynamically tapping taps to get info for packages in the brewfile. This would be a nice to have feature.
+Part of the [TunaOS](https://tunaos.org) ecosystem.
 
-- [x] Filter out MacOS-only Casks on Linux
+## Done
 
-- On Linux, casks that are only available on MacOS should be filtered out from the search results and browse page.
+- ✅ Brewfile support — open, display, bulk install/remove
+- ✅ Filter macOS-only Casks on Linux
+- ✅ Icons and screenshots for packages
+- ✅ Discover section (replaced reverse-alphabetical "Recently Added")
 
-- [x] Get icons and screenshots for packages
+## In progress
 
-- Get icons and screenshots, this may be difficult and we may need to use a different API or method to get them, maintaining a local cache of icons and screenshots would be ideal. Maybe making out own database in GitHub using ORAS.
+- **Tap Manager** — add, remove, update, list taps; view tap contents
 
-- ~~Recently Added is just reverse alphabetical, not actually recently added~~ replaced with Discover section
+## Planned
 
-- [ ] Tap Manager
+- **Related Packages** — surface related packages for each formula/cask
+- **Dynamic Brewfile taps** — auto-tap repos referenced in Brewfiles
+- **Local icon/screenshot cache** — ORAS-based database for faster loads
 
-- A page to manage taps, add, remove, update, list all taps. view tap contents
+## Contributing
 
-- [ ] Related Packages
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-- Get related packages for a package.
