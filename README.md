@@ -1,5 +1,7 @@
 # Tavern 🍺
 
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **Python**, **GTK 4**, and **Libadwaita**. It provides a premium "App Store" experience for managing your Homebrew formulae and casks.
 
 ### Quick Install
@@ -106,6 +108,8 @@ Download and install the latest Flatpak bundle built from the `main` branch:
 
 ```bash
 # Download the latest CI build
+
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 wget https://nightly.link/hanthor/Tavern/workflows/flatpak/main/Tavern-Linux-CI.zip
 unzip Tavern-Linux-CI.zip
 flatpak install --user --reinstall Tavern-Linux-CI.flatpak
