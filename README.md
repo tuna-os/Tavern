@@ -126,3 +126,7 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup,
 ## 📄 License
 
 Tavern is released under the **GPL-3.0-or-later** license. See `LICENSE` for details.
+
+---
+
+Part of the [TunaOS](https://tunaos.org) ecosystem. [Docs](https://tunaos.org) · [Contributing](CONTRIBUTING.md)
