@@ -77,30 +77,21 @@ jobs:
         chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk.sh
 
         export ARCH=x86_64
-        export OUTPUT=appimage
-        export LINUXDEPLOY_PLUGIN_GTK=1
-        export UPDATE_INFORMATION="gh-releases-zsync|hanthor|Tavern|latest|Tavern-Linux.AppImage.zsync"
+        export LDAI_OUTPUT=Tavern-Linux.AppImage
+        export LDAI_UPDATE_INFORMATION="gh-releases-zsync|hanthor|Tavern|latest|Tavern-Linux.AppImage.zsync"
+        export DEPLOY_GTK_VERSION=4
 
         ./linuxdeploy-x86_64.AppImage \
           --appdir AppDir \
+          --plugin gtk \
           --desktop-file AppDir/usr/share/applications/dev.hanthor.Tavern.desktop \
           --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg \
           --output appimage
 
-        # Find the output AppImage (linuxdeploy may name it differently)
-        echo "=== all AppImage files ==="
-        find . -maxdepth 2 -name "*.AppImage" -ls || true
-        echo "=== ls -la ==="
-        ls -la
-        # Try common output names
-        for f in Tavern-*.AppImage Tavern*.AppImage dev.hanthor.Tavern*.AppImage appimage*.AppImage; do
-          if [ -f "$f" ]; then
-            mv "$f" Tavern-Linux.AppImage
-            echo "Renamed $f to Tavern-Linux.AppImage"
-            break
-          fi
-        done
-        test -f Tavern-Linux.AppImage || { echo "ERROR: No AppImage was produced!"; exit 1; }
+        # Debug: check if GTK plugin bundled libraries
+        echo "=== AppDir contents after plugin ==="
+        find AppDir -name "*.so*" -type f | sort | head -30
+        du -sh AppDir/
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
