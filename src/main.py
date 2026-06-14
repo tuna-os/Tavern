@@ -39,7 +39,9 @@ def _load_resources():
                 _log.debug('Failed to load Adwaita library %s: %s', lib_path, e)
     
     # Try multiple possible locations for tavern's resource bundle
+    pkgdatadir = os.environ.get('TAVERN_DATADIR', '/usr/share/tavern')
     resource_paths = [
+        os.path.join(pkgdatadir, 'tavern.gresource'),  # TAVERN_DATADIR / meson prefix
         os.path.join(os.path.dirname(__file__), 'tavern.gresource'),  # In-source
         os.path.join(os.path.expanduser('~'), '.local', 'share', 'tavern', 'tavern.gresource'),  # Installed
         '/usr/local/share/tavern/tavern.gresource',  # System install
