@@ -87,9 +87,20 @@ jobs:
           --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg \
           --output appimage
 
-        # linuxdeploy outputs: <Name>-<ARCH>.AppImage (Name from desktop file)
-        ls -la *.AppImage
-        mv Tavern-x86_64.AppImage Tavern-Linux.AppImage
+        # Find the output AppImage (linuxdeploy may name it differently)
+        echo "=== all AppImage files ==="
+        find . -maxdepth 2 -name "*.AppImage" -ls || true
+        echo "=== ls -la ==="
+        ls -la
+        # Try common output names
+        for f in Tavern-*.AppImage Tavern*.AppImage dev.hanthor.Tavern*.AppImage appimage*.AppImage; do
+          if [ -f "$f" ]; then
+            mv "$f" Tavern-Linux.AppImage
+            echo "Renamed $f to Tavern-Linux.AppImage"
+            break
+          fi
+        done
+        test -f Tavern-Linux.AppImage || { echo "ERROR: No AppImage was produced!"; exit 1; }
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
