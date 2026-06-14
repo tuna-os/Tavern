@@ -15,6 +15,9 @@ flatpak-build/
 .coverage
 .benchmarks/
 builddir-appimage/
+AppDir/
+squashfs-root/
+.appimage*
 app_log.txt
 app_log.txt*
 Tavern.app/
