@@ -56,6 +56,17 @@ jobs:
         meson compile -C builddir-appimage
         DESTDIR="$PWD/AppDir" meson install -C builddir-appimage
 
+    - name: Debug AppDir contents
+      run: |
+        echo "=== AppDir structure ==="
+        find AppDir -type f | sort || echo "AppDir is empty or missing!"
+        echo "=== checking desktop file ==="
+        ls -la AppDir/usr/share/applications/dev.hanthor.Tavern.desktop || echo "desktop file missing!"
+        echo "=== checking icon ==="
+        ls -la AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg || echo "icon missing!"
+        echo "=== checking binary ==="
+        ls -la AppDir/usr/bin/tavern || echo "binary missing!"
+
     - name: Build AppImage
       run: |
         curl -L -o linuxdeploy-x86_64.AppImage \
@@ -76,7 +87,9 @@ jobs:
           --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg \
           --output appimage
 
-        mv ./*-x86_64.AppImage Tavern-Linux.AppImage
+        # linuxdeploy outputs: <Name>-<ARCH>.AppImage (Name from desktop file)
+        ls -la *.AppImage
+        mv Tavern-x86_64.AppImage Tavern-Linux.AppImage
 
     - name: Upload Release Asset
       uses: softprops/action-gh-release@v2
