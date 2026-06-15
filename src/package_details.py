@@ -95,6 +95,12 @@ class TavernPackageDetails(Adw.NavigationPage):
         # Set cursor for screenshot button
         self.screenshot_button.set_cursor(Gdk.Cursor.new_from_name('pointer', None))
 
+        # Capture back navigation keys (like Alt+Left) before WebView consumes them
+        key_controller = Gtk.EventControllerKey.new()
+        key_controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        key_controller.connect('key-pressed', self._on_key_pressed)
+        self.add_controller(key_controller)
+
         if package:
             _log.debug('Opening details for %s (%s)', package.name, package.pkg_type)
             self._populate(package)
@@ -415,22 +421,37 @@ class TavernPackageDetails(Adw.NavigationPage):
                 escaped = GLib.markup_escape_text(text)
                 html_body = f'<pre>{escaped}</pre>'
 
+            # Check system dark mode for default colors
+            style_manager = Adw.StyleManager.get_default()
+            is_dark = style_manager.get_dark()
+            default_color = '#e4e4e4' if is_dark else '#1c1c1c'
+            default_link = '#78aeed' if is_dark else '#1a5fb4'
+
             html = f"""
 <!doctype html>
 <html>
   <head>
-    <meta charset=\"utf-8\" />
+    <meta charset="utf-8" />
     <style>
       body {{
-        font-family: sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         margin: 0;
         padding: 0;
-        color: #d8d8d8;
+        color: {default_color};
         background: transparent;
       }}
-      a {{ color: #8ab4ff; }}
+      a {{ color: {default_link}; }}
       img, video {{ max-width: 100%; height: auto; border-radius: 8px; }}
       pre, code {{ white-space: pre-wrap; word-break: break-word; }}
+
+      @media (prefers-color-scheme: dark) {{
+        body {{ color: #e4e4e4; }}
+        a {{ color: #78aeed; }}
+      }}
+      @media (prefers-color-scheme: light) {{
+        body {{ color: #1c1c1c; }}
+        a {{ color: #1a5fb4; }}
+      }}
     </style>
   </head>
   <body>{html_body}</body>
@@ -480,6 +501,16 @@ class TavernPackageDetails(Adw.NavigationPage):
         else:
             self.error_label.set_visible(False)
         self.emit('package-changed', self._package)
+
+    def _on_key_pressed(self, controller, keyval, keycode, state):
+        alt_pressed = (state & Gdk.ModifierType.ALT_MASK) != 0
+        if alt_pressed and keyval in (Gdk.KEY_Left, Gdk.KEY_Back):
+            nav_view = self.get_ancestor(Adw.NavigationView)
+            if nav_view:
+                _log.debug('Alt+Left or Back key detected, popping navigation view')
+                nav_view.pop()
+                return True
+        return False
 
     # ── Button handlers ──────────────────────────────────────────
     def _on_install_clicked(self, button):

@@ -137,6 +137,10 @@
   color: @error_color;
 }
 
+.warning {
+  color: @warning_color;
+}
+
 /* ===== Section headings ===== */
 .section-title {
   font-size: 1.3em;
@@ -179,6 +183,17 @@ button.medium-pill:active {
   background-color: alpha(@error_color, 0.15);
   color: @error_color;
   border-color: alpha(@error_color, 0.3);
+}
+
+/* Ensure suggested and destructive action buttons always have white text */
+button.suggested-action,
+button.suggested-action.pill {
+  color: #ffffff;
+}
+
+button.destructive-action,
+button.destructive-action.pill {
+  color: #ffffff;
 }
 
 /* ===== Failed flatpak tiles ===== */

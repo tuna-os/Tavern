@@ -143,6 +143,7 @@ class TavernBrewfilePage(Adw.Bin):
             # Show trust icon for Homebrew 6.0.0+ trusted taps
             if tap_trusted:
                 trust_icon = Gtk.Image.new_from_icon_name('lock-symbolic')
+                trust_icon.add_css_class('success')
                 trust_icon.set_tooltip_text('Tap explicitly trusted')
                 box.append(trust_icon)
 
