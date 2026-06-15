@@ -5,7 +5,7 @@
       "Name": "tuna-os/tavern",
       "Images": [
         {
-          "Digest": "sha256:34c62491351b888a9e910cd6291092d9997f3fe23a4cbced0ed8e56f2cb064dc",
+          "Digest": "sha256:ccca71e6a691a6bd52447f8a3e0b26625fd3f5a6e4d5509c864068ba451af1a9",
           "MediaType": "application/vnd.oci.image.manifest.v1+json",
           "OS": "linux",
           "Architecture": "amd64",
@@ -19,13 +19,13 @@
             "org.flatpak.installed-size": "522240",
             "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAH+AAAdA==",
             "org.flatpak.metadata": "[Application]\nname=dev.hanthor.Tavern\nruntime=org.gnome.Platform/x86_64/49\nsdk=org.gnome.Sdk/x86_64/49\ncommand=tavern\n\n[Context]\nshared=ipc;network;\nsockets=fallback-x11;wayland;\ndevices=dri;\nfilesystems=home;/home/linuxbrew:ro;\n\n[Session Bus Policy]\norg.freedesktop.Flatpak=talk\ndev.hanthor.Tavern.SearchProvider=own\n\n[Environment]\nHOMEBREW_NO_AUTO_UPDATE=1\n",
-            "org.flatpak.timestamp": "1781507952",
-            "org.flatpak.download-size": "143226",
-            "org.flatpak.commit": "9a0652104c6ca8f9b5bb2354749955daa9e31195333596e783b96d9075e60b5a",
-            "org.flatpak.subject": "Built from 401c34756cc3d6b468e9a227640be3501b25a5c9",
+            "org.flatpak.timestamp": "1781507980",
+            "org.flatpak.download-size": "143276",
+            "org.flatpak.commit": "a2651764ccd57a1f38a5c1e3802d9a52f9e2ae7b330e23f8664e909de2bfb3b5",
+            "org.flatpak.subject": "Built from 320b032f67d8f19bab33fabf77f2e5bbb841521e",
             "org.flatpak.body": "Name: dev.hanthor.Tavern\nArch: x86_64\nBranch: master\nBuilt with: Flatpak 1.18.1\n",
             "org.flatpak.commit-metadata.xa.ref": "YXBwL2Rldi5oYW50aG9yLlRhdmVybi94ODZfNjQvbWFzdGVyAABz",
-            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAACd2YAdA==",
+            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAACd50AdA==",
             "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL2Rldi5oYW50aG9yLlRhdmVybi94ODZfNjQvbWFzdGVyACUAYXM="
           }
         }
