@@ -401,6 +401,11 @@ class TavernPackageDetails(Adw.NavigationPage):
                 self._readme_webview.set_hexpand(True)
                 self._readme_webview.set_size_request(-1, 420)
                 self._readme_webview.add_css_class('readme-webview')
+                try:
+                    rgba = Gdk.RGBA()
+                    self._readme_webview.set_background_color(rgba)
+                except Exception as e:
+                    _log.debug('Failed to set transparent webview background: %s', e)
 
                 settings = self._readme_webview.get_settings()
                 if settings is not None:
