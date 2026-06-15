@@ -120,5 +120,5 @@ jobs:
           echo "No changes detected in registry index."
         else
           git commit -m "chore(flatpak): update OCI registry index [skip ci]"
-          git push -u origin gh-pages || git push origin gh-pages
+          git push -u origin HEAD:gh-pages
         fi
