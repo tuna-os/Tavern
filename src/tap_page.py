@@ -165,10 +165,14 @@ class TavernTapPage(Adw.Bin):
         if trusted is True:
             trust_icon.set_from_icon_name('lock-symbolic')
             trust_icon.set_tooltip_text('Tap trusted')
+            trust_icon.add_css_class('success')
+            trust_icon.remove_css_class('warning')
             trust_icon.set_visible(True)
         elif trusted is False:
             trust_icon.set_from_icon_name('changes-prevent-symbolic')
             trust_icon.set_tooltip_text('Tap not trusted — packages may be unavailable')
+            trust_icon.add_css_class('warning')
+            trust_icon.remove_css_class('success')
             trust_icon.set_visible(True)
         # If trusted is None (pre-6.0.0 or still loading), stay hidden
 

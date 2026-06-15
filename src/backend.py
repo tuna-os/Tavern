@@ -1884,9 +1884,14 @@ class BrewBackend(GObject.Object):
                 github_owner = m.group(1)
 
         # 1. First image from source repo README (good for projects with logo images)
+        # Prioritize images containing keywords like 'logo', 'icon', 'avatar', 'brand'
         readme_images = self._fetch_readme_images(package)
         if readme_images:
-            icon_urls.append(readme_images[0])
+            logo_images = [img for img in readme_images if any(kw in img.lower() for kw in ('logo', 'icon', 'avatar', 'brand'))]
+            if logo_images:
+                icon_urls.extend(logo_images)
+            # Add all other images as fallbacks
+            icon_urls.extend([img for img in readme_images if img not in logo_images])
             
         # 2. GitHub org/user avatar (if it's a GitHub repo)
         if is_github_repo and github_owner:
@@ -2191,7 +2196,8 @@ class BrewBackend(GObject.Object):
             if any(skip in low for skip in ('shields.io', 'badge', 'travis-ci', 'codecov',
                                              'appveyor', 'circleci', 'github/workflow',
                                              'actions/workflows', 'buymeacoffee',
-                                             'ko-fi', 'opencollective')):
+                                             'ko-fi', 'opencollective', 'appimage',
+                                             'flathub', 'snapcraft', 'download')):
                 continue
             # Keep SVG if GdkPixbuf has SVG support; skip otherwise
             if low.endswith('.svg'):
