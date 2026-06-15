@@ -28,6 +28,7 @@ class TavernApplication(Adw.Application):
         )
         self.version = version
         self._package_to_open = None
+        self._tap_to_open = None
         self._brewfile_to_open = None
         
         self._search_provider = None
@@ -87,8 +88,8 @@ class TavernApplication(Adw.Application):
             try:
                 age = GLib.get_real_time() / 1e6 - os.path.getmtime(cache_path)
                 if age < 14400: # 4 hours
-                    needs_refresh = False
-                    _log.debug('Cache is fresh (age=%.0fs), skipping background refresh', age)
+                     needs_refresh = False
+                     _log.debug('Cache is fresh (age=%.0fs), skipping background refresh', age)
             except Exception as e:
                 _log.warning('Failed to check cache age: %s', e)
         
@@ -110,38 +111,83 @@ class TavernApplication(Adw.Application):
         self._package_to_open = pkg_name
         self.activate()
 
+    def _parse_argument_uri(self, arg):
+        """Parse URIs like brew:// or https://formulae.brew.sh/ and extract target."""
+        if not arg:
+            return None, None
+
+        arg_lower = arg.lower()
+        # Handle brew:// scheme
+        if arg_lower.startswith('brew://'):
+            path = arg[7:] # strip brew://
+            if path.lower().startswith('formula/'):
+                return 'package', path[8:]
+            elif path.lower().startswith('formulae/'):
+                return 'package', path[9:]
+            elif path.lower().startswith('cask/'):
+                return 'package', path[5:]
+            elif path.lower().startswith('casks/'):
+                return 'package', path[6:]
+            elif path.lower().startswith('tap/'):
+                return 'tap', path[4:]
+            else:
+                # Default fallback: treat as package name
+                return 'package', path
+
+        # Handle https://formulae.brew.sh/ web URLs
+        elif arg_lower.startswith('https://formulae.brew.sh/'):
+            path = arg[25:] # strip prefix
+            if path.lower().startswith('formula/'):
+                name = path[8:].rstrip('/')
+                return 'package', name
+            elif path.lower().startswith('cask/'):
+                name = path[5:].rstrip('/')
+                return 'package', name
+
+        return None, None
+
     def do_command_line(self, command_line):
         """Handle command-line arguments."""
-        # Use sys.argv directly since GTK's option parsing might not handle custom args properly
         import sys
-        _log.info('do_command_line called with sys.argv: %s', sys.argv)
+        _log.info('do_command_line called with args')
+        
+        args = sys.argv[1:]
+        if command_line:
+            args = command_line.get_arguments()[1:]
+            
+        _log.info('Parsed args for command line: %s', args)
         
         package_name = None
+        tap_name = None
         brewfile_path = None
 
-        for i, arg in enumerate(sys.argv[1:]):
-            if arg in ('--package', '-p') and i + 2 < len(sys.argv):
-                package_name = sys.argv[i + 2]
-                _log.info('Found --package argument: %s', package_name)
+        for i, arg in enumerate(args):
+            target_type, target_val = self._parse_argument_uri(arg)
+            if target_type == 'package':
+                package_name = target_val
+            elif target_type == 'tap':
+                tap_name = target_val
+            elif arg in ('--package', '-p') and i + 1 < len(args):
+                package_name = args[i + 1]
             elif arg.startswith('--package='):
                 package_name = arg.split('=', 1)[1]
-                _log.info('Found --package= argument: %s', package_name)
-            elif arg in ('--brewfile', '-b') and i + 2 < len(sys.argv):
-                brewfile_path = sys.argv[i + 2]
-                _log.info('Found --brewfile argument: %s', brewfile_path)
+            elif arg in ('--brewfile', '-b') and i + 1 < len(args):
+                brewfile_path = args[i + 1]
             elif arg.startswith('--brewfile='):
                 brewfile_path = arg.split('=', 1)[1]
-                _log.info('Found --brewfile= argument: %s', brewfile_path)
 
         if package_name:
             _log.info('Opening package from command-line: %s', package_name)
             self._package_to_open = package_name
 
+        if tap_name:
+            _log.info('Opening tap from command-line: %s', tap_name)
+            self._tap_to_open = tap_name
+
         if brewfile_path:
             _log.info('Opening Brewfile from command-line: %s', brewfile_path)
             self._brewfile_to_open = brewfile_path
 
-        _log.info('Before activate: _brewfile_to_open=%s', self._brewfile_to_open)
         self.activate()
         return 0
 
@@ -151,20 +197,35 @@ class TavernApplication(Adw.Application):
         activate_start = time.perf_counter()
         
         _log.info('do_activate: called')
-        _log.info('do_activate: _brewfile_to_open=%s', self._brewfile_to_open)
+        _log.info('do_activate: _package_to_open=%s, _tap_to_open=%s, _brewfile_to_open=%s', 
+                  self._package_to_open, self._tap_to_open, self._brewfile_to_open)
         
         win = self.props.active_window
         if not win:
             window_start = time.perf_counter()
             _log.debug('Creating new TavernWindow')
-            win = TavernWindow(application=self, package_to_open=self._package_to_open)
+            win = TavernWindow(
+                application=self,
+                package_to_open=self._package_to_open
+            )
+            # Apply devel styling (striped titlebar) when running as the
+            # development build — mirrors the GNOME convention used by
+            # Builder, Nautilus nightly, Bazaar nightly, etc.
+            if self.get_application_id().endswith('.Devel'):
+                win.add_css_class('devel')
             window_time = (time.perf_counter() - window_start) * 1000
             _log.info('TavernWindow created: %.1f ms', window_time)
             self._package_to_open = None
-        elif self._package_to_open:
-            # Window exists, just open the package
-            win.open_package_by_name(self._package_to_open)
-            self._package_to_open = None
+        else:
+            if self._package_to_open:
+                win.open_package_by_name(self._package_to_open)
+                self._package_to_open = None
+            if self._tap_to_open:
+                win.open_tap_by_name(self._tap_to_open)
+                self._tap_to_open = None
+            if self._brewfile_to_open:
+                win.open_brewfile(self._brewfile_to_open)
+                self._brewfile_to_open = None
 
         # Load CSS
         css_start = time.perf_counter()
@@ -187,6 +248,13 @@ class TavernApplication(Adw.Application):
             _log.info('do_activate: Opening brewfile: %s', self._brewfile_to_open)
             self._open_brewfile_dialog(win, self._brewfile_to_open)
             self._brewfile_to_open = None
+
+        # Open tap if requested
+        if self._tap_to_open:
+            if hasattr(win, 'open_tap_by_name'):
+                _log.info('do_activate: Opening tap: %s', self._tap_to_open)
+                win.open_tap_by_name(self._tap_to_open)
+            self._tap_to_open = None
         
         total_activate_time = (time.perf_counter() - activate_start) * 1000
         _log.info('do_activate: completed in %.1f ms', total_activate_time)

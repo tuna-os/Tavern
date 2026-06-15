@@ -38,4 +38,4 @@ if __name__ == '__main__':
     resource._register()
 
     from tavern.main import main
-    sys.exit(main(VERSION))
+    sys.exit(main(VERSION, '@APPLICATION_ID@'))

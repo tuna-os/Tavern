@@ -401,8 +401,13 @@ class TavernPackageDetails(Adw.NavigationPage):
                 self._readme_webview.set_hexpand(True)
                 self._readme_webview.set_size_request(-1, 420)
                 self._readme_webview.add_css_class('readme-webview')
+                self._readme_webview.connect('decide-policy', self._on_decide_policy)
                 try:
                     rgba = Gdk.RGBA()
+                    rgba.red = 0.0
+                    rgba.green = 0.0
+                    rgba.blue = 0.0
+                    rgba.alpha = 0.0
                     self._readme_webview.set_background_color(rgba)
                 except Exception as e:
                     _log.debug('Failed to set transparent webview background: %s', e)
@@ -438,12 +443,13 @@ class TavernPackageDetails(Adw.NavigationPage):
   <head>
     <meta charset="utf-8" />
     <style>
-      body {{
+      html, body {{
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         margin: 0;
         padding: 0;
         color: {default_color};
-        background: transparent;
+        background: transparent !important;
+        background-color: transparent !important;
       }}
       a {{ color: {default_link}; }}
       img, video {{ max-width: 100%; height: auto; border-radius: 8px; }}
@@ -514,6 +520,18 @@ class TavernPackageDetails(Adw.NavigationPage):
             if nav_view:
                 _log.debug('Alt+Left or Back key detected, popping navigation view')
                 nav_view.pop()
+                return True
+        return False
+
+    def _on_decide_policy(self, webview, decision, decision_type):
+        if decision_type == WebKit.PolicyDecisionType.NAVIGATION_ACTION:
+            action = decision.get_navigation_action()
+            uri = action.get_request().get_uri()
+            if uri and not uri.startswith('about:') and not uri.startswith('data:'):
+                _log.debug('Opening external link from webview: %s', uri)
+                launcher = Gtk.UriLauncher.new(uri)
+                launcher.launch(self.get_root(), None, None, None)
+                decision.ignore()
                 return True
         return False
 

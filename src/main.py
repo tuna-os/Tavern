@@ -62,7 +62,7 @@ def _load_resources():
     return False
 
 
-def main(version):
+def main(version, application_id='dev.hanthor.Tavern'):
     import time
     startup_start = time.perf_counter()
     
@@ -88,7 +88,7 @@ def main(version):
 
     # Create application
     app_start = time.perf_counter()
-    app = TavernApplication(version=version)
+    app = TavernApplication(version=version, application_id=application_id)
     app_time = (time.perf_counter() - app_start) * 1000
     _log.info('Application instance created: %.1f ms', app_time)
 

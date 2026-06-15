@@ -173,7 +173,11 @@ def test_window_workflows(tmp_path, monkeypatch):
     
     # Test _check_deeplink
     win._package_to_open = 'firefox'
+    win._tap_to_open = 'hanthor/tap'
     win._check_deeplink()
+    
+    # Test open_tap_by_name (should return False in test context since mock list is empty)
+    assert win.open_tap_by_name('hanthor/tap') is False
     
     # 7. Test page-level request signals
     win._on_tap_operation(None, 'Tap completed')

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="tavern">
-  <schema id="dev.hanthor.Tavern" path="/dev/hanthor/Tavern/">
+  <schema id="@APPLICATION_ID@" path="/@APPLICATION_ID_PATH@/">
     <key name="window-width" type="i">
       <default>1100</default>
       <summary>Window width</summary>

@@ -263,7 +263,7 @@ class TestBrewfileParsing:
             cask "firefox"
         """))
         result = backend.parse_brewfile(str(bf))
-        assert result['taps'] == ['homebrew/cask']
+        assert result['taps'] == [{'name': 'homebrew/cask', 'trusted': False}]
         assert result['formulae'] == ['git', 'curl']
         assert result['casks'] == ['firefox']
 
@@ -797,7 +797,7 @@ class TestBrewBackendExtensions:
         assert ['brew', 'pin', 'ripgrep'] in calls
         assert ['brew', 'unpin', 'ripgrep'] in calls
 
-    def test_pin_only_applies_to_formulae(self, tmp_path, monkeypatch):
+    def test_pin_only_applies_to_formulae_and_casks(self, tmp_path, monkeypatch):
         monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
         backend = BrewBackend()
 
@@ -806,11 +806,10 @@ class TestBrewBackendExtensions:
                             lambda *a, **kw: called.append(a) or None)
 
         from tavern.backend import Package
-        cask = Package({'token': 'firefox', 'name': ['Firefox'], 'desc': '',
-                        'homepage': '', 'version': '1'}, 'cask', set())
+        flatpak_pkg = Package({'id': 'org.gnome.Gedit', 'name': 'Gedit', 'summary': ''}, 'flatpak', set())
 
         results = []
-        backend.pin_async(cask, lambda ok, msg: results.append((ok, msg)))
+        backend.pin_async(flatpak_pkg, lambda ok, msg: results.append((ok, msg)))
 
         import time
         start = time.time()
@@ -818,7 +817,7 @@ class TestBrewBackendExtensions:
             GLib.MainContext.default().iteration(False)
             time.sleep(0.01)
 
-        assert results == [(False, 'Pinning only applies to formulae')]
+        assert results == [(False, 'Pinning only applies to formulae and casks')]
         assert called == []  # subprocess.run should not have been invoked
 
     def test_load_pinned_filters_outdated(self, tmp_path, monkeypatch):

@@ -50,6 +50,8 @@ class TavernWindow(Adw.ApplicationWindow):
 
         # Store deeplink target
         self._package_to_open = package_to_open
+        self._tap_to_open = self.get_application()._tap_to_open
+        self._brewfile_to_open = self.get_application()._brewfile_to_open
         self._formulae_loaded = False
         self._casks_loaded = False
         self._brewfile_page_count = 0  # Counter for unique brewfile tab names
@@ -130,7 +132,8 @@ class TavernWindow(Adw.ApplicationWindow):
 
         # Settings for size persistence
         settings_start = time.perf_counter()
-        self._settings = Gio.Settings.new('dev.hanthor.Tavern')
+        app_id = self.get_application().get_application_id() if self.get_application() else 'dev.hanthor.Tavern'
+        self._settings = Gio.Settings.new(app_id)
         self.set_default_size(
             self._settings.get_int('window-width'),
             self._settings.get_int('window-height'),
@@ -288,13 +291,32 @@ class TavernWindow(Adw.ApplicationWindow):
             self.open_package_by_name(self._package_to_open, show_not_found=True)
             self._package_to_open = None
 
-    def _check_deeplink(self):
-        """Check if we should open a package from deeplink after data loads."""
-        if not self._package_to_open:
-            return
+        if self._tap_to_open:
+            self.open_tap_by_name(self._tap_to_open)
+            self._tap_to_open = None
 
-        if self.open_package_by_name(self._package_to_open, show_not_found=False):
-            self._package_to_open = None
+        if self._brewfile_to_open:
+            self.open_brewfile(self._brewfile_to_open)
+            self._brewfile_to_open = None
+
+    def _check_deeplink(self):
+        """Check if we should open a package or tap from deeplink after data loads."""
+        if self._package_to_open:
+            if self.open_package_by_name(self._package_to_open, show_not_found=False):
+                self._package_to_open = None
+        if self._tap_to_open:
+            if self.open_tap_by_name(self._tap_to_open):
+                self._tap_to_open = None
+
+    def open_tap_by_name(self, tap_name):
+        """Switch to Taps page and select a tap by name (deeplink support)."""
+        _log.info('Attempting to open tap: %s', tap_name)
+        self.main_stack.set_visible_child_name("taps")
+        if self.tap_page.select_tap(tap_name):
+            return True
+        _log.warning('Tap not found: %s', tap_name)
+        self.toast_overlay.add_toast(Adw.Toast.new(f'Tap "{tap_name}" not found'))
+        return False
 
 
     def _on_package_activated(self, page, package):

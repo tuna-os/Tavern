@@ -106,6 +106,8 @@ def test_application_activate_and_open(monkeypatch, tmp_path):
         def __init__(self, *args, **kwargs):
             # Pop custom GObject properties not defined in Gtk.Window
             kwargs.pop('package_to_open', None)
+            kwargs.pop('tap_to_open', None)
+            kwargs.pop('brewfile_to_open', None)
             super().__init__(*args, **kwargs)
             self.presented = False
             self.opened_brewfile = None

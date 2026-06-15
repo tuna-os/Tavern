@@ -47,41 +47,43 @@ ln -s ../../Cellar/libadwaita/1.8.4/lib/girepository-1.0/Adw-1.typelib \
 
 ## Flatpak Development
 
-**Configuration:** `Justfile`, `dev.hanthor.Tavern.json`
+**Configuration:** `Justfile`, `dev.hanthor.Tavern.Devel.json` (development manifest), `dev.hanthor.Tavern.json` (production manifest)
 
-Flatpak provides isolated, reproducible builds suitable for distribution.
+Flatpak provides isolated, reproducible builds suitable for distribution. By default, local development tasks in the Justfile target the development profile build (`dev.hanthor.Tavern.Devel`) which sets `-Dprofile=development` at configure time.
 
 ### Build Targets
 ```bash
-just build              # Build Flatpak container only
+just build              # Build Devel Flatpak container only
 just install            # Build + install to user Flatpak environment
-just dev                # Build + install + run (complete cycle)
-just run                # Run already-installed Flatpak
-just uninstall          # Remove installed Flatpak
+just dev                # Build + install + run (default local loop)
+just release            # Build & install the production release version
+just run                # Run already-installed Devel Flatpak
+just uninstall          # Remove installed Devel Flatpak
 just clean              # Remove all artifacts
 ```
 
 ### Build Pipeline
-1. **Build:** `flatpak-builder` compiles sources and dependencies
+1. **Build:** `flatpak-builder` compiles sources and dependencies using the specified manifest
 2. **Create runtime:** Combines shared libraries and tools
 3. **Bundle:** Creates `.flatpak` installation bundle
 4. **Install:** Registers in user's Flatpak environment
-5. **Launch:** Via `flatpak run dev.hanthor.Tavern`
+5. **Launch:** Via `flatpak run dev.hanthor.Tavern.Devel` (or `dev.hanthor.Tavern` for release)
 
 ### Build Directories & Artifacts
 - `.flatpak-build/` — Compilation workspace (can reach 5GB+)
 - `.flatpak-repo/` — Local package repository
 - `.flatpak-state/` — Build incremental cache
-- Installed: `~/.local/share/flatpak/app/dev.hanthor.Tavern/`
+- Installed: `~/.local/share/flatpak/app/dev.hanthor.Tavern.Devel/`
 
 ### Manifest
-**File:** `dev.hanthor.Tavern.json`
+**File:** `dev.hanthor.Tavern.Devel.json`
 
 Contains:
 - Runtime dependencies (GTK4, Libadwaita, Python)
 - Build command options
 - Module definitions
 - Property permissions (D-Bus, file access, network)
+- Suffixes/names configured for development environment isolation
 
 ### Env in Flatpak
 Flatpak automatically:

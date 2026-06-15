@@ -11,25 +11,29 @@ import pytest
 # development the sources live under ``src/``.  We add the repo root to
 # sys.path and alias ``src`` → ``tavern`` so that ``from tavern.backend import …``
 # works in tests exactly the same way as ``from .backend import …`` does inside
-# the installed app.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_DIR = os.path.join(REPO_ROOT, 'src')
 
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 # Alias the ``src`` directory as the ``tavern`` package
 import importlib, types
 
-# Prevent double import: only inject if 'tavern' hasn't been set up yet
-if 'tavern' not in sys.modules:
-    spec = importlib.util.spec_from_file_location(
-        'tavern', os.path.join(SRC_DIR, '__init__.py'),
-        submodule_search_locations=[SRC_DIR],
-    )
-    tavern_pkg = importlib.util.module_from_spec(spec)
-    sys.modules['tavern'] = tavern_pkg
-    spec.loader.exec_module(tavern_pkg)
+# Prevent double import or loading from other directories: clear existing tavern modules
+for mod_name in list(sys.modules.keys()):
+    if mod_name == 'tavern' or mod_name.startswith('tavern.'):
+        del sys.modules[mod_name]
+
+spec = importlib.util.spec_from_file_location(
+    'tavern', os.path.join(SRC_DIR, '__init__.py'),
+    submodule_search_locations=[SRC_DIR],
+)
+tavern_pkg = importlib.util.module_from_spec(spec)
+sys.modules['tavern'] = tavern_pkg
+spec.loader.exec_module(tavern_pkg)
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────

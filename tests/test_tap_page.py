@@ -27,6 +27,7 @@ def test_tap_page_workflows(tmp_path, monkeypatch):
         {'name': 'homebrew/cask-fonts', 'gh_user': 'homebrew', 'desc': 'Fonts!'},
         {'name': 'already/tapped', 'gh_user': 'already', 'desc': 'Already'}
     ]))
+    monkeypatch.setattr(backend, 'check_tap_trust_async', lambda name, cb: cb(True))
     
     tapped_name = None
     untapped_name = None

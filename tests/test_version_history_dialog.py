@@ -56,12 +56,23 @@ def test_version_history_dialog_populate(tmp_path, monkeypatch):
     assert rows[0].version_info['version'] == '14.1.1'
     
     # Test _on_version_selected
+    loaded_html = None
+    if dialog._changelog_webview is not None:
+        def mock_load_html(html, base_uri):
+            nonlocal loaded_html
+            loaded_html = html
+        monkeypatch.setattr(dialog._changelog_webview, 'load_html', mock_load_html)
+
     dialog._on_version_selected(dialog._versions_list, rows[1])
     assert dialog._current_selection == rows[1]
     
-    buffer = dialog._changelog_view.get_buffer()
-    text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
-    assert 'New feature' in text
+    if dialog._changelog_webview is not None:
+        assert loaded_html is not None
+        assert 'New feature' in loaded_html
+    else:
+        buffer = dialog._changelog_view.get_buffer()
+        text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True)
+        assert 'New feature' in text
     
     # Test _on_pin_clicked
     pinned_version = None

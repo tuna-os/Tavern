@@ -241,6 +241,17 @@ class TavernTapPage(Adw.Bin):
 
         self.tap_content_stack.set_visible_child_name('packages')
 
+    def select_tap(self, tap_name):
+        """Programmatically select a tap in the list by name."""
+        _log.info('Programmatically selecting tap: %s', tap_name)
+        row = self.tap_list.get_first_child()
+        while row is not None:
+            if getattr(row, '_tap_name', None) == tap_name:
+                self.tap_list.select_row(row)
+                return True
+            row = row.get_next_sibling()
+        return False
+
     def update_selected_tap(self):
         """Run `git pull` on the currently selected tap, surfacing a toast."""
         if not self._backend or not self._selected_tap:

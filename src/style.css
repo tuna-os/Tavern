@@ -309,8 +309,10 @@ button.updates-button:hover {
   background-color: alpha(@accent_bg_color, 0.25);
 }
 
-.readme-webview {
+.readme-webview,
+.changelog-webview {
   background-color: transparent;
+  background: transparent;
 }
 
 /* ===== Lightbox ===== */

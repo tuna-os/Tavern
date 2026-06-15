@@ -244,11 +244,22 @@ class Package(GObject.Object):
             self._installs_90d = 0
             self._installs_365d = 0
             return
-        # _raw_analytics is now a flat dict: {'installs_30d': int, ...}
-        # pre-populated from the separate analytics endpoints
-        self._installs_30d = self._raw_analytics.get('installs_30d', 0) or 0
-        self._installs_90d = self._raw_analytics.get('installs_90d', 0) or 0
-        self._installs_365d = self._raw_analytics.get('installs_365d', 0) or 0
+        # Check for flat format first
+        if 'installs_30d' in self._raw_analytics:
+            self._installs_30d = self._raw_analytics.get('installs_30d', 0) or 0
+            self._installs_90d = self._raw_analytics.get('installs_90d', 0) or 0
+            self._installs_365d = self._raw_analytics.get('installs_365d', 0) or 0
+            return
+        # Fallback to nested Homebrew API format (install_on_request or install)
+        nested = self._raw_analytics.get('install_on_request') or self._raw_analytics.get('install')
+        if isinstance(nested, dict):
+            self._installs_30d = sum(nested.get('30d', {}).values())
+            self._installs_90d = sum(nested.get('90d', {}).values())
+            self._installs_365d = sum(nested.get('365d', {}).values())
+        else:
+            self._installs_30d = 0
+            self._installs_90d = 0
+            self._installs_365d = 0
 
     @GObject.Property(type=int, default=0)
     def installs_30d(self):
@@ -950,7 +961,9 @@ class BrewBackend(GObject.Object):
 
         # Check for outdated packages in the background now that all catalog loading is complete
         try:
-            settings = Gio.Settings.new('dev.hanthor.Tavern')
+            app = Gio.Application.get_default()
+            app_id = app.get_application_id() if app else 'dev.hanthor.Tavern'
+            settings = Gio.Settings.new(app_id)
             if settings.get_boolean('outdated-check-enabled'):
                 self._check_outdated()
         except Exception as e:

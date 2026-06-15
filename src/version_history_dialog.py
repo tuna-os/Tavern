@@ -5,6 +5,13 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
+# Optional Markdown renderer with WebKitGTK if available.
+try:
+    gi.require_version('WebKit', '6.0')
+    from gi.repository import WebKit
+except Exception:
+    WebKit = None
+
 from gi.repository import Adw, Gtk, GObject, GLib, Gdk
 from .logging_util import get_logger
 
@@ -82,19 +89,48 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
 
         paned.set_start_child(versions_scroll)
 
-        # Right: Changelog detail
-        changelog_scroll = Gtk.ScrolledWindow()
-        changelog_scroll.set_hexpand(True)
-        changelog_scroll.set_vexpand(True)
-        changelog_scroll.set_min_content_width(300)
+        # Right: Changelog detail container
+        self._changelog_container = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self._changelog_container.set_hexpand(True)
+        self._changelog_container.set_vexpand(True)
+        self._changelog_container.set_size_request(300, -1)
 
-        self._changelog_view = Gtk.TextView()
-        self._changelog_view.set_editable(False)
-        self._changelog_view.set_wrap_mode(Gtk.WrapMode.WORD)
-        self._changelog_view.set_monospace(False)
-        changelog_scroll.set_child(self._changelog_view)
+        if WebKit is not None:
+            self._changelog_webview = WebKit.WebView()
+            self._changelog_webview.set_hexpand(True)
+            self._changelog_webview.set_vexpand(True)
+            self._changelog_webview.add_css_class('changelog-webview')
+            self._changelog_webview.connect('decide-policy', self._on_decide_policy)
+            try:
+                rgba = Gdk.RGBA()
+                rgba.red = 0.0
+                rgba.green = 0.0
+                rgba.blue = 0.0
+                rgba.alpha = 0.0
+                self._changelog_webview.set_background_color(rgba)
+            except Exception as e:
+                _log.debug('Failed to set transparent webview background: %s', e)
 
-        paned.set_end_child(changelog_scroll)
+            settings = self._changelog_webview.get_settings()
+            if settings is not None:
+                settings.set_enable_javascript(False)
+
+            self._changelog_container.append(self._changelog_webview)
+            self._changelog_view = None
+        else:
+            self._changelog_webview = None
+            changelog_scroll = Gtk.ScrolledWindow()
+            changelog_scroll.set_hexpand(True)
+            changelog_scroll.set_vexpand(True)
+
+            self._changelog_view = Gtk.TextView()
+            self._changelog_view.set_editable(False)
+            self._changelog_view.set_wrap_mode(Gtk.WrapMode.WORD)
+            self._changelog_view.set_monospace(False)
+            changelog_scroll.set_child(self._changelog_view)
+            self._changelog_container.append(changelog_scroll)
+
+        paned.set_end_child(self._changelog_container)
         main_box.append(paned)
 
         # Loading spinner
@@ -238,7 +274,113 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
         version_info = row.version_info
         changelog = version_info.get('changelog', 'No changelog available.')
 
-        self._changelog_view.get_buffer().set_text(changelog, -1)
+        if self._changelog_webview is not None:
+            try:
+                import markdown as md
+                html_body = md.markdown(
+                    changelog,
+                    extensions=['fenced_code', 'tables', 'nl2br'],
+                    output_format='html5',
+                )
+            except Exception as e:
+                _log.debug('Markdown parsing failed: %s', e)
+                escaped = GLib.markup_escape_text(changelog)
+                html_body = f'<pre>{escaped}</pre>'
+
+            # Check system dark mode for default colors
+            style_manager = Adw.StyleManager.get_default()
+            is_dark = style_manager.get_dark()
+            default_color = '#e4e4e4' if is_dark else '#1c1c1c'
+            default_link = '#78aeed' if is_dark else '#1a5fb4'
+
+            html = f"""
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html, body {{
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        margin: 12px;
+        padding: 0;
+        color: {default_color};
+        background: transparent !important;
+        background-color: transparent !important;
+        line-height: 1.6;
+      }}
+      a {{ color: {default_link}; }}
+      img, video {{ max-width: 100%; height: auto; border-radius: 8px; }}
+      pre, code {{ white-space: pre-wrap; word-break: break-word; }}
+      
+      h1, h2, h3, h4, h5, h6 {{
+        margin-top: 24px;
+        margin-bottom: 12px;
+        font-weight: 600;
+        line-height: 1.25;
+      }}
+      
+      h1 {{ font-size: 1.5em; border-bottom: 1px solid rgba(128,128,128,0.2); padding-bottom: 0.3em; }}
+      h2 {{ font-size: 1.25em; border-bottom: 1px solid rgba(128,128,128,0.15); padding-bottom: 0.3em; }}
+      h3 {{ font-size: 1.15em; }}
+      
+      ul, ol {{
+        padding-left: 20px;
+        margin-top: 0;
+        margin-bottom: 16px;
+      }}
+      
+      li {{
+        margin-bottom: 6px;
+      }}
+
+      code {{
+        font-family: monospace;
+        font-size: 0.9em;
+        background-color: rgba(128,128,128,0.15);
+        padding: 2px 4px;
+        border-radius: 4px;
+      }}
+
+      pre {{
+        background-color: rgba(128,128,128,0.1);
+        padding: 12px;
+        border-radius: 8px;
+        overflow: auto;
+      }}
+
+      pre code {{
+        background-color: transparent;
+        padding: 0;
+        border-radius: 0;
+      }}
+
+      @media (prefers-color-scheme: dark) {{
+        body {{ color: #e4e4e4; }}
+        a {{ color: #78aeed; }}
+      }}
+      @media (prefers-color-scheme: light) {{
+        body {{ color: #1c1c1c; }}
+        a {{ color: #1a5fb4; }}
+      }}
+    </style>
+  </head>
+  <body>{html_body}</body>
+</html>
+"""
+            # Base URI can resolve relative links if needed
+            base_uri = None
+            if self._package and self._package.source_url:
+                src = self._package.source_url.rstrip('/')
+                if src.startswith('https://github.com/'):
+                    parts = src.split('/')
+                    if len(parts) >= 5:
+                        owner, repo = parts[3], parts[4]
+                        base_uri = f'https://raw.githubusercontent.com/{owner}/{repo}/HEAD/'
+
+            self._changelog_webview.load_html(html, base_uri)
+        else:
+            self._changelog_view.get_buffer().set_text(changelog, -1)
+
         _log.debug('Selected version: %s', version_info.get('version', 'Unknown'))
 
     def _on_pin_clicked(self, button):
@@ -254,3 +396,15 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
             # Optionally show toast in parent window (caller can handle)
         else:
             _log.warning('Cannot pin: version unknown')
+
+    def _on_decide_policy(self, webview, decision, decision_type):
+        if decision_type == WebKit.PolicyDecisionType.NAVIGATION_ACTION:
+            action = decision.get_navigation_action()
+            uri = action.get_request().get_uri()
+            if uri and not uri.startswith('about:') and not uri.startswith('data:'):
+                _log.debug('Opening external link from webview: %s', uri)
+                launcher = Gtk.UriLauncher.new(uri)
+                launcher.launch(self.get_root(), None, None, None)
+                decision.ignore()
+                return True
+        return False
