@@ -5,7 +5,7 @@
       "Name": "tuna-os/tavern",
       "Images": [
         {
-          "Digest": "sha256:d904e0c1396360a85e43833977ed44729302f08976af1cb7f898ee3be2011841",
+          "Digest": "sha256:76260c69473d6a0f9a3a8fb6cf54d62149a6c20d8d4a04e45f9774c9e1ce3e74",
           "MediaType": "application/vnd.oci.image.manifest.v1+json",
           "OS": "linux",
           "Architecture": "amd64",
@@ -16,16 +16,16 @@
             "org.flatpak.commit-metadata.ostree.collection-binding": "AABz",
             "org.flatpak.commit-metadata.xa.metadata": "W0FwcGxpY2F0aW9uXQpuYW1lPWRldi5oYW50aG9yLlRhdmVybgpydW50aW1lPW9yZy5nbm9tZS5QbGF0Zm9ybS94ODZfNjQvNDkKc2RrPW9yZy5nbm9tZS5TZGsveDg2XzY0LzQ5CmNvbW1hbmQ9dGF2ZXJuCgpbQ29udGV4dF0Kc2hhcmVkPWlwYztuZXR3b3JrOwpzb2NrZXRzPWZhbGxiYWNrLXgxMTt3YXlsYW5kOwpkZXZpY2VzPWRyaTsKZmlsZXN5c3RlbXM9aG9tZTsvaG9tZS9saW51eGJyZXc6cm87CgpbU2Vzc2lvbiBCdXMgUG9saWN5XQpvcmcuZnJlZWRlc2t0b3AuRmxhdHBhaz10YWxrCmRldi5oYW50aG9yLlRhdmVybi5TZWFyY2hQcm92aWRlcj1vd24KCltFbnZpcm9ubWVudF0KSE9NRUJSRVdfTk9fQVVUT19VUERBVEU9MQoAAHM=",
             "org.flatpak.ref": "app/dev.hanthor.Tavern/x86_64/master",
-            "org.flatpak.installed-size": "521728",
-            "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAH9gAAdA==",
+            "org.flatpak.installed-size": "522240",
+            "org.flatpak.commit-metadata.xa.installed-size": "AAAAAAAH+AAAdA==",
             "org.flatpak.metadata": "[Application]\nname=dev.hanthor.Tavern\nruntime=org.gnome.Platform/x86_64/49\nsdk=org.gnome.Sdk/x86_64/49\ncommand=tavern\n\n[Context]\nshared=ipc;network;\nsockets=fallback-x11;wayland;\ndevices=dri;\nfilesystems=home;/home/linuxbrew:ro;\n\n[Session Bus Policy]\norg.freedesktop.Flatpak=talk\ndev.hanthor.Tavern.SearchProvider=own\n\n[Environment]\nHOMEBREW_NO_AUTO_UPDATE=1\n",
-            "org.flatpak.timestamp": "1781507097",
-            "org.flatpak.download-size": "142924",
-            "org.flatpak.commit": "868595462d8fb1f6e2e94033e1ff99e12814db5342bb6c21c672d02d1e48a4b4",
-            "org.flatpak.subject": "Built from ed1702dfba3fce4862de5d10124ea27493493cc2",
+            "org.flatpak.timestamp": "1781507191",
+            "org.flatpak.download-size": "143217",
+            "org.flatpak.commit": "d2cd4471b47d0f1072b1056a84c6b9846e97c8c025a772e9cbf6b8953cddede0",
+            "org.flatpak.subject": "Built from 33d57dda918c1f762fb28792df535184f8d39242",
             "org.flatpak.body": "Name: dev.hanthor.Tavern\nArch: x86_64\nBranch: master\nBuilt with: Flatpak 1.18.1\n",
             "org.flatpak.commit-metadata.xa.ref": "YXBwL2Rldi5oYW50aG9yLlRhdmVybi94ODZfNjQvbWFzdGVyAABz",
-            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAACdjEAdA==",
+            "org.flatpak.commit-metadata.xa.download-size": "AAAAAAACd2UAdA==",
             "org.flatpak.commit-metadata.ostree.ref-binding": "YXBwL2Rldi5oYW50aG9yLlRhdmVybi94ODZfNjQvbWFzdGVyACUAYXM="
           }
         }
