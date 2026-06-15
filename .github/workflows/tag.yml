@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'meson.build'
   workflow_dispatch:
 
 jobs:
@@ -19,27 +17,42 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Extract version from meson.build
+    - name: Check version and auto-bump if needed
       id: get_version
       run: |
+        # Get current version from meson.build
         VERSION=$(grep -oE "version: '[^']+'" meson.build | head -n1 | cut -d"'" -f2)
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Found version: $VERSION"
-
-    - name: Check if tag exists
-      id: check_tag
-      run: |
-        TAG_NAME="v${{ steps.get_version.outputs.version }}"
+        TAG_NAME="v$VERSION"
+        
+        # Check if the tag already exists
         if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-          echo "tag_exists=true" >> $GITHUB_OUTPUT
-          echo "Tag $TAG_NAME already exists. Skipping."
+          echo "Tag $TAG_NAME already exists. Auto-incrementing patch version."
+          
+          # Parse version components
+          IFS='.' read -r major minor patch <<< "$VERSION"
+          new_patch=$((patch + 1))
+          NEW_VERSION="$major.$minor.$new_patch"
+          NEW_TAG="v$NEW_VERSION"
+          
+          echo "New version: $NEW_VERSION"
+          
+          # Update meson.build with the new version
+          sed -i "s/version: '$VERSION'/version: '$NEW_VERSION'/g" meson.build
+          
+          # Commit and push change back to main branch
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add meson.build
+          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          git push origin main
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
         else
-          echo "tag_exists=false" >> $GITHUB_OUTPUT
-          echo "Tag $TAG_NAME does not exist. Creating."
+          echo "Tag $TAG_NAME does not exist. Using current version."
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
         fi
 
     - name: Create and push tag
-      if: steps.check_tag.outputs.tag_exists == 'false'
       run: |
         TAG_NAME="v${{ steps.get_version.outputs.version }}"
         git config --global user.name "github-actions[bot]"
