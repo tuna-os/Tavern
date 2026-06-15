@@ -504,7 +504,7 @@ class TavernPackageDetails(Adw.NavigationPage):
 
     def _on_key_pressed(self, controller, keyval, keycode, state):
         alt_pressed = (state & Gdk.ModifierType.ALT_MASK) != 0
-        if (alt_pressed and keyval == Gdk.KEY_Left) or keyval == Gdk.KEY_Back:
+        if alt_pressed and keyval in (Gdk.KEY_Left, Gdk.KEY_Back):
             nav_view = self.get_ancestor(Adw.NavigationView)
             if nav_view:
                 _log.debug('Alt+Left or Back key detected, popping navigation view')

@@ -137,6 +137,10 @@
   color: @error_color;
 }
 
+.warning {
+  color: @warning_color;
+}
+
 /* ===== Section headings ===== */
 .section-title {
   font-size: 1.3em;
@@ -161,7 +165,7 @@ button.medium-pill:active {
 }
 
 /* ===== Tap pills ===== */
-.pill:not(button) {
+.pill {
   background-color: alpha(@accent_bg_color, 0.15);
   color: @accent_fg_color;
   border-radius: 999px;
@@ -169,13 +173,13 @@ button.medium-pill:active {
   border: 1px solid alpha(@accent_bg_color, 0.3);
 }
 
-.pill:not(button).success {
+.pill.success {
   background-color: alpha(@success_color, 0.15);
   color: @success_color;
   border-color: alpha(@success_color, 0.3);
 }
 
-.pill:not(button).error {
+.pill.error {
   background-color: alpha(@error_color, 0.15);
   color: @error_color;
   border-color: alpha(@error_color, 0.3);
