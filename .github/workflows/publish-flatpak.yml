@@ -1,0 +1,124 @@
+name: Build and Publish Flatpak OCI
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-oci:
+    name: "Build Flatpak OCI"
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+      options: --privileged
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Build Flatpak
+      uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      with:
+        manifest-path: dev.hanthor.Tavern.json
+        cache-key: flatpak-builder-${{ github.sha }}
+        build-bundle: false
+        upload-artifact: false
+
+    - name: Export OCI Directory
+      run: |
+        flatpak build-bundle --oci --arch=x86_64 repo tavern.oci dev.hanthor.Tavern
+
+    - name: Upload OCI Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tavern-oci
+        path: tavern.oci/
+        retention-days: 1
+
+  publish-oci:
+    name: "Publish OCI & Update Index"
+    needs: build-oci
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Download OCI Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: tavern-oci
+        path: tavern.oci
+
+    - name: Log in to GHCR
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+    - name: Push OCI to GHCR
+      run: |
+        REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        
+        echo "Pushing latest tag..."
+        skopeo copy oci:tavern.oci docker://ghcr.io/${REPO_LOWER}:latest
+        
+        if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          VERSION_TAG="${{ github.ref_name }}"
+          echo "Pushing version tag ${VERSION_TAG}..."
+          skopeo copy oci:tavern.oci docker://ghcr.io/${REPO_LOWER}:${VERSION_TAG}
+        fi
+
+    - name: Checkout gh-pages Branch
+      uses: actions/checkout@v4
+      with:
+        ref: gh-pages
+        path: pages
+      continue-on-error: true
+
+    - name: Update Flatpak Index
+      run: |
+        REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+        
+        # If pages directory doesn't exist (e.g. branch didn't exist yet), initialize it
+        if [ ! -d "pages" ]; then
+          echo "gh-pages branch does not exist yet. Initializing..."
+          mkdir pages
+          cd pages
+          git init
+          git checkout -b gh-pages
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          cd ..
+        fi
+        
+        # Run the update index script
+        python3 scripts/update-index.py --oci-dir tavern.oci --index-file pages/index/static --repo-name ${REPO_LOWER}
+        
+        # Generate the .flatpakrepo file
+        cat <<EOF > pages/tavern.flatpakrepo
+        [Flatpak Repo]
+        Title=TunaOS Flatpaks
+        Url=oci+https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+        EOF
+
+    - name: Commit and Push Index Changes
+      run: |
+        cd pages
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # Ensure files are tracked
+        git add index/static tavern.flatpakrepo
+        
+        if git diff --cached --quiet; then
+          echo "No changes detected in registry index."
+        else
+          git commit -m "chore(flatpak): update OCI registry index [skip ci]"
+          git push -u origin gh-pages || git push origin gh-pages
+        fi
