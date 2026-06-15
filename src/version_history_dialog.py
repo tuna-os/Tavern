@@ -5,7 +5,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Adw, Gtk, GObject, GLib
+from gi.repository import Adw, Gtk, GObject, GLib, Gdk
 from .logging_util import get_logger
 
 _log = get_logger('version_history')
@@ -26,8 +26,17 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
         self._backend = backend
         self._current_selection = None
 
+        # Set a default title
+        self.set_title('Version History')
+
         # Build UI programmatically
         self._build_ui()
+
+        # Capture back navigation keys (like Alt+Left) before WebView/TextView consumes them
+        key_controller = Gtk.EventControllerKey.new()
+        key_controller.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        key_controller.connect('key-pressed', self._on_key_pressed)
+        self.add_controller(key_controller)
 
         if package:
             _log.debug('Opening version history for %s (%s)', package.name, package.pkg_type)
@@ -36,31 +45,23 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
 
     def _build_ui(self):
         """Build the two-column layout: versions list + changelog detail."""
+        # Top-level layout container
+        layout_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+
+        # Header Bar (always visible at the top, provides back button and title)
+        header_bar = Adw.HeaderBar()
+        pin_button = Gtk.Button(label='Pin to This Version')
+        pin_button.connect('clicked', self._on_pin_clicked)
+        header_bar.pack_end(pin_button)
+        self._pin_button = pin_button
+        layout_box.append(header_bar)
+
+        # Content container
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         main_box.set_margin_top(12)
         main_box.set_margin_bottom(12)
         main_box.set_margin_start(12)
         main_box.set_margin_end(12)
-
-        # Header with title + close button
-        header_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-
-        # Title
-        title_label = Gtk.Label(label='Loading versions...')
-        title_label.set_halign(Gtk.Align.START)
-        title_label.add_css_class('title-3')
-        header_box.append(title_label)
-        self._title_label = title_label
-
-        # Pin button (right-aligned)
-        pin_button = Gtk.Button(label='Pin to This Version')
-        pin_button.connect('clicked', self._on_pin_clicked)
-        pin_button.set_halign(Gtk.Align.END)
-        header_box.set_hexpand(True)
-        header_box.append(pin_button)
-        self._pin_button = pin_button
-
-        main_box.append(header_box)
 
         # Horizontal paned layout: versions list on left, changelog on right
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
@@ -121,7 +122,18 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
         self._stack.set_hexpand(True)
         self._stack.set_vexpand(True)
 
-        self.set_child(self._stack)
+        layout_box.append(self._stack)
+        self.set_child(layout_box)
+
+    def _on_key_pressed(self, controller, keyval, keycode, state):
+        alt_pressed = (state & Gdk.ModifierType.ALT_MASK) != 0
+        if alt_pressed and keyval in (Gdk.KEY_Left, Gdk.KEY_Back):
+            nav_view = self.get_ancestor(Adw.NavigationView)
+            if nav_view:
+                _log.debug('Alt+Left or Back key detected, popping navigation view')
+                nav_view.pop()
+                return True
+        return False
 
     def _load_version_history(self):
         """Load version history in background thread."""
