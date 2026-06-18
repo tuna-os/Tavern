@@ -9,30 +9,6 @@ Tavern is a GTK 4 / Libadwaita Homebrew client for Linux, written in Python with
 TAVERN_LOG=debug ./run.sh  # same with verbose logging
 ```
 
-## Project Layout
-
-```
-src/
-  main.py                 # entry point + startup timing
-  application.py          # GtkApplication singleton, CLI arg parsing
-  window.py               # main window — wires all pages together
-  window.blp              # main window Blueprint (header, ViewStack, breakpoints)
-  backend.py              # ALL homebrew I/O: formulae API, tap scanning, install/remove/upgrade
-  tap_page.py / .blp      # Taps browser + add/remove tap management
-  browse_page.py / .blp   # Browse curated packages
-  search_page.py / .blp   # Search across formulae + casks
-  installed_page.py / .blp# Installed packages + updates card
-  brewfile_page.py / .blp # Brewfile viewer (dynamically added as tabs)
-  package_tile.py / .blp  # Reusable package tile widget
-  package_details.py / .blp # Detail page pushed onto NavigationView
-  task_manager.py         # Coordinates parallel install/remove/upgrade operations
-  task_panel.py / .blp    # Task progress sheet
-  logging_util.py         # Zero-overhead logging (off by default)
-  style.css               # Custom Libadwaita overrides
-  tavern.gresource.xml     # Resource bundle manifest (add .ui files here)
-  meson.build             # Build: blueprint → .ui, compile resources, install .py
-```
-
 ## Architecture
 
 ### UI Layer → Backend
@@ -67,7 +43,6 @@ Adw.ApplicationWindow
 ```
 
 Package details are pushed as `Adw.NavigationPage` onto the root `Adw.NavigationView`.
-
 Brewfile tabs are added dynamically to `main_stack` via `window.open_brewfile()`.
 
 ### Tap Data Flow
@@ -90,14 +65,7 @@ Brewfile tabs are added dynamically to `main_stack` via `window.open_brewfile()`
 7. Register `.ui` in `src/tavern.gresource.xml`
 8. Add `my_page.py` to `tavern_sources` in `src/meson.build`
 
-## Blueprint → .ui → GResource
-
-Blueprint files (`.blp`) compile to `.ui` XML at build time via `blueprint-compiler batch-compile`. The `.ui` files are bundled into `tavern.gresource` and loaded at runtime via resource paths like `/dev/hanthor/Tavern/my-page.ui`.
-
-**Always rebuild after changing `.blp` files:**
-```bash
-./run.sh     # runs meson compile which re-runs blueprint-compiler
-```
+**Always rebuild after changing `.blp` files:** `./run.sh` runs meson compile which re-runs blueprint-compiler.
 
 ## Logging & Debugging
 
@@ -109,37 +77,6 @@ TAVERN_LOG_FILE=/tmp/p.log ./run.sh       # also write to file
 ```
 
 All logging is **off by default** — zero overhead in production.
-
-## Testing & Headless Mocks
-
-```bash
-pytest tests/                              # run full unit test suite
-pytest tests/test_backend.py -v           # run specific test file
-TAVERN_LOG=debug pytest tests/ -s          # run tests with verbose debug logging
-```
-
-### Headless GUI Test Patterns
-
-`tests/conftest.py` provides an autouse `_headless_gtk` fixture that stubs `Gio.Settings` and the `.present()` method on every Adwaita dialog type so tests run without a display server and without pop-ups appearing on screen. New tests get this for free — you only need to override if you specifically want to assert presentation behavior.
-
----
-
-## Performance Benchmarking
-
-Tavern uses `pytest-benchmark` to measure and track performance metrics.
-
-### Running Benchmarks
-
-```bash
-pytest tests/test_benchmarks.py --benchmark-enable -v
-```
-*(Note: Benchmarks are disabled by default in standard `pytest` runs to keep testing runs fast).*
-
-### Key Performance Targets
-- **Package Construction**: Evaluates the PyGObject batch-initialization (`super().__init__(**props)`) speed for bulk package listings.
-- **Search Latency**: Times substring filter operations on loaded lists of formulae and casks.
-- **Cache I/O**: Benchmarks JSON cache database persistence speeds on disk.
-- **Ruby AST Parsing**: Times regex-based `.rb` metadata extraction vs spawning Ruby shell subprocesses.
 
 ## C vs Python — Why We Stay in Python
 
@@ -153,34 +90,13 @@ Bazaar (our UI reference) is written in C. We stay in Python because:
 
 When performance matters (Homebrew API fetches, tap scanning), we use background threads and GLib.idle_add for UI callbacks — exactly the same pattern C would use.
 
-## Key Patterns
+## Don'ts
 
-### Adding a backend operation
-
-```python
-# In backend.py
-def my_op_async(self, arg, callback=None):
-    thread = threading.Thread(target=self._my_op_thread, args=(arg, callback), daemon=True)
-    thread.start()
-
-def _my_op_thread(self, arg, callback):
-    # … do work …
-    GLib.idle_add(callback, result)
-```
-
-### Connecting a new signal to a page
-
-```python
-# In window.py __init__, after set_backend()
-self.my_page.connect('some-signal', self._on_some_signal)
-
-def _on_some_signal(self, page, data):
-    self.toast_overlay.add_toast(Adw.Toast.new('Done!'))
-```
-
-### Emitting a toast from a page
-
-Pages should emit a signal (e.g. `tap-operation`) carrying the message string. `window.py` connects it and calls `toast_overlay.add_toast()`. Pages must not hold a reference to the window.
+- **Don't rewrite in C.** There is no user-visible benefit. This decision is final.
+- **Don't hold window references in pages.** Pages should emit signals carrying the message string; window.py connects them and calls `toast_overlay.add_toast()`.
+- **Don't emit toasts directly from pages.** Use the signal-to-window pattern above.
+- **Don't use sudo for build/test.** Tavern runs rootless.
+- **Don't skip rebuilding after `.blp` changes.** Blueprint → .ui compilation is not automatic.
 
 ## Bazaar UI Alignment
 
