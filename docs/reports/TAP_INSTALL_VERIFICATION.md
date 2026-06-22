@@ -16,7 +16,7 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask hanthor/tap/tavern
 **Result:** ✅ SUCCESS
 - Cask downloads 137.8KB Flatpak bundle
 - Postflight hook executes successfully
-- Flatpak installs to user scope (`dev.hanthor.Tavern 0.1.0`)
+- Flatpak installs to user scope (`org.tunaos.tavern 0.1.0`)
 - No errors or warnings
 
 ### Uninstallation Test
@@ -32,7 +32,7 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall --cask hanthor/tap/tavern
 
 ### Application Launch Test
 ```bash
-flatpak run dev.hanthor.Tavern
+flatpak run org.tunaos.tavern
 ```
 
 **Result:** ✅ SUCCESS
@@ -60,14 +60,14 @@ on_linux do
 
   uninstall_postflight do
     system_command "flatpak",
-      args: ["remove", "--user", "--noninteractive", "dev.hanthor.Tavern"],
+      args: ["remove", "--user", "--noninteractive", "org.tunaos.tavern"],
       print_stderr: false,
       sudo: false
   rescue StandardError
     nil
   end
 
-  zap trash: "~/.var/app/dev.hanthor.Tavern"
+  zap trash: "~/.var/app/org.tunaos.tavern"
 end
 ```
 
@@ -112,7 +112,7 @@ brew install --cask hanthor/tap/tavern
 
 ### Launch Application
 ```bash
-flatpak run dev.hanthor.Tavern
+flatpak run org.tunaos.tavern
 ```
 
 Or from application menu: "Tavern"

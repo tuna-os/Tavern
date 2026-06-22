@@ -423,13 +423,13 @@ class MyPage(Adw.Bin):
 
 ## Dependencies (Flatpak)
 
-Managed in `dev.hanthor.Tavern.json`:
+Managed in `org.tunaos.tavern.json`:
 
 - **Runtime:** freedesktop 23.08 (GTK4, Python, etc.)
 - **Build tools:** blueprint-compiler, meson, pkg-config
 - **Python packages:** via pip (requests, etc.)
 
 To add a new dependency:
-1. Update `pyproject.toml` or `dev.hanthor.Tavern.json`
+1. Update `pyproject.toml` or `org.tunaos.tavern.json`
 2. Rebuild: `just build`
 3. Test: `just run`

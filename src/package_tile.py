@@ -9,7 +9,7 @@ from gi.repository import Adw, Gtk, GObject
 from .backend import Package
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/package-tile.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/package-tile.ui')
 class TavernPackageTile(Adw.Bin):
     __gtype_name__ = 'TavernPackageTile'
 

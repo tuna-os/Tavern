@@ -66,7 +66,7 @@ class TavernSearchProvider:
         self.connection = connection
         try:
             self.registration_id = self.connection.register_object(
-                "/dev/hanthor/Tavern/SearchProvider",
+                "/org.tunaos.tavern/SearchProvider",
                 self._interface_info,
                 self._handle_method_call,
                 None,  # get_property
@@ -173,7 +173,7 @@ class TavernSearchProvider:
                     meta["icon"] = icon.serialize()
                 else:
                     # Assign default icon based on package type
-                    icon_name = "dev.hanthor.Tavern-symbolic" # Default
+                    icon_name = "org.tunaos.tavern-symbolic" # Default
                     meta["icon"] = Gio.Icon.new_for_string(icon_name).serialize()
                 
                 metas.append(meta)

@@ -61,9 +61,9 @@ jobs:
         echo "=== AppDir structure ==="
         find AppDir -type f | sort || echo "AppDir is empty or missing!"
         echo "=== checking desktop file ==="
-        ls -la AppDir/usr/share/applications/dev.hanthor.Tavern.desktop || echo "desktop file missing!"
+        ls -la AppDir/usr/share/applications/org.tunaos.tavern.desktop || echo "desktop file missing!"
         echo "=== checking icon ==="
-        ls -la AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg || echo "icon missing!"
+        ls -la AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg || echo "icon missing!"
         echo "=== checking binary ==="
         ls -la AppDir/usr/bin/tavern || echo "binary missing!"
 
@@ -84,8 +84,8 @@ jobs:
         ./linuxdeploy-x86_64.AppImage \
           --appdir AppDir \
           --plugin gtk \
-          --desktop-file AppDir/usr/share/applications/dev.hanthor.Tavern.desktop \
-          --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg \
+          --desktop-file AppDir/usr/share/applications/org.tunaos.tavern.desktop \
+          --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg \
           --output appimage
 
         # Debug: check if GTK plugin bundled libraries
@@ -114,7 +114,7 @@ jobs:
     - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
       with:
         bundle: Tavern-Linux.flatpak
-        manifest-path: dev.hanthor.Tavern.json
+        manifest-path: org.tunaos.tavern.json
         cache-key: flatpak-builder-${{ github.sha }}
 
     - name: Upload Release Asset

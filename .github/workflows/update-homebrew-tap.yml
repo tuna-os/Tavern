@@ -63,8 +63,8 @@ jobs:
 
               zap trash: [
                 "~/Library/Application Support/Tavern",
-                "~/Library/Preferences/dev.hanthor.Tavern.*",
-                "~/Library/Caches/dev.hanthor.Tavern",
+                "~/Library/Preferences/org.tunaos.tavern.*",
+                "~/Library/Caches/org.tunaos.tavern",
               ]
             end
 

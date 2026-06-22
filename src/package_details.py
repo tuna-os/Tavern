@@ -23,7 +23,7 @@ from .screenshot_lightbox import TavernScreenshotLightbox
 _log = get_logger('package_details')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/package-details.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/package-details.ui')
 class TavernPackageDetails(Adw.NavigationPage):
     __gtype_name__ = 'TavernPackageDetails'
 

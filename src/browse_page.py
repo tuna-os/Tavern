@@ -28,7 +28,7 @@ POPULAR_CASKS = [
 ]
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/browse-page.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/browse-page.ui')
 class TavernBrowsePage(Adw.Bin):
     __gtype_name__ = 'TavernBrowsePage'
 

@@ -23,7 +23,7 @@ from .brewfile_page import TavernBrewfilePage  # noqa: F401
 from .version_history_dialog import TavernVersionHistoryDialog  # noqa: F401
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/window.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/window.ui')
 class TavernWindow(Adw.ApplicationWindow):
     __gtype_name__ = 'TavernWindow'
 
@@ -132,7 +132,7 @@ class TavernWindow(Adw.ApplicationWindow):
 
         # Settings for size persistence
         settings_start = time.perf_counter()
-        app_id = self.get_application().get_application_id() if self.get_application() else 'dev.hanthor.Tavern'
+        app_id = self.get_application().get_application_id() if self.get_application() else 'org.tunaos.tavern'
         self._settings = Gio.Settings.new(app_id)
         self.set_default_size(
             self._settings.get_int('window-width'),

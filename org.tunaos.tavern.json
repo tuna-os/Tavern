@@ -1,11 +1,9 @@
 {
-    "app-id": "dev.hanthor.Tavern.Devel",
+    "app-id": "org.tunaos.tavern",
     "runtime": "org.gnome.Platform",
     "runtime-version": "49",
     "sdk": "org.gnome.Sdk",
     "command": "tavern",
-    "tags": ["devel"],
-    "desktop-file-name-suffix": " (Devel)",
     "finish-args": [
         "--share=ipc",
         "--socket=fallback-x11",
@@ -16,7 +14,7 @@
         "--filesystem=home",
         "--filesystem=/home/linuxbrew:ro",
         "--env=HOMEBREW_NO_AUTO_UPDATE=1",
-        "--own-name=dev.hanthor.Tavern.Devel.SearchProvider"
+        "--own-name=org.tunaos.tavern.SearchProvider"
     ],
     "cleanup": [
         "/include",
@@ -28,7 +26,9 @@
         {
             "name": "blueprint-compiler",
             "buildsystem": "meson",
-            "cleanup": ["*"],
+            "cleanup": [
+                "*"
+            ],
             "sources": [
                 {
                     "type": "git",
@@ -54,9 +54,6 @@
         {
             "name": "tavern",
             "buildsystem": "meson",
-            "config-opts": [
-                "-Dprofile=development"
-            ],
             "sources": [
                 {
                     "type": "dir",

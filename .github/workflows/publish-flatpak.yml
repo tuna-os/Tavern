@@ -27,14 +27,14 @@ jobs:
     - name: Build Flatpak
       uses: flatpak/flatpak-github-actions/flatpak-builder@v6
       with:
-        manifest-path: dev.hanthor.Tavern.json
+        manifest-path: org.tunaos.tavern.json
         cache-key: flatpak-builder-${{ github.sha }}
         build-bundle: false
         upload-artifact: false
 
     - name: Export OCI Directory
       run: |
-        flatpak build-bundle --oci --arch=x86_64 repo tavern.oci dev.hanthor.Tavern
+        flatpak build-bundle --oci --arch=x86_64 repo tavern.oci org.tunaos.tavern
 
     - name: Upload OCI Artifact
       uses: actions/upload-artifact@v4

@@ -9,7 +9,7 @@ Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **
 **Flatpak (Linux, recommended, with automatic updates):**
 ```bash
 flatpak remote-add --user --if-not-exists tuna-os oci+https://tuna-os.github.io/Tavern
-flatpak install --user tuna-os dev.hanthor.Tavern
+flatpak install --user tuna-os org.tunaos.tavern
 ```
 
 **Homebrew (macOS + Linux):**
@@ -109,7 +109,7 @@ To get automatic updates directly through your software center (like GNOME Softw
 
 ```bash
 flatpak remote-add --user --if-not-exists tuna-os oci+https://tuna-os.github.io/Tavern
-flatpak install --user tuna-os dev.hanthor.Tavern
+flatpak install --user tuna-os org.tunaos.tavern
 ```
 
 ### Install a single standalone bundle from CI

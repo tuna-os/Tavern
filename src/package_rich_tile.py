@@ -1,6 +1,6 @@
 from gi.repository import Gtk, GObject, Adw
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/package-rich-tile.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/package-rich-tile.ui')
 class TavernRichPackageTile(Gtk.Box):
     __gtype_name__ = 'TavernRichPackageTile'
 

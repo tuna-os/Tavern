@@ -27,7 +27,7 @@ assignees: ''
 
 ## Logs
 
-<!-- Run with `TAVERN_LOG=debug ./run.sh` (or `TAVERN_LOG=debug flatpak run dev.hanthor.Tavern`)
+<!-- Run with `TAVERN_LOG=debug ./run.sh` (or `TAVERN_LOG=debug flatpak run org.tunaos.tavern`)
      and paste the relevant lines below. -->
 
 ```

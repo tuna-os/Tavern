@@ -11,7 +11,7 @@ from .logging_util import get_logger
 _log = get_logger('stats_dialog')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/stats-dialog.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/stats-dialog.ui')
 class TavernStatsDialog(Adw.Dialog):
     __gtype_name__ = 'TavernStatsDialog'
 

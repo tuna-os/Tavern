@@ -59,7 +59,7 @@ def test_window_workflows(tmp_path, monkeypatch):
     monkeypatch.setattr(Gtk.FileDialog, 'open_finish', mock_file_dialog_open_finish)
     
     # 2. Setup Application and Window
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestWindow")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestWindow")
     app.register(None)
     
     win = TavernWindow(application=app)

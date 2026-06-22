@@ -20,7 +20,7 @@ jobs:
     - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
       with:
         bundle: Tavern-Linux-CI.flatpak
-        manifest-path: dev.hanthor.Tavern.json
+        manifest-path: org.tunaos.tavern.json
         cache-key: flatpak-builder-${{ github.sha }}
 
     - name: Upload Flatpak Artifact

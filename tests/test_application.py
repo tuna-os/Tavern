@@ -9,7 +9,7 @@ from tavern.application import TavernApplication
 def test_application_parse_argument_uri(tmp_path, monkeypatch):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestApp")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestApp")
     
     # Test brew:// URIs
     t_type, t_val = app._parse_argument_uri("brew://formula/ripgrep")
@@ -57,7 +57,7 @@ def test_application_parse_argument_uri(tmp_path, monkeypatch):
 def test_application_command_line(tmp_path, monkeypatch):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestApp")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestApp")
     
     # Mock activate
     activated = []

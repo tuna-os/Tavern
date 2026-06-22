@@ -12,7 +12,7 @@ from .logging_util import get_logger
 _log = get_logger('brewfile_dialog')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/brewfile-dialog.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/brewfile-dialog.ui')
 class TavernBrewfileDialog(Adw.Window):
     __gtype_name__ = 'TavernBrewfileDialog'
 

@@ -20,7 +20,7 @@ class TavernApplication(Adw.Application):
     """The main application singleton class."""
 
     def __init__(self, version='0.1.0', **kwargs):
-        app_id = kwargs.pop('application_id', 'dev.hanthor.Tavern')
+        app_id = kwargs.pop('application_id', 'org.tunaos.tavern')
         super().__init__(
             application_id=app_id,
             flags=Gio.ApplicationFlags.HANDLES_OPEN | Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
@@ -230,7 +230,7 @@ class TavernApplication(Adw.Application):
         # Load CSS
         css_start = time.perf_counter()
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_resource('/dev/hanthor/Tavern/style.css')
+        css_provider.load_from_resource('/org.tunaos.tavern/style.css')
         Gtk.StyleContext.add_provider_for_display(
             win.get_display(),
             css_provider,
@@ -276,7 +276,7 @@ class TavernApplication(Adw.Application):
     def _on_about_action(self, *args):
         about = Adw.AboutDialog(
             application_name='Tavern',
-            application_icon='dev.hanthor.Tavern',
+            application_icon='org.tunaos.tavern',
             developer_name='James',
             version=self.version,
             developers=['James'],

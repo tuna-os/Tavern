@@ -19,7 +19,7 @@ from .logging_util import get_logger, log_timing
 _log = get_logger('brewfile_page')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/brewfile-page.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/brewfile-page.ui')
 class TavernBrewfilePage(Adw.Bin):
     __gtype_name__ = 'TavernBrewfilePage'
 

@@ -62,7 +62,7 @@ def _load_resources():
     return False
 
 
-def main(version, application_id='dev.hanthor.Tavern'):
+def main(version, application_id='org.tunaos.tavern'):
     import time
     startup_start = time.perf_counter()
     

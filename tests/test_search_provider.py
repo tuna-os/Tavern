@@ -209,7 +209,7 @@ def test_search_provider_export():
     # Export first time
     provider.export(conn)
     assert provider.registration_id == 123
-    assert "/dev/hanthor/Tavern/SearchProvider" in conn.registered
+    assert "/org.tunaos.tavern/SearchProvider" in conn.registered
 
     # Export again (should be no-op)
     provider.export(conn)

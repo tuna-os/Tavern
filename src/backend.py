@@ -962,7 +962,7 @@ class BrewBackend(GObject.Object):
         # Check for outdated packages in the background now that all catalog loading is complete
         try:
             app = Gio.Application.get_default()
-            app_id = app.get_application_id() if app else 'dev.hanthor.Tavern'
+            app_id = app.get_application_id() if app else 'org.tunaos.tavern'
             settings = Gio.Settings.new(app_id)
             if settings.get_boolean('outdated-check-enabled'):
                 self._check_outdated()

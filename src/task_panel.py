@@ -205,7 +205,7 @@ class TavernTaskRow(Gtk.ListBoxRow):
 
 # ── Panel dialog ──────────────────────────────────────────────────────────────
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/task-panel.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/task-panel.ui')
 class TavernTaskPanel(Adw.Dialog):
     """Dialog listing all active and recent tasks."""
 

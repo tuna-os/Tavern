@@ -40,7 +40,7 @@ def _fetch_avatar_pixbuf(github_user, size=48):
 
 # ── Page widget ──────────────────────────────────────────────────────────────
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/tap-page.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/tap-page.ui')
 class TavernTapPage(Adw.Bin):
     __gtype_name__ = 'TavernTapPage'
 

@@ -24,7 +24,7 @@ The local development build targets Homebrew-installed GTK4 and Libadwaita. This
 - `builddir/` — Meson build directory (auto-created)
 - `~/.local/bin/tavern` — Installed executable script
 - `~/.local/share/tavern/` — UI resources (`.ui`, `.gresource`)
-- `~/.local/share/applications/dev.hanthor.Tavern.desktop` — Desktop entry
+- `~/.local/share/applications/org.tunaos.tavern.desktop` — Desktop entry
 
 ### Troubleshooting Local Builds
 
@@ -47,9 +47,9 @@ ln -s ../../Cellar/libadwaita/1.8.4/lib/girepository-1.0/Adw-1.typelib \
 
 ## Flatpak Development
 
-**Configuration:** `Justfile`, `dev.hanthor.Tavern.Devel.json` (development manifest), `dev.hanthor.Tavern.json` (production manifest)
+**Configuration:** `Justfile`, `org.tunaos.tavern.Devel.json` (development manifest), `org.tunaos.tavern.json` (production manifest)
 
-Flatpak provides isolated, reproducible builds suitable for distribution. By default, local development tasks in the Justfile target the development profile build (`dev.hanthor.Tavern.Devel`) which sets `-Dprofile=development` at configure time.
+Flatpak provides isolated, reproducible builds suitable for distribution. By default, local development tasks in the Justfile target the development profile build (`org.tunaos.tavern.Devel`) which sets `-Dprofile=development` at configure time.
 
 ### Build Targets
 ```bash
@@ -67,16 +67,16 @@ just clean              # Remove all artifacts
 2. **Create runtime:** Combines shared libraries and tools
 3. **Bundle:** Creates `.flatpak` installation bundle
 4. **Install:** Registers in user's Flatpak environment
-5. **Launch:** Via `flatpak run dev.hanthor.Tavern.Devel` (or `dev.hanthor.Tavern` for release)
+5. **Launch:** Via `flatpak run org.tunaos.tavern.Devel` (or `org.tunaos.tavern` for release)
 
 ### Build Directories & Artifacts
 - `.flatpak-build/` — Compilation workspace (can reach 5GB+)
 - `.flatpak-repo/` — Local package repository
 - `.flatpak-state/` — Build incremental cache
-- Installed: `~/.local/share/flatpak/app/dev.hanthor.Tavern.Devel/`
+- Installed: `~/.local/share/flatpak/app/org.tunaos.tavern.Devel/`
 
 ### Manifest
-**File:** `dev.hanthor.Tavern.Devel.json`
+**File:** `org.tunaos.tavern.Devel.json`
 
 Contains:
 - Runtime dependencies (GTK4, Libadwaita, Python)

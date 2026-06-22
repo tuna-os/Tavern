@@ -19,7 +19,7 @@ class MockDBusConnection:
 def test_application_init_and_actions(monkeypatch, tmp_path):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestInit")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestInit")
     assert app.version == "1.0.0"
     
     # Test quitting action
@@ -38,22 +38,22 @@ def test_application_dbus_registration(monkeypatch, tmp_path):
     monkeypatch.setattr(Gio.Application, 'do_dbus_register', lambda *args: True)
     monkeypatch.setattr(Gio.Application, 'do_dbus_unregister', lambda *args: None)
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestDbus")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestDbus")
     conn = MockDBusConnection()
     
     # Register DBus
-    app.do_dbus_register(conn, '/dev/hanthor/Tavern')
+    app.do_dbus_register(conn, '/org.tunaos.tavern')
     assert app._search_provider is not None
     assert app._search_provider.registration_id == 101
     
     # Unregister DBus
-    app.do_dbus_unregister(conn, '/dev/hanthor/Tavern')
+    app.do_dbus_unregister(conn, '/org.tunaos.tavern')
     assert app._search_provider.registration_id == 0
 
 def test_application_show_package(monkeypatch, tmp_path):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestShow")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestShow")
     
     # Mock activate
     monkeypatch.setattr(app, 'activate', lambda: setattr(app, '_activated', True))
@@ -69,7 +69,7 @@ def test_application_show_package(monkeypatch, tmp_path):
 def test_application_command_line_parsing(monkeypatch, tmp_path):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestCmd")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestCmd")
     monkeypatch.setattr(app, 'activate', lambda: None)
     
     # Test --package and --brewfile parsing
@@ -82,7 +82,7 @@ def test_application_command_line_parsing(monkeypatch, tmp_path):
     assert app._brewfile_to_open == "/path/to/my.Brewfile"
     
     # Test --package= and --brewfile= format
-    app2 = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestCmd2")
+    app2 = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestCmd2")
     monkeypatch.setattr(app2, 'activate', lambda: None)
     sys_argv_mock2 = ["tavern", "--package=wget", "--brewfile=/another.Brewfile"]
     monkeypatch.setattr(sys, "argv", sys_argv_mock2)
@@ -95,7 +95,7 @@ def test_application_command_line_parsing(monkeypatch, tmp_path):
 def test_application_activate_and_open(monkeypatch, tmp_path):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestActivate")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestActivate")
     
     # Register the application so the startup/startup signal emissions occur before window instantiations
     app.register(None)
@@ -148,7 +148,7 @@ def test_application_activate_and_open(monkeypatch, tmp_path):
 def test_application_about_dialog(monkeypatch, tmp_path):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
-    app = TavernApplication(version="1.0.0", application_id="dev.hanthor.Tavern.TestAbout")
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestAbout")
     
     # Mock active_window properties
     class MockActiveWin:

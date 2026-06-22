@@ -26,12 +26,12 @@ This plan outlines the steps required to fully roll out, enable, and verify the 
 ### Phase 4: Client Verification
 - [x] **Uninstall Local Installations**: Clear any existing development/local builds of Tavern to prevent conflicts:
   ```bash
-  flatpak uninstall --user dev.hanthor.Tavern
+  flatpak uninstall --user org.tunaos.tavern
   ```
 - [x] **Test Remote Installation**: Add the OCI remote and install the application from it:
   ```bash
   flatpak remote-add --user --if-not-exists tuna-os oci+https://tuna-os.github.io/Tavern
-  flatpak install --user tuna-os dev.hanthor.Tavern
+  flatpak install --user tuna-os org.tunaos.tavern
   ```
 - [x] **Verify App Execution**: Launch the app installed from the OCI remote and verify it runs correctly.
 

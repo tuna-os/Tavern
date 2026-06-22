@@ -16,7 +16,7 @@ from .logging_util import get_logger
 _log = get_logger('installed_page')
 
 
-@Gtk.Template(resource_path='/dev/hanthor/Tavern/installed-page.ui')
+@Gtk.Template(resource_path='/org.tunaos.tavern/installed-page.ui')
 class TavernInstalledPage(Adw.Bin):
     __gtype_name__ = 'TavernInstalledPage'
 
