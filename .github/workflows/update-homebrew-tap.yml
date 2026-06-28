@@ -25,14 +25,15 @@ jobs:
 
       - name: Download release assets and compute SHA256
         id: download
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.release_tag || github.event.release.tag_name }}
         run: |
           # Get version from either release event or manual input
-          if [ -n "${{ github.event.release.tag_name }}" ]; then
-            VERSION="${{ github.event.release.tag_name }}"
-          else
-            VERSION="${{ github.event.inputs.release_tag }}"
+          VERSION="${RELEASE_TAG#v}"  # Remove 'v' prefix
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not determine release tag"
+            exit 1
           fi
-          VERSION="${VERSION#v}"  # Remove 'v' prefix
           
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
