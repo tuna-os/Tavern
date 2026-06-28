@@ -50,7 +50,7 @@ if [ "$(uname)" = "Darwin" ]; then
     mkdir -p "$APP_DIR/Contents/Resources"
 
     if [ ! -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]; then
-        ICON_SRC="data/icons/hicolor/scalable/apps/dev.hanthor.Tavern.svg"
+        ICON_SRC="data/icons/hicolor/scalable/apps/org.tunaos.tavern.svg"
         TMP_ICON="/tmp/tavern_icon_$$.png"
         TMP_ICONSET="/tmp/Tavern_$$.iconset"
         
@@ -78,7 +78,7 @@ if [ "$(uname)" = "Darwin" ]; then
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.hanthor.Tavern</string>
+    <string>org.tunaos.tavern</string>
     <key>CFBundleName</key>
     <string>Tavern</string>
     <key>CFBundleVersion</key>
