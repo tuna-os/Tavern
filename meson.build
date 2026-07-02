@@ -18,9 +18,9 @@ dependency('libadwaita-1', version: '>= 1.4')
 
 profile = get_option('profile')
 if profile == 'development'
-  APPLICATION_ID = 'dev.hanthor.Tavern.Devel'
+  APPLICATION_ID = 'org.tunaos.tavern.Devel'
 else
-  APPLICATION_ID = 'dev.hanthor.Tavern'
+  APPLICATION_ID = 'org.tunaos.tavern'
 endif
 APPLICATION_ID_PATH = APPLICATION_ID.replace('.', '/')
 
