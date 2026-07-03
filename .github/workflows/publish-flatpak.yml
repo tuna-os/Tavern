@@ -64,61 +64,33 @@ jobs:
 
     - name: Push OCI to GHCR
       run: |
-        REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-        
         echo "Pushing latest tag..."
-        skopeo copy oci:tavern.oci docker://ghcr.io/${REPO_LOWER}:latest
+        skopeo copy oci:tavern.oci docker://ghcr.io/tuna-os/tavern:latest
         
         if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
           VERSION_TAG="${{ github.ref_name }}"
           echo "Pushing version tag ${VERSION_TAG}..."
-          skopeo copy oci:tavern.oci docker://ghcr.io/${REPO_LOWER}:${VERSION_TAG}
+          skopeo copy oci:tavern.oci docker://ghcr.io/tuna-os/tavern:${VERSION_TAG}
         fi
 
-    - name: Checkout gh-pages Branch
-      uses: actions/checkout@v4
-      with:
-        ref: gh-pages
-        path: pages
-      continue-on-error: true
-
-    - name: Update Flatpak Index
+    - name: Update central index (tuna-os/docs)
       run: |
-        REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-        
-        # If pages directory doesn't exist (e.g. branch didn't exist yet), initialize it
-        if [ ! -d "pages" ]; then
-          echo "gh-pages branch does not exist yet. Initializing..."
-          mkdir pages
-          cd pages
-          git init
-          git checkout -b gh-pages
-          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          cd ..
-        fi
-        
-        # Run the update index script
-        python3 scripts/update-index.py --oci-dir tavern.oci --index-file pages/index/static --repo-name ${REPO_LOWER}
-        
-        # Generate the .flatpakrepo file
-        cat <<EOF > pages/tavern.flatpakrepo
-        [Flatpak Repo]
-        Title=TunaOS Flatpaks
-        Url=oci+https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-        EOF
-
-    - name: Commit and Push Index Changes
-      run: |
-        cd pages
+        git clone --depth 1 \
+          https://x-access-token:${{ secrets.FLATPAK_INDEX_TOKEN }}@github.com/tuna-os/docs.git \
+          index-repo
+        pip install requests
+        python3 .github/scripts/update-index.py \
+          --oci-dir tavern.oci \
+          --index-file index-repo/static/flatpak/index/static \
+          --repo-name tuna-os/tavern \
+          --tags latest
+        cd index-repo
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
-        
-        # Ensure files are tracked
-        git add index/static tavern.flatpakrepo
-        
+        git add static/flatpak/index/static
         if git diff --cached --quiet; then
-          echo "No changes detected in registry index."
+          echo "No index changes"
         else
-          git commit -m "chore(flatpak): update OCI registry index [skip ci]"
-          git push -u origin HEAD:gh-pages
+          git commit -m "chore(flatpak): update Tavern OCI index"
+          git push origin main
         fi
