@@ -23,3 +23,13 @@ app_log.txt*
 Tavern.app/
 Tavern-macOS.zip
 .token
+
+# AI agent runtime artifacts (not project content)
+.claude/
+.pi/
+.gemini/
+CLAUDE.md
+CONTEXT.md
+agents.md
+plan/
+skills/
