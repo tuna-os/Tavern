@@ -1,4 +1,4 @@
-APP_ID := "dev.hanthor.Tavern.Devel"
+APP_ID := "org.tunaos.tavern.Devel"
 MANIFEST := APP_ID + ".json"
 BUILD_DIR := ".flatpak-build"
 REPO_DIR := ".flatpak-repo"
@@ -38,9 +38,9 @@ release:
         --state-dir={{STATE_DIR}} \
         --repo={{REPO_DIR}} \
         {{BUILD_DIR}} \
-        dev.hanthor.Tavern.json
+        org.tunaos.tavern.json
     flatpak --user remote-add --no-gpg-verify --if-not-exists tavern-local {{REPO_DIR}}
-    flatpak --user install --or-update --noninteractive tavern-local dev.hanthor.Tavern
+    flatpak --user install --or-update --noninteractive tavern-local org.tunaos.tavern
 
 # Uninstall the Devel app and remove the local remote
 uninstall:
@@ -53,6 +53,6 @@ clean:
 
 # Validate desktop and AppStream metadata if tools are available
 validate:
-    -desktop-file-validate data/dev.hanthor.Tavern.desktop.in
-    -appstreamcli validate data/dev.hanthor.Tavern.metainfo.xml.in
+    -desktop-file-validate data/org.tunaos.tavern.desktop.in
+    -appstreamcli validate data/org.tunaos.tavern.metainfo.xml.in
 
