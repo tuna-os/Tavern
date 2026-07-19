@@ -163,7 +163,7 @@ class TavernTapPage(Adw.Bin):
             return
         trusted = tap_info.get('trusted')
         if trusted is True:
-            trust_icon.set_from_icon_name('lock-symbolic')
+            trust_icon.set_from_icon_name('security-high-symbolic')
             trust_icon.set_tooltip_text('Tap trusted')
             trust_icon.add_css_class('success')
             trust_icon.remove_css_class('warning')
