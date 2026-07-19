@@ -198,10 +198,8 @@ class TavernPackageDetails(Adw.NavigationPage):
         # Process Variants
         if variants:
             variants = variants[:3]
-            while child := self.variants_flow.get_first_child():
-                self.variants_flow.remove(child)
-                
-            from .package_tile import TavernPackageTile
+            from .package_tile import TavernPackageTile, clear_flow
+            clear_flow(self.variants_flow)
             for pkg in variants:
                 tile = TavernPackageTile(package=pkg)
                 tile.connect('activated', self._on_related_clicked)
@@ -215,10 +213,8 @@ class TavernPackageDetails(Adw.NavigationPage):
         # Process Related
         if related:
             related = related[:3]
-            while child := self.related_flow.get_first_child():
-                self.related_flow.remove(child)
-                
-            from .package_tile import TavernPackageTile
+            from .package_tile import TavernPackageTile, clear_flow
+            clear_flow(self.related_flow)
             for pkg in related:
                 tile = TavernPackageTile(package=pkg)
                 tile.connect('activated', self._on_related_clicked)
@@ -287,7 +283,7 @@ class TavernPackageDetails(Adw.NavigationPage):
         if not self._backend or not self._package:
             return
         pkg = self._package
-        if pkg.pkg_type != 'formula':
+        if pkg.pkg_type not in ('formula', 'cask'):
             return
         currently_pinned = self._backend.is_pinned(pkg.name)
         if button.get_active() and not currently_pinned:
@@ -547,7 +543,7 @@ class TavernPackageDetails(Adw.NavigationPage):
         if not self._task_manager:
             return
         _log.info('Update clicked: %s', self._package.name)
-        task = self._task_manager.install(self._package)  # Upgrade uses the install operation
+        task = self._task_manager.upgrade(self._package)
         self._bind_task(task)
 
     def _on_remove_clicked(self, button):

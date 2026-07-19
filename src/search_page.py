@@ -7,7 +7,7 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GLib, GObject
 from .backend import BrewBackend
-from .package_tile import TavernPackageTile
+from .package_tile import TavernPackageTile, clear_flow
 from .logging_util import get_logger
 
 _log = get_logger('search_page')
@@ -91,9 +91,7 @@ class TavernSearchPage(Adw.Bin):
         results = self._backend.search(query, pkg_type)
         _log.debug('Search returned %d results', len(results))
 
-        # Clear old results
-        while child := self.results_flow.get_first_child():
-            self.results_flow.remove(child)
+        clear_flow(self.results_flow)
 
         if not results:
             self.search_stack.set_visible_child_name('no-results')

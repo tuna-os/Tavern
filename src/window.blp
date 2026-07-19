@@ -9,7 +9,7 @@ template $TavernWindow: Adw.ApplicationWindow {
   height-request: 500;
 
   Adw.Breakpoint {
-    condition ("max-width: 550sp")
+    condition ("max-width: 600sp")
 
     setters {
       view_switcher.visible: false;
@@ -130,7 +130,8 @@ template $TavernWindow: Adw.ApplicationWindow {
 
                   Adw.ViewStackPage {
                     name: "browse";
-                    title: "Browse";
+                    title: "_Browse";
+                    use-underline: true;
                     icon-name: "view-grid-symbolic";
 
                     child: $TavernBrowsePage browse_page {};
@@ -138,7 +139,8 @@ template $TavernWindow: Adw.ApplicationWindow {
 
                   Adw.ViewStackPage {
                     name: "taps";
-                    title: "Taps";
+                    title: "_Taps";
+                    use-underline: true;
                     icon-name: "folder-symbolic";
 
                     child: $TavernTapPage tap_page {};
@@ -146,7 +148,8 @@ template $TavernWindow: Adw.ApplicationWindow {
 
                   Adw.ViewStackPage {
                     name: "search";
-                    title: "Search";
+                    title: "_Search";
+                    use-underline: true;
                     icon-name: "system-search-symbolic";
 
                     child: $TavernSearchPage search_page {};
@@ -154,7 +157,8 @@ template $TavernWindow: Adw.ApplicationWindow {
 
                   Adw.ViewStackPage {
                     name: "installed";
-                    title: "Installed";
+                    title: "_Installed";
+                    use-underline: true;
                     icon-name: "view-list-symbolic";
 
                     child: $TavernInstalledPage installed_page {};
@@ -183,6 +187,16 @@ menu primary_menu {
   }
 
   section {
+    item {
+      label: "_Preferences";
+      action: "app.preferences";
+    }
+
+    item {
+      label: "_Keyboard Shortcuts";
+      action: "app.shortcuts";
+    }
+
     item {
       label: "_About Tavern";
       action: "app.about";

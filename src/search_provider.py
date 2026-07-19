@@ -153,29 +153,35 @@ class TavernSearchProvider:
             pkg_map = {p.get('name'): p for p in self._packages_cache}
             cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
 
+            # Fallback icon: the app's own icon, resolved from the actual
+            # application id so it also works for the .Devel build (whose
+            # installed icons are renamed to org.tunaos.tavern.Devel*).
+            app_id = self.application.get_application_id() or 'org.tunaos.tavern'
+            fallback_icon = Gio.ThemedIcon.new_with_default_fallbacks(app_id)
+
             metas = []
             for pkg_id in ids:
-                pkg = pkg_map.get(pkg_id)
-                if not pkg:
-                    continue
-                
+                pkg = pkg_map.get(pkg_id) or {}
+
+                # GNOME Shell expects one meta per requested id — emit a
+                # minimal entry rather than skipping, or results misalign.
                 meta = {
                     "id": GLib.Variant("s", pkg_id),
                     "name": GLib.Variant("s", pkg.get('display_name') or pkg_id),
                     "description": GLib.Variant("s", pkg.get('description') or "")
                 }
-                
-                # Check if we have a downloaded cached icon for this package
+
+                # Prefer a previously downloaded per-package icon
                 icon_path = os.path.join(cache_dir, f'icon_{pkg_id}.png')
-                if os.path.exists(icon_path):
-                    gfile = Gio.File.new_for_path(icon_path)
-                    icon = Gio.FileIcon.new(gfile)
-                    meta["icon"] = icon.serialize()
-                else:
-                    # Assign default icon based on package type
-                    icon_name = "org.tunaos.tavern-symbolic" # Default
-                    meta["icon"] = Gio.Icon.new_for_string(icon_name).serialize()
-                
+                try:
+                    if os.path.getsize(icon_path) > 0:
+                        gfile = Gio.File.new_for_path(icon_path)
+                        meta["icon"] = Gio.FileIcon.new(gfile).serialize()
+                except OSError:
+                    pass
+                if "icon" not in meta:
+                    meta["icon"] = fallback_icon.serialize()
+
                 metas.append(meta)
 
             invocation.return_value(GLib.Variant("(aa{sv})", (metas,)))

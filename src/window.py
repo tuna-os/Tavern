@@ -5,7 +5,9 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Adw, Gtk, Gio, GObject
+import threading
+
+from gi.repository import Adw, Gtk, Gio, GLib, GObject
 from .backend import BrewBackend
 from .task_manager import TaskManager
 from .logging_util import get_logger
@@ -84,6 +86,7 @@ class TavernWindow(Adw.ApplicationWindow):
         self.task_button.connect('clicked', self._on_task_button_clicked)
 
         self._outdated_count = 0  # Track current outdated package count
+        self._toasted_outdated_count = None  # Last count announced via toast
         
         # Wire pages to backend
         pages_start = time.perf_counter()
@@ -118,6 +121,7 @@ class TavernWindow(Adw.ApplicationWindow):
         refresh_action = Gio.SimpleAction.new('refresh', None)
         refresh_action.connect('activate', self._on_refresh)
         self.add_action(refresh_action)
+        self.get_application().set_accels_for_action('win.refresh', ['<Ctrl>r'])
 
         open_brewfile_action = Gio.SimpleAction.new('open-brewfile', None)
         open_brewfile_action.connect('activate', self._on_open_brewfile)
@@ -145,6 +149,10 @@ class TavernWindow(Adw.ApplicationWindow):
 
         self.connect('close-request', self._on_close)
 
+        # Periodic outdated check honoring the user-configured interval
+        interval_h = max(1, self._settings.get_int('outdated-check-interval-hours') or 24)
+        GLib.timeout_add_seconds(interval_h * 3600, self._periodic_outdated_check)
+
         # Start loading
         backend_load_start = time.perf_counter()
         self.backend.connect('formulae-loaded', self._on_formulae_loaded)
@@ -158,6 +166,11 @@ class TavernWindow(Adw.ApplicationWindow):
         
         total_init_time = (time.perf_counter() - init_start) * 1000
         _log.info('TavernWindow.__init__: completed in %.1f ms', total_init_time)
+
+    def _periodic_outdated_check(self):
+        if self._settings.get_boolean('outdated-check-enabled'):
+            threading.Thread(target=self.backend._check_outdated, daemon=True).start()
+        return True  # keep the timer active
 
     def _find_package_by_name(self, package_name):
         target = (package_name or '').strip().lower()
@@ -219,8 +232,8 @@ class TavernWindow(Adw.ApplicationWindow):
         # Refresh installed page
         self.installed_page.refresh(self.backend)
         if mgr.active_count == 0:
-            _log.info('All queued tasks finished; reloading backend state')
-            self.backend.load_all_async()
+            _log.info('All queued tasks finished; refreshing installed state')
+            self.backend.refresh_installed_async()
 
     def _on_active_count_changed(self, mgr, pspec):
         count = mgr.active_count
@@ -271,12 +284,13 @@ class TavernWindow(Adw.ApplicationWindow):
             
         installed_stack_page.set_badge_number(count)
         installed_stack_page.set_needs_attention(True)
-        
-        # Show toast notification
-        if count > 0:
+
+        # Announce via toast, but only when the count actually changes —
+        # outdated-changed is re-emitted several times during loading.
+        if count > 0 and count != self._toasted_outdated_count:
+            self._toasted_outdated_count = count
             msg = f'{count} package{"s" if count != 1 else ""} can be updated'
-            toast = Adw.Toast.new(msg)
-            self.toast_overlay.add_toast(toast)
+            self.toast_overlay.add_toast(Adw.Toast.new(msg))
 
     def _on_backend_loading_changed(self, backend, _pspec):
         if backend.loading:
@@ -423,18 +437,9 @@ class TavernWindow(Adw.ApplicationWindow):
             return
         pkg = task.package
         _log.info('Switching tap for %s: uninstall then reinstall', pkg.name)
-        # Run uninstall then re-queue install
-        def after_uninstall(success, _msg):
-            if success:
-                self.task_manager.install(pkg)
-            else:
-                self.toast_overlay.add_toast(Adw.Toast.new(
-                    f'Failed to uninstall {pkg.name} for tap switch'
-                ))
+        # Queue the uninstall, then re-queue the install once the remove
+        # task finishes (see _on_conflict_uninstall_finished).
         self.task_manager.remove(pkg)
-        # We can't easily chain after remove via task_manager signals here,
-        # so use the backend directly for the uninstall + then install
-        # Actually re-queue properly via task_manager signal
         self._pending_reinstall = pkg
         if not hasattr(self, '_conflict_conn'):
             self._conflict_conn = self.task_manager.connect(
