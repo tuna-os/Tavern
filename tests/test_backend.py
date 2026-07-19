@@ -1292,3 +1292,14 @@ class TestBrewBackendJWS:
 
 
 
+
+
+def test_package_is_font():
+    font = Package({'token': 'font-fira-code', 'name': ['Fira Code']}, 'cask')
+    assert font.is_font is True
+
+    cask = Package({'token': 'firefox', 'name': ['Firefox']}, 'cask')
+    assert cask.is_font is False
+
+    formula = Package({'name': 'font-util'}, 'formula')
+    assert formula.is_font is False

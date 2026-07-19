@@ -154,6 +154,24 @@ template $TavernPackageDetails: Adw.NavigationPage {
 
 
               /* Screenshot (shown only when image is available) */
+              Box font_preview_bin {
+                visible: false;
+                orientation: vertical;
+                spacing: 12;
+
+                Label {
+                  label: "Font Preview";
+                  xalign: 0.0;
+                  styles ["title-2"]
+                }
+
+                Box font_preview_box {
+                  orientation: vertical;
+                  spacing: 8;
+                  styles ["card", "font-preview-card"]
+                }
+              }
+
               Adw.Bin screenshot_bin {
                 visible: false;
                 overflow: hidden;

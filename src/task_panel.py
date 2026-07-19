@@ -260,4 +260,6 @@ class TavernTaskPanel(Adw.Dialog):
         for task in finished:
             row = self._rows.pop(task)
             self.task_list_box.remove(row)
+        if self._task_manager:
+            self._task_manager.clear_finished()
         self._refresh_ui()

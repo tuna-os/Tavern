@@ -98,6 +98,11 @@ class Package(GObject.Object):
         if installed_set:
             self.installed = name in installed_set or self.full_name in installed_set
 
+    @property
+    def is_font(self):
+        """True for Homebrew font casks (font-* naming convention)."""
+        return self.pkg_type == 'cask' and self.name.startswith('font-')
+
     def _parse_analytics(self):
         if self._installs_30d is not None:
             return

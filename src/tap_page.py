@@ -9,7 +9,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GObject, GLib, GdkPixbuf, Gdk
-from .package_tile import TavernPackageTile
+from .package_tile import TavernPackageTile, clear_flow
 from .logging_util import get_logger
 
 _log = get_logger('tap_page')
@@ -228,8 +228,7 @@ class TavernTapPage(Adw.Bin):
                 count_text = f'{count_text} • {rev}'
         self.tap_count_label.set_label(count_text)
 
-        while child := self.packages_flow.get_first_child():
-            self.packages_flow.remove(child)
+        clear_flow(self.packages_flow)
 
         for pkg in packages:
             tile = TavernPackageTile(package=pkg)

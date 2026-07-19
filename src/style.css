@@ -48,6 +48,15 @@
   color: #4e9a06;
 }
 
+.font-badge {
+  background-color: alpha(#e66100, 0.15);
+  color: #e66100;
+}
+
+.font-preview-card {
+  padding: 16px;
+}
+
 .cask-badge {
   background-color: alpha(#9141ac, 0.15);
   color: #9141ac;
