@@ -37,7 +37,7 @@ jobs:
         flatpak build-bundle --oci --arch=x86_64 repo tavern.oci org.tunaos.tavern
 
     - name: Upload OCI Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: tavern-oci
         path: tavern.oci/
@@ -53,7 +53,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Download OCI Artifact
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: tavern-oci
         path: tavern.oci
