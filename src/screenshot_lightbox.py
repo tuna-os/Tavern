@@ -57,12 +57,16 @@ class TavernScreenshotLightbox(Adw.Window):
 
         # Fullscreen toggle button
         self.fs_btn = Gtk.Button.new_from_icon_name('view-fullscreen-symbolic')
+        self.fs_btn.set_tooltip_text('Toggle Fullscreen')
+        self.fs_btn.update_property([Gtk.AccessibleProperty.LABEL], ['Toggle fullscreen'])
         self.fs_btn.add_css_class('lightbox-close-button') # Reusing style for consistency
         self.fs_btn.connect('clicked', self._on_fullscreen_toggled)
         controls_box.append(self.fs_btn)
 
         # Close button
         close_btn = Gtk.Button.new_from_icon_name('window-close-symbolic')
+        close_btn.set_tooltip_text('Close')
+        close_btn.update_property([Gtk.AccessibleProperty.LABEL], ['Close screenshot viewer'])
         close_btn.add_css_class('lightbox-close-button')
         close_btn.connect('clicked', lambda _: self.close())
         controls_box.append(close_btn)

@@ -29,7 +29,6 @@
 
 /* ===== Badges ===== */
 .badge {
-  font-size: 0.65em;
   font-weight: bold;
   padding: 2px 7px;
   border-radius: 999px;
@@ -64,7 +63,6 @@
 
 /* ===== Installed pill ===== */
 .installed-pill {
-  font-size: 0.7em;
   font-weight: bold;
   padding: 2px 6px 2px 4px;
   border-radius: 999px;
@@ -87,21 +85,6 @@
   box-shadow: 0 0 0 2px alpha(@accent_color, 0.25);
 }
 
-/* ===== Task progress ===== */
-.task-progress {
-  border-radius: 4px;
-  min-height: 6px;
-}
-
-.task-progress-card {
-  padding: 0;
-  border-radius: 12px;
-}
-
-.task-progress-card progressbar trough {
-  border-radius: 0 0 12px 12px;
-  min-height: 6px;
-}
 
 /* Status colours for task indicators */
 .success {
@@ -116,11 +99,6 @@
   color: @warning_color;
 }
 
-/* ===== Section headings ===== */
-.section-title {
-  font-size: 1.3em;
-  font-weight: bold;
-}
 
 /* ===== pill buttons ===== */
 .medium-pill {
@@ -180,74 +158,6 @@ button.destructive-action.pill {
   color: alpha(@window_fg_color, 0.65);
 }
 
-/* ===== Updates Banner ===== */
-.updates-banner {
-  background-color: alpha(@accent_bg_color, 0.1);
-  border: 1px solid alpha(@accent_bg_color, 0.2);
-  border-radius: 12px;
-  padding: 12px;
-  margin: 8px;
-}
-
-.updates-banner-header {
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.updates-count-badge {
-  background-color: @accent_bg_color;
-  color: @accent_fg_color;
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-weight: 500;
-  font-size: 0.85rem;
-}
-
-/* ===== Updates Button States ===== */
-button.updates-button {
-  min-width: 40px;
-  padding: 6px 12px;
-}
-
-button.updates-button:hover {
-  background-color: alpha(@accent_bg_color, 0.1);
-}
-
-/* Spinner animation for loading state */
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.updates-button.checking {
-  animation: spin 1s linear infinite;
-}
-
-/* ===== Version History Dialog ===== */
-.version-row {
-  padding: 8px 12px;
-}
-
-.version-number {
-  font-family: monospace;
-  font-weight: 500;
-}
-
-.version-date {
-  color: alpha(@window_fg_color, 0.6);
-  font-size: 0.9rem;
-}
-
-.changelog-text {
-  font-family: monospace;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
 
 /* ===== README Refinements ===== */
 .readme-container {
@@ -259,7 +169,6 @@ button.updates-button:hover {
 }
 
 .readme-preview-text {
-  font-size: 0.9em;
   line-height: 1.55;
   color: alpha(@window_fg_color, 0.85);
 }
@@ -331,7 +240,6 @@ button.updates-button:hover {
 
 .task-count-badge {
   font-weight: 700;
-  font-size: 0.75em;
   min-width: 18px;
   padding: 1px 5px;
   border-radius: 999px;
@@ -348,7 +256,6 @@ button.updates-button:hover {
 
 /* ===== Task status pills (task panel rows) ===== */
 .task-status-pill {
-  font-size: 0.72em;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 999px;
