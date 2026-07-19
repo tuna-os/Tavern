@@ -1,5 +1,5 @@
 project('tavern',
-  version: '0.1.31',
+  version: '0.1.32',
   # Version 0.1.9 release
   meson_version: '>= 1.0.0',
   default_options: [
