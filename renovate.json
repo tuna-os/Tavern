@@ -1,11 +1,32 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
+  "extends": [
+    "config:recommended"
+  ],
   "automerge": true,
   "packageRules": [
     {
-      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
       "automerge": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Bump git tags of modules in the Flatpak manifests",
+      "fileMatch": [
+        "^org\\.tunaos\\.tavern(\\.Devel)?\\.json$"
+      ],
+      "matchStrings": [
+        "\"url\": \"(?<packageName>https://github\\.com/[^\"]+?)(\\.git)?\",\\s*\"tag\": \"(?<currentValue>v?[\\d.]+)\""
+      ],
+      "datasourceTemplate": "git-tags"
     }
   ]
 }

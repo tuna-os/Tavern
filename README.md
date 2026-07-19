@@ -41,12 +41,15 @@ On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage an
 
 ## ✨ Features
 
-- **🏠 Curated Browse**: Discover popular and featured applications.
-- **🔍 Fast Search**: Instant searching across thousands of formulae and casks.
-- **📦 Package Details**: Rich information including descriptions, versions, dependencies, and screenshots.
+- **🏠 Curated Browse**: Popular formulae and casks ranked by real install analytics, plus a daily Discover rotation.
+- **🔍 Fast Search**: Instant, off-main-thread searching across tens of thousands of formulae and casks (Ctrl+F), plus GNOME Shell search integration.
+- **📦 Package Details**: Rich information including descriptions, versions, dependencies, READMEs, screenshots, and install statistics.
+- **🔤 Font Previews**: Font casks render live pangram previews right on the details page.
+- **📌 Version Pinning**: Pin formulae and casks to their installed version; pinned packages stay out of update prompts.
 - **📄 Brewfile Support**: Open and manage `.Brewfile`s to bulk-install or remove entire environments.
-- **⚡ Task Management**: Parallel installations and removals with a global progress indicator.
-- **🌗 Native Design**: Beautiful Libadwaita interface with full Dark Mode support and responsive layouts.
+- **⚡ Task Management**: Queued installs, removals, and upgrades with per-package progress and a task panel.
+- **🫖 Tap Manager**: Add, remove, update, and trust Homebrew taps; browse tap contents.
+- **🌗 Native Design**: Libadwaita interface following the GNOME HIG — dark mode, adaptive layouts, keyboard shortcuts, and a preferences dialog.
 - **🐧 Linux First**: Smart filtering to hide macOS-only casks on Linux systems.
 
 ## 🚀 Getting Started
