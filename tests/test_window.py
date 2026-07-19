@@ -65,7 +65,7 @@ def test_window_workflows(tmp_path, monkeypatch):
     win = TavernWindow(application=app)
     assert win is not None
     backend_reload_calls = []
-    monkeypatch.setattr(win.backend, 'load_all_async', lambda: backend_reload_calls.append(True))
+    monkeypatch.setattr(win.backend, 'refresh_installed_async', lambda: backend_reload_calls.append(True))
     
     # Pre-populate backend with mock packages
     pkg_rg = Package({'name': 'ripgrep', 'desc': 'rg'}, 'formula')

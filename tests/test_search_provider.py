@@ -80,6 +80,8 @@ def test_search_provider_logic(tmp_path, fresh_logging):
     class MockApp:
         def __init__(self):
             self.actions = []
+        def get_application_id(self):
+            return 'org.tunaos.tavern'
         def activate_action(self, name, param):
             self.actions.append((name, param.get_string()))
             
@@ -123,6 +125,8 @@ def test_search_provider_dbus_methods(tmp_path, monkeypatch):
         def __init__(self):
             self.actions = []
             self.activated = False
+        def get_application_id(self):
+            return 'org.tunaos.tavern'
         def activate_action(self, name, param):
             self.actions.append((name, param.get_string()))
         def activate(self):
@@ -160,18 +164,24 @@ def test_search_provider_dbus_methods(tmp_path, monkeypatch):
     provider._handle_method_call(None, None, None, None, "GetResultMetas", params, inv)
     assert inv.returned is not None
     metas = inv.returned.unpack()[0]
-    assert len(metas) == 1
+    # One meta per requested id — unknown ids get a minimal entry so
+    # GNOME Shell's results don't misalign.
+    assert len(metas) == 2
     assert metas[0]["name"] == "Mozilla Firefox"
     assert metas[0]["description"] == "Web browser"
+    assert metas[1]["name"] == "unknown"
 
     # Write a mock icon for firefox to exercise icon path loading
     icon_path = os.path.join(cache_dir, 'icon_firefox.png')
-    with open(icon_path, 'w') as f:
-        f.write('')
+    with open(icon_path, 'wb') as f:
+        f.write(b'\x89PNG fake icon bytes')
     inv = MockInvocation()
     provider._handle_method_call(None, None, None, None, "GetResultMetas", params, inv)
     metas = inv.returned.unpack()[0]
-    assert len(metas) == 1
+    assert len(metas) == 2
+    # firefox now carries the cached file icon; unknown keeps the themed fallback
+    assert metas[0]["icon"][0] == 'file'
+    assert metas[1]["icon"][0] == 'themed'
 
     # 4. ActivateResult
     inv = MockInvocation()

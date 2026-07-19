@@ -165,7 +165,7 @@ class UpdatesCard(Gtk.Box):
                 package = self._find_package(name, pkg_type)
                 if package:
                     _log.info('Queueing upgrade for %s (%s)', name, pkg_type)
-                    self._task_manager.install(package)  # upgrade is same as install
+                    self._task_manager.upgrade(package)
                 else:
                     _log.warning('Could not find package %s (%s) for upgrade', name, pkg_type)
 

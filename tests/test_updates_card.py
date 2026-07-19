@@ -25,7 +25,7 @@ def test_updates_card_rendering_and_signals(tmp_path, monkeypatch):
     
     # Mock task manager install/remove methods
     installed_pkgs = []
-    monkeypatch.setattr(task_manager, 'install', lambda p: installed_pkgs.append(p))
+    monkeypatch.setattr(task_manager, 'upgrade', lambda p: installed_pkgs.append(p))
     
     # Check initial text (0 updates)
     card.set_outdated_packages([])

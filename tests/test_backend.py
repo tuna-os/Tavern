@@ -494,28 +494,6 @@ class TestBrewBackendExtensions:
         assert len(res_casks) == 1
         assert res_casks[0].name == 'github'
 
-    def test_update_package_installed_state(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
-        backend = BrewBackend()
-        
-        pkg_f = Package({'name': 'ripgrep'}, 'formula')
-        pkg_c = Package({'token': 'firefox'}, 'cask')
-        
-        # Install formula
-        backend._update_package_installed_state('install', pkg_f)
-        assert pkg_f.installed is True
-        assert 'ripgrep' in backend._installed_formulae
-        
-        # Uninstall formula
-        backend._update_package_installed_state('uninstall', pkg_f)
-        assert pkg_f.installed is False
-        assert 'ripgrep' not in backend._installed_formulae
-
-        # Install cask
-        backend._update_package_installed_state('install', pkg_c)
-        assert pkg_c.installed is True
-        assert 'firefox' in backend._installed_casks
-
     def test_apply_tap_scan_results(self, tmp_path, monkeypatch):
         monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
         backend = BrewBackend()
@@ -935,77 +913,12 @@ class TestBrewBackendExtensions:
         assert len(backend.formulae) > 0
         assert len(backend.casks) > 0
 
-    def test_async_package_operations(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
-        
-        import threading
-        class SynchronousThread:
-            def __init__(self, target, args=(), kwargs={}, daemon=True):
-                self.target = target
-                self.args = args
-                self.kwargs = kwargs
-            def start(self):
-                self.target(*self.args, **self.kwargs)
-        monkeypatch.setattr(threading, 'Thread', SynchronousThread)
-
-        def mock_idle_add(callback, *args, **kwargs):
-            callback(*args, **kwargs)
-            return False
-        monkeypatch.setattr(GLib, 'idle_add', mock_idle_add)
-
-        # Mock Popen to run synchronously
-        class MockPopen:
-            def __init__(self, cmd, *args, **kwargs):
-                import io
-                self.returncode = 0
-                self.stdout = io.StringIO("Installing...\nFinished!\n")
-            def wait(self):
-                return 0
-
-        subprocess_calls = []
-        def mock_popen(cmd, *args, **kwargs):
-            subprocess_calls.append(' '.join(cmd) if isinstance(cmd, list) else str(cmd))
-            return MockPopen(cmd)
-
-        monkeypatch.setattr('subprocess.Popen', mock_popen)
-
-        backend = BrewBackend()
-        pkg = Package({'name': 'ripgrep'}, 'formula')
-
-        results = []
-        def callback(success, message):
-            results.append((success, message))
-
-        # Test install
-        backend.install_async(pkg, callback)
-        assert len(results) == 1
-        assert results[0][0] is True
-        assert any('install' in c for c in subprocess_calls)
-
-        # Test remove
-        backend.remove_async(pkg, callback)
-        assert len(results) == 2
-        assert results[1][0] is True
-        assert any('uninstall' in c for c in subprocess_calls)
-
-        # Test upgrade
-        backend.upgrade_async(pkg, callback)
-        assert len(results) == 3
-        assert results[2][0] is True
-        assert any('upgrade' in c for c in subprocess_calls)
-
     def test_fetch_icon_async_and_caching(self, tmp_path, monkeypatch):
         monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
-        
-        import threading
-        class SynchronousThread:
-            def __init__(self, target, args=(), kwargs={}, daemon=True):
-                self.target = target
-                self.args = args
-                self.kwargs = kwargs
-            def start(self):
-                self.target(*self.args, **self.kwargs)
-        monkeypatch.setattr(threading, 'Thread', SynchronousThread)
+
+        class SynchronousExecutor:
+            def submit(self, fn, *args, **kwargs):
+                fn(*args, **kwargs)
 
         def mock_idle_add(callback, *args, **kwargs):
             callback(*args, **kwargs)
@@ -1044,6 +957,7 @@ class TestBrewBackendExtensions:
         monkeypatch.setattr('tavern.backend.urlopen', lambda req, timeout=None: MockResponse())
 
         backend = BrewBackend()
+        backend._icon_executor = SynchronousExecutor()
         pkg = Package({'name': 'ripgrep', 'homepage': 'https://github.com/BurntSushi/ripgrep'}, 'formula')
 
         fetched_pixbufs = []

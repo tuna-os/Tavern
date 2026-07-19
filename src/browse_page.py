@@ -7,7 +7,7 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GObject
 from .backend import BrewBackend
-from .package_tile import TavernPackageTile
+from .package_tile import TavernPackageTile, clear_flow
 from .logging_util import get_logger
 
 _log = get_logger('browse_page')
@@ -74,9 +74,7 @@ class TavernBrowsePage(Adw.Bin):
         self._backend.fetch_icon_async(package, on_icon_fetched)
 
     def _fill_flow(self, flowbox, packages, preferred_names):
-        # Clear existing
-        while child := flowbox.get_first_child():
-            flowbox.remove(child)
+        clear_flow(flowbox)
 
         # Build name->pkg map
         name_map = {p.name: p for p in packages}
@@ -102,8 +100,7 @@ class TavernBrowsePage(Adw.Bin):
             flowbox.append(tile)
 
     def _fill_recent(self, packages):
-        while child := self.recent_flow.get_first_child():
-            self.recent_flow.remove(child)
+        clear_flow(self.recent_flow)
             
         if not packages:
             return

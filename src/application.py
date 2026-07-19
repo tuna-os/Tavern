@@ -35,6 +35,9 @@ class TavernApplication(Adw.Application):
 
         self.create_action('quit', lambda *_: self.quit(), ['<primary>q'])
         self.create_action('about', self._on_about_action)
+        self.create_action('preferences', self._on_preferences_action, ['<primary>comma'])
+        self.create_action('shortcuts', self._on_shortcuts_action, ['<primary>question'])
+        self._css_loaded = False
 
         # Action used by the GNOME Shell search provider to open a package
         show_pkg = Gio.SimpleAction.new('show-package', GLib.VariantType.new('s'))
@@ -227,17 +230,7 @@ class TavernApplication(Adw.Application):
                 win.open_brewfile(self._brewfile_to_open)
                 self._brewfile_to_open = None
 
-        # Load CSS
-        css_start = time.perf_counter()
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_resource('/org.tunaos.tavern/style.css')
-        Gtk.StyleContext.add_provider_for_display(
-            win.get_display(),
-            css_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-        )
-        css_time = (time.perf_counter() - css_start) * 1000
-        _log.info('CSS loaded and applied: %.1f ms', css_time)
+        self._ensure_css(win.get_display())
 
         win.present()
         present_time = (time.perf_counter() - activate_start) * 1000
@@ -272,6 +265,67 @@ class TavernApplication(Adw.Application):
     def _open_brewfile_dialog(self, window, path):
         """Open a Brewfile."""
         window.open_brewfile(path)
+
+    def _ensure_css(self, display):
+        """Load the app stylesheet once for the display."""
+        if self._css_loaded or display is None:
+            return
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_resource('/org.tunaos.tavern/style.css')
+        Gtk.StyleContext.add_provider_for_display(
+            display,
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
+        self._css_loaded = True
+
+    def _on_preferences_action(self, *args):
+        settings = Gio.Settings.new(self.get_application_id())
+
+        page = Adw.PreferencesPage(title='General', icon_name='emblem-system-symbolic')
+        group = Adw.PreferencesGroup(title='Updates')
+
+        check_row = Adw.SwitchRow(
+            title='Check for Outdated Packages',
+            subtitle='Check for outdated packages at startup and periodically',
+        )
+        settings.bind('outdated-check-enabled', check_row, 'active',
+                      Gio.SettingsBindFlags.DEFAULT)
+        group.add(check_row)
+
+        interval_row = Adw.SpinRow.new_with_range(1, 168, 1)
+        interval_row.set_title('Check Interval')
+        interval_row.set_subtitle('Hours between background update checks')
+        settings.bind('outdated-check-interval-hours', interval_row, 'value',
+                      Gio.SettingsBindFlags.DEFAULT)
+        settings.bind('outdated-check-enabled', interval_row, 'sensitive',
+                      Gio.SettingsBindFlags.GET)
+        group.add(interval_row)
+
+        page.add(group)
+        dialog = Adw.PreferencesDialog(title='Preferences', search_enabled=True,
+                                       content_width=600)
+        dialog.add(page)
+        dialog._settings = settings  # keep settings alive while the dialog is open
+        dialog.present(self.props.active_window)
+
+    def _on_shortcuts_action(self, *args):
+        if not hasattr(Adw, 'ShortcutsDialog'):
+            _log.debug('Adw.ShortcutsDialog unavailable (libadwaita < 1.8)')
+            return
+        dialog = Adw.ShortcutsDialog()
+        section = Adw.ShortcutsSection(title='General')
+        for title, accel in (
+            ('Search Packages', '<Ctrl>F'),
+            ('Open Brewfile', '<Ctrl>O'),
+            ('Refresh Package Lists', '<Ctrl>R'),
+            ('Preferences', '<Ctrl>comma'),
+            ('Keyboard Shortcuts', '<Ctrl>question'),
+            ('Quit', '<Ctrl>Q'),
+        ):
+            section.add(Adw.ShortcutsItem.new(title, accel))
+        dialog.add(section)
+        dialog.present(self.props.active_window)
 
     def _on_about_action(self, *args):
         about = Adw.AboutDialog(

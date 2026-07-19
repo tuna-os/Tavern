@@ -9,6 +9,20 @@ from gi.repository import Adw, Gtk, GObject
 from .backend import Package
 
 
+def clear_flow(container):
+    """Remove all children from a FlowBox/Box, unbinding any package tiles.
+
+    Tiles subscribe to notify:: signals on long-lived Package objects, so
+    they must be unbound when discarded or the handlers (and the tiles they
+    capture) accumulate on the Package for the lifetime of the app.
+    """
+    while child := container.get_first_child():
+        tile = child.get_child() if isinstance(child, Gtk.FlowBoxChild) else child
+        if isinstance(tile, TavernPackageTile):
+            tile.unbind()
+        container.remove(child)
+
+
 @Gtk.Template(resource_path='/org.tunaos.tavern/package-tile.ui')
 class TavernPackageTile(Adw.Bin):
     __gtype_name__ = 'TavernPackageTile'
@@ -38,6 +52,7 @@ class TavernPackageTile(Adw.Bin):
     def __init__(self, package=None, **kwargs):
         super().__init__(**kwargs)
         self._package = None
+        self._pkg_handlers = []
 
         self.install_button.connect('clicked', self._on_install_clicked)
         self.remove_button.connect('clicked', self._on_remove_clicked)
@@ -61,7 +76,15 @@ class TavernPackageTile(Adw.Bin):
         if package:
             self.set_package(package)
 
+    def unbind(self):
+        """Disconnect from the current package's signals."""
+        if self._package:
+            for hid in self._pkg_handlers:
+                self._package.disconnect(hid)
+        self._pkg_handlers = []
+
     def set_package(self, package):
+        self.unbind()
         self._package = package
         self.name_label.set_label(package.display_name or package.name)
         self.desc_label.set_label(package.description or '')
@@ -82,12 +105,14 @@ class TavernPackageTile(Adw.Bin):
 
         self._sync_state()
 
-        package.connect('notify::installed',     self._on_pkg_prop_changed)
-        package.connect('notify::display-name',  self._on_display_name_changed)
-        package.connect('notify::description',   self._on_description_changed)
-        package.connect('notify::task-active',   self._on_pkg_prop_changed)
-        package.connect('notify::task-progress', self._on_task_progress_changed)
-        package.connect('notify::task-label',    self._on_task_label_changed)
+        self._pkg_handlers = [
+            package.connect('notify::installed',     self._on_pkg_prop_changed),
+            package.connect('notify::display-name',  self._on_display_name_changed),
+            package.connect('notify::description',   self._on_description_changed),
+            package.connect('notify::task-active',   self._on_pkg_prop_changed),
+            package.connect('notify::task-progress', self._on_task_progress_changed),
+            package.connect('notify::task-label',    self._on_task_label_changed),
+        ]
 
     def get_package(self):
         return self._package

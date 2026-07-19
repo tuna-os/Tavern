@@ -7,7 +7,7 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GObject
 from .backend import BrewBackend
-from .package_tile import TavernPackageTile
+from .package_tile import TavernPackageTile, clear_flow
 # Keep this import for compatibility with older compiled templates
 # that still reference TavernUpdatesCard.
 from .updates_card import UpdatesCard  # noqa: F401
@@ -113,10 +113,8 @@ class TavernInstalledPage(Adw.Bin):
 
         # Clear flows
         if self.updates_flow:
-            while child := self.updates_flow.get_first_child():
-                self.updates_flow.remove(child)
-        while child := self.installed_flow.get_first_child():
-            self.installed_flow.remove(child)
+            clear_flow(self.updates_flow)
+        clear_flow(self.installed_flow)
 
         if not installed:
             self.installed_stack.set_visible_child_name('empty')
@@ -157,7 +155,7 @@ class TavernInstalledPage(Adw.Bin):
         updates = [pkg for pkg in self._backend.get_installed_packages() if self._is_outdated(pkg)]
         _log.info('Update All clicked: %d packages', len(updates))
         for pkg in updates:
-            self._task_manager.install(pkg)
+            self._task_manager.upgrade(pkg)
 
     def _on_tile_clicked(self, tile):
         pkg = tile.get_package()
