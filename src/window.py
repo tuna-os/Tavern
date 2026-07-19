@@ -123,6 +123,11 @@ class TavernWindow(Adw.ApplicationWindow):
         self.add_action(refresh_action)
         self.get_application().set_accels_for_action('win.refresh', ['<Ctrl>r'])
 
+        search_action = Gio.SimpleAction.new('search', None)
+        search_action.connect('activate', self._on_search_action)
+        self.add_action(search_action)
+        self.get_application().set_accels_for_action('win.search', ['<Ctrl>f'])
+
         open_brewfile_action = Gio.SimpleAction.new('open-brewfile', None)
         open_brewfile_action.connect('activate', self._on_open_brewfile)
         self.add_action(open_brewfile_action)
@@ -511,6 +516,12 @@ class TavernWindow(Adw.ApplicationWindow):
         """Run `git pull` on whichever tap is currently selected in the Tap page."""
         if hasattr(self.tap_page, 'update_selected_tap'):
             self.tap_page.update_selected_tap()
+
+    def _on_search_action(self, action, param):
+        """Jump to the Search page and focus its entry (header button / Ctrl+F)."""
+        self.main_stack.set_visible_child_name('search')
+        if hasattr(self.search_page, 'focus_search'):
+            self.search_page.focus_search()
 
     def _on_refresh(self, action, param):
         _log.info('Manual refresh triggered')

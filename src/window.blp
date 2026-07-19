@@ -32,9 +32,24 @@ template $TavernWindow: Adw.ApplicationWindow {
               policy: wide;
             }
 
+            [start]
+            Button search_button {
+              icon-name: "system-search-symbolic";
+              tooltip-text: "Search Packages";
+              action-name: "win.search";
+
+              accessibility {
+                label: "Search packages";
+              }
+            }
+
             [end]
             Button task_button {
               tooltip-text: "Downloads & Tasks";
+
+              accessibility {
+                label: "Downloads and tasks";
+              }
 
               styles ["flat", "task-header-button"]
 

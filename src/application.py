@@ -316,6 +316,7 @@ class TavernApplication(Adw.Application):
         dialog = Adw.ShortcutsDialog()
         section = Adw.ShortcutsSection(title='General')
         for title, accel in (
+            ('Search Packages', '<Ctrl>F'),
             ('Open Brewfile', '<Ctrl>O'),
             ('Refresh Package Lists', '<Ctrl>R'),
             ('Preferences', '<Ctrl>comma'),

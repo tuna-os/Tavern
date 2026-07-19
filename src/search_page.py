@@ -47,6 +47,9 @@ class TavernSearchPage(Adw.Bin):
     def set_backend(self, backend):
         self._backend = backend
 
+    def focus_search(self):
+        self.search_entry.grab_focus()
+
     def set_packages(self, formulae, casks):
         # Re-run current search with new data
         query = self.search_entry.get_text().strip()

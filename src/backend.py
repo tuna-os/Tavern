@@ -419,12 +419,15 @@ class BrewBackend(GObject.Object):
                     downloaded = 0
                     chunk_size = 65536 # 64KB chunks
                     
-                    url_basename = url.split('/')[-1]
-                    is_formula = "formula" in url_basename
-                    is_cask = "cask" in url_basename
+                    # Only the two catalog downloads drive the loading
+                    # screen; analytics/detail fetches must not touch it.
+                    is_formula = url == FORMULA_API
+                    is_cask = url == CASK_API
+                    is_catalog = is_formula or is_cask
                     display_name = "formulae" if is_formula else "casks"
-                    
-                    self._update_status(f"Downloading Homebrew {display_name} catalog...")
+
+                    if is_catalog:
+                        self._update_status(f"Downloading Homebrew {display_name} catalog...")
                     
                     read_all = False
                     while True:
@@ -441,17 +444,19 @@ class BrewBackend(GObject.Object):
                         buffer.write(chunk)
                         downloaded += len(chunk)
                         
+                        if not is_catalog:
+                            continue
                         if content_length:
                             percent = int((downloaded / content_length) * 100)
                             downloaded_mb = downloaded / (1024 * 1024)
                             total_mb = content_length / (1024 * 1024)
                             self._update_status(f"Downloading Homebrew {display_name} catalog ({percent}%: {downloaded_mb:.1f} MB / {total_mb:.1f} MB)...")
-                            
+
                             # Scale the progress bar fraction
                             fraction = downloaded / content_length
                             if is_formula:
                                 self._update_progress(0.2 + fraction * 0.4)
-                            elif is_cask:
+                            else:
                                 self._update_progress(0.6 + fraction * 0.3)
                         else:
                             downloaded_mb = downloaded / (1024 * 1024)
@@ -465,11 +470,13 @@ class BrewBackend(GObject.Object):
                         if headers and headers.get('Content-Encoding') == 'gzip':
                             is_gzip = True
                     if is_gzip:
-                        self._update_status(f"Decompressing Homebrew {display_name} catalog...")
+                        if is_catalog:
+                            self._update_status(f"Decompressing Homebrew {display_name} catalog...")
                         _log.debug('Decompressing gzip response for %s', url)
                         content = gzip.decompress(content)
                     
-                    self._update_status(f"Parsing Homebrew {display_name} catalog...")
+                    if is_catalog:
+                        self._update_status(f"Parsing Homebrew {display_name} catalog...")
                     data = json.loads(content.decode('utf-8'))
             _log.debug('Fetched JSON OK: %s  (items=%s)',
                        url, len(data) if isinstance(data, list) else '?')

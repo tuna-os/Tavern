@@ -87,8 +87,14 @@ class TavernPackageDetails(Adw.NavigationPage):
         self._pin_handler_id = None
         if self.pin_button is not None:
             self._pin_handler_id = self.pin_button.connect('toggled', self._on_pin_toggled)
+        self._pinned_handler = None
         if self._backend:
-            self._backend.connect('pinned-changed', lambda b, _s: self._update_buttons())
+            self._pinned_handler = self._backend.connect(
+                'pinned-changed', lambda b, _s: self._update_buttons())
+        # Tear down backend/package subscriptions when the page is popped,
+        # otherwise the backend's signal ref keeps every visited details
+        # page (and its tiles) alive for the lifetime of the app.
+        self.connect('hidden', self._on_page_hidden)
         self.info_listbox.connect('row-activated', self._on_info_row_activated)
         self.screenshot_button.connect('clicked', self._on_screenshot_clicked)
 
@@ -508,6 +514,18 @@ class TavernPackageDetails(Adw.NavigationPage):
         else:
             self.error_label.set_visible(False)
         self.emit('package-changed', self._package)
+
+    def _on_page_hidden(self, page):
+        # 'hidden' fires both when covered by a push and when popped;
+        # only tear down once the page has left the navigation stack.
+        if self.get_parent() is not None:
+            return
+        if self._backend is not None and self._pinned_handler is not None:
+            self._backend.disconnect(self._pinned_handler)
+            self._pinned_handler = None
+        from .package_tile import clear_flow
+        clear_flow(self.variants_flow)
+        clear_flow(self.related_flow)
 
     def _on_key_pressed(self, controller, keyval, keycode, state):
         alt_pressed = (state & Gdk.ModifierType.ALT_MASK) != 0
