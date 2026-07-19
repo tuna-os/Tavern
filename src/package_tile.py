@@ -89,7 +89,12 @@ class TavernPackageTile(Adw.Bin):
         self.name_label.set_label(package.display_name or package.name)
         self.desc_label.set_label(package.description or '')
 
-        if package.pkg_type == 'cask':
+        if getattr(package, 'is_font', False):
+            self.type_badge.set_label('font')
+            self.type_badge.remove_css_class('formula-badge')
+            self.type_badge.remove_css_class('cask-badge')
+            self.type_badge.add_css_class('font-badge')
+        elif package.pkg_type == 'cask':
             self.type_badge.set_label('cask')
             self.type_badge.remove_css_class('formula-badge')
             self.type_badge.add_css_class('cask-badge')

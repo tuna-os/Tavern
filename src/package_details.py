@@ -63,6 +63,8 @@ class TavernPackageDetails(Adw.NavigationPage):
     readme_preview_label = Gtk.Template.Child()
     readme_fade_overlay = Gtk.Template.Child()
     show_readme_button = Gtk.Template.Child()
+    font_preview_bin = Gtk.Template.Child()
+    font_preview_box = Gtk.Template.Child()
     variants_bin = Gtk.Template.Child()
     variants_flow = Gtk.Template.Child()
     related_bin = Gtk.Template.Child()
@@ -132,9 +134,15 @@ class TavernPackageDetails(Adw.NavigationPage):
             self.detail_display_name.set_label(package.display_name)
             self.detail_display_name.set_visible(True)
 
-        self.detail_type_badge.set_label(package.pkg_type)
-        if package.pkg_type == 'cask':
-            self.detail_type_badge.add_css_class('cask-badge')
+        if getattr(package, 'is_font', False):
+            self.detail_type_badge.set_label('font')
+            self.detail_type_badge.add_css_class('font-badge')
+            self._build_font_preview(package)
+        else:
+            self.detail_type_badge.set_label(package.pkg_type)
+            if package.pkg_type == 'cask':
+                self.detail_type_badge.add_css_class('cask-badge')
+            self.font_preview_bin.set_visible(False)
 
         _log.debug('Setting version_label: %s', package.version or 'Unknown')
         self.version_label.set_label(package.version or 'Unknown')
@@ -178,6 +186,44 @@ class TavernPackageDetails(Adw.NavigationPage):
             self._backend.fetch_readme_async(package, self._on_readme_fetched)
             self._backend.get_package_info_async(package, self._on_info_loaded)
             GLib.idle_add(self._load_related_packages)
+
+    _FONT_PANGRAM = 'The quick brown fox jumps over the lazy dog.'
+
+    def _build_font_preview(self, package):
+        """Render pangram samples in the cask's font family (issue #39).
+
+        Rendering uses the locally installed font, so an uninstalled cask
+        shows an install hint instead of a bogus fallback-font preview.
+        """
+        while child := self.font_preview_box.get_first_child():
+            self.font_preview_box.remove(child)
+
+        family = (package.display_name or
+                  package.name.removeprefix('font-').replace('-', ' ').title())
+
+        if package.installed:
+            esc_family = GLib.markup_escape_text(family)
+            samples = [
+                (family, 32),
+                ('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 15),
+                ('abcdefghijklmnopqrstuvwxyz 0123456789', 15),
+                (self._FONT_PANGRAM, 22),
+                (self._FONT_PANGRAM, 13),
+            ]
+            for text, size_pt in samples:
+                label = Gtk.Label(xalign=0.0, wrap=True, selectable=True)
+                label.set_markup(
+                    f'<span font_family="{esc_family}" size="{size_pt * 1024}">'
+                    f'{GLib.markup_escape_text(text)}</span>')
+                self.font_preview_box.append(label)
+        else:
+            hint = Gtk.Label(
+                xalign=0.0, wrap=True,
+                label='Install this font to see a live preview.')
+            hint.add_css_class('dim-label')
+            self.font_preview_box.append(hint)
+
+        self.font_preview_bin.set_visible(True)
 
     def _load_related_packages(self):
         if not self._backend or not self._package:
@@ -508,6 +554,8 @@ class TavernPackageDetails(Adw.NavigationPage):
         self.detail_progress_bar.set_fraction(1.0 if success else 0.0)
         self.detail_progress_bar.set_visible(False)
         self._update_buttons()
+        if getattr(self._package, 'is_font', False):
+            self._build_font_preview(self._package)
         if not success and task.error_detail:
             self.error_label.set_label(task.error_detail)
             self.error_label.set_visible(True)

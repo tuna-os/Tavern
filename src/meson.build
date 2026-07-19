@@ -67,7 +67,6 @@ tavern_sources = [
   'brewfile_dialog.py',
   'brewfile_page.py',
   'search_provider.py',
-  'updates_card.py',
   'version_history_dialog.py',
   'screenshot_lightbox.py',
   'stats_dialog.py',
