@@ -52,6 +52,11 @@ template $TavernSearchPage: Adw.Bin {
             Button clear_button {
               visible: false;
               icon-name: "edit-clear-symbolic";
+              tooltip-text: "Clear Search";
+
+              accessibility {
+                label: "Clear search";
+              }
 
               styles [
                 "flat",
