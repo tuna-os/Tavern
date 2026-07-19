@@ -288,11 +288,23 @@ class TaskManager(GObject.Object):
                 self._running = False
             GLib.idle_add(self._finish_task, task)
 
+    MAX_FINISHED_HISTORY = 20
+
     def _finish_task(self, task):
         self._update_active_count()
         self.emit('task-finished', task)
+        # Cap retained history so finished tasks (and the Packages/output
+        # they reference) don't accumulate for the app's lifetime.
+        finished = [t for t in self._tasks if not t.is_active]
+        if len(finished) > self.MAX_FINISHED_HISTORY:
+            drop = set(finished[:-self.MAX_FINISHED_HISTORY])
+            self._tasks = [t for t in self._tasks if t not in drop]
         # Schedule next queued task
         self._maybe_start_next()
+
+    def clear_finished(self):
+        """Drop all finished tasks from history (task panel Clear button)."""
+        self._tasks = [t for t in self._tasks if t.is_active]
 
     def _apply_task_success(self, task):
         self._update_package_state(task)
