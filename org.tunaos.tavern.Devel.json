@@ -33,7 +33,7 @@
                 {
                     "type": "git",
                     "url": "https://github.com/GNOME/blueprint-compiler.git",
-                    "tag": "v0.16.0"
+                    "tag": "v0.22.2"
                 }
             ]
         },
