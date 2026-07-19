@@ -104,7 +104,7 @@ jobs:
     name: "Flatpak Bundle"
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
     permissions:
       contents: write
