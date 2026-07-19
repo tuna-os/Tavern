@@ -85,10 +85,15 @@ class TavernBrowsePage(Adw.Bin):
             if name in name_map:
                 shown.append(name_map[name])
 
-        # Fill remaining slots from package list (sorted by name length as lightweight
-        # popularity proxy - shorter names tend to be well-known)
-        remaining = [p for p in packages if p.name not in {s.name for s in shown}]
-        remaining.sort(key=lambda p: len(p.name))
+        # Fill remaining slots by real install analytics when available
+        # (backend re-emits formulae-loaded once analytics are patched in);
+        # fall back to short names as a lightweight popularity proxy.
+        shown_names = {s.name for s in shown}
+        remaining = [p for p in packages if p.name not in shown_names]
+        if any(p.installs_30d for p in remaining[:200]):
+            remaining.sort(key=lambda p: (-(p.installs_30d or 0), len(p.name)))
+        else:
+            remaining.sort(key=lambda p: len(p.name))
         shown.extend(remaining[: 24 - len(shown)])
 
         for pkg in shown:
