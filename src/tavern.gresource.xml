@@ -3,7 +3,6 @@
   <gresource prefix="/org.tunaos.tavern">
     <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks">package-tile.ui</file>
-    <file preprocess="xml-stripblanks">package-rich-tile.ui</file>
     <file preprocess="xml-stripblanks">package-details.ui</file>
     <file preprocess="xml-stripblanks">search-page.ui</file>
     <file preprocess="xml-stripblanks">browse-page.ui</file>
