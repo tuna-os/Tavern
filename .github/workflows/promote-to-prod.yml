@@ -1,0 +1,53 @@
+name: Promote to Prod
+
+# Fast-forwards prod to whatever commit on main just passed the Flatpak CI
+# build, then explicitly dispatches the prod publish pipeline. A bot push
+# alone won't re-trigger publish-flatpak.yml's push trigger (GITHUB_TOKEN
+# pushes don't fire other workflows), so this workflow dispatches it directly.
+
+on:
+  workflow_run:
+    workflows: ["Flatpak CI"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  promote:
+    name: "Fast-forward prod and publish"
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Fast-forward prod to tested main commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          TESTED_SHA="${{ github.event.workflow_run.head_sha }}"
+
+          git fetch origin prod
+          git checkout -B prod origin/prod
+
+          if ! git merge --ff-only "$TESTED_SHA"; then
+            echo "::error::prod has diverged from main and cannot be fast-forwarded. Manual reconciliation required."
+            exit 1
+          fi
+
+          git push origin prod
+
+      - name: Dispatch prod publish pipeline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-flatpak.yml --ref prod
