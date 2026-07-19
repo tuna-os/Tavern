@@ -3,7 +3,7 @@ name: Build and Publish Flatpak OCI
 on:
   push:
     branches:
-      - main
+      - prod
     tags:
       - 'v*'
   workflow_dispatch:
