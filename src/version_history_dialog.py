@@ -143,7 +143,7 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
         spinner.start()
         spinner_box.append(spinner)
 
-        loading_label = Gtk.Label(label='Fetching version history...')
+        loading_label = Gtk.Label(label='Fetching version history…')
         loading_label.add_css_class('dim-label')
         spinner_box.append(loading_label)
 

@@ -44,13 +44,13 @@
 }
 
 .flatpak-badge {
-  background-color: alpha(#4e9a06, 0.15);
-  color: #4e9a06;
+  background-color: alpha(@success_color, 0.15);
+  color: @success_color;
 }
 
 .font-badge {
-  background-color: alpha(#e66100, 0.15);
-  color: #e66100;
+  background-color: alpha(@warning_color, 0.15);
+  color: @warning_color;
 }
 
 .font-preview-card {
@@ -58,11 +58,9 @@
 }
 
 .cask-badge {
-  background-color: alpha(#9141ac, 0.15);
-  color: #9141ac;
+  background-color: alpha(@purple_3, 0.15);
+  color: @purple_3;
 }
-
-@define-color cask_badge_color #9141ac;
 
 /* ===== Installed pill ===== */
 .installed-pill {

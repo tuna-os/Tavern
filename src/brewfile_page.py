@@ -142,7 +142,7 @@ class TavernBrewfilePage(Adw.Bin):
 
             # Show trust icon for Homebrew 6.0.0+ trusted taps
             if tap_trusted:
-                trust_icon = Gtk.Image.new_from_icon_name('lock-symbolic')
+                trust_icon = Gtk.Image.new_from_icon_name('security-high-symbolic')
                 trust_icon.add_css_class('success')
                 trust_icon.set_tooltip_text('Tap explicitly trusted')
                 box.append(trust_icon)
@@ -177,7 +177,7 @@ class TavernBrewfilePage(Adw.Bin):
             
             # Add status icon with tooltip on failure
             icon = Gtk.Image.new_from_icon_name(
-                'emblem-ok-symbolic' if success else 'dialog-warning-symbolic'
+                'object-select-symbolic' if success else 'dialog-warning-symbolic'
             )
             if not success and error_msg:
                 self._tap_errors[tap] = error_msg

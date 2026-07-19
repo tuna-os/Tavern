@@ -242,7 +242,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
                     display_name = "formulae" if is_formula else "casks"
 
                     if is_catalog:
-                        self._update_status(f"Downloading Homebrew {display_name} catalog...")
+                        self._update_status(f"Downloading Homebrew {display_name} catalog…")
                     
                     read_all = False
                     while True:
@@ -265,7 +265,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
                             percent = int((downloaded / content_length) * 100)
                             downloaded_mb = downloaded / (1024 * 1024)
                             total_mb = content_length / (1024 * 1024)
-                            self._update_status(f"Downloading Homebrew {display_name} catalog ({percent}%: {downloaded_mb:.1f} MB / {total_mb:.1f} MB)...")
+                            self._update_status(f"Downloading Homebrew {display_name} catalog ({percent}%: {downloaded_mb:.1f} MB / {total_mb:.1f} MB)…")
 
                             # Scale the progress bar fraction
                             fraction = downloaded / content_length
@@ -275,7 +275,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
                                 self._update_progress(0.6 + fraction * 0.3)
                         else:
                             downloaded_mb = downloaded / (1024 * 1024)
-                            self._update_status(f"Downloading Homebrew {display_name} catalog ({downloaded_mb:.1f} MB)...")
+                            self._update_status(f"Downloading Homebrew {display_name} catalog ({downloaded_mb:.1f} MB)…")
                             
                     content = buffer.getvalue()
                     
@@ -286,12 +286,12 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
                             is_gzip = True
                     if is_gzip:
                         if is_catalog:
-                            self._update_status(f"Decompressing Homebrew {display_name} catalog...")
+                            self._update_status(f"Decompressing Homebrew {display_name} catalog…")
                         _log.debug('Decompressing gzip response for %s', url)
                         content = gzip.decompress(content)
                     
                     if is_catalog:
-                        self._update_status(f"Parsing Homebrew {display_name} catalog...")
+                        self._update_status(f"Parsing Homebrew {display_name} catalog…")
                     data = json.loads(content.decode('utf-8'))
             _log.debug('Fetched JSON OK: %s  (items=%s)',
                        url, len(data) if isinstance(data, list) else '?')
@@ -329,7 +329,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
             return None
         try:
             display_name = "formulae" if pkg_type == "formula" else "casks"
-            self._update_status(f"Reading system Homebrew {display_name} catalog...")
+            self._update_status(f"Reading system Homebrew {display_name} catalog…")
             _log.info('Found system Homebrew cached JWS file for %s at %s', pkg_type, path)
             with open(path, 'r', encoding='utf-8') as f:
                 jws_data = json.load(f)
@@ -419,7 +419,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
             # 1. Formulae
             new_data_f = self._load_from_host_jws('formula')
             if not new_data_f:
-                _log.debug('System Homebrew formula cache not available, downloading...')
+                _log.debug('System Homebrew formula cache not available, downloading…')
                 new_data_f = self._fetch_json(FORMULA_API)
             if new_data_f:
                 self._save_cache('formulae', new_data_f)
@@ -437,7 +437,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
             # 2. Casks
             new_data_c = self._load_from_host_jws('cask')
             if not new_data_c:
-                _log.debug('System Homebrew cask cache not available, downloading...')
+                _log.debug('System Homebrew cask cache not available, downloading…')
                 new_data_c = self._fetch_json(CASK_API)
             if new_data_c:
                 self._save_cache('casks', new_data_c)
@@ -578,7 +578,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
     def _load_all_thread(self):
         _log.debug('_load_all_thread started')
         self._update_progress(0.0)
-        self._update_status("Scanning installed packages...")
+        self._update_status("Scanning installed packages…")
         # Get installed packages first
         with log_timing('get installed packages', 'backend'):
             installed_f, installed_c = self._get_installed()
@@ -596,7 +596,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
         threading.Thread(target=self._load_pinned, daemon=True).start()
 
         # Load formulae from cache first
-        self._update_status("Loading Homebrew formulae catalog...")
+        self._update_status("Loading Homebrew formulae catalog…")
         self._update_progress(0.08)
         has_cache_f = False
         data, is_stale = self._load_cached('formulae', max_age=43200)
@@ -611,7 +611,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
             self._update_progress(0.12)
 
         # Load casks from cache first
-        self._update_status("Loading Homebrew casks catalog...")
+        self._update_status("Loading Homebrew casks catalog…")
         self._update_progress(0.15)
         has_cache_c = False
         data_c, is_stale_c = self._load_cached('casks', max_age=43200)
@@ -635,7 +635,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
 
         # Fetch formulae in background if missing or stale
         if not has_cache_f or is_stale:
-            _log.debug('Formulae cache missing or stale, refreshing...')
+            _log.debug('Formulae cache missing or stale, refreshing…')
             with BrewBackend._refresh_lock:
                 # Double check if cache is still missing or stale after acquiring the lock
                 double_check_data, double_check_stale = self._load_cached('formulae', max_age=43200)
@@ -652,7 +652,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
                         _log.info('Loaded formulae from system Homebrew JWS cache (bypassed API download)')
                         self._update_progress(0.6)
                     else:
-                        _log.debug('System Homebrew cache not available or invalid, fetching from API...')
+                        _log.debug('System Homebrew cache not available or invalid, fetching from API…')
                         new_data = self._fetch_json(FORMULA_API)
                     if new_data:
                         self._save_cache('formulae', new_data)
@@ -666,7 +666,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
 
         # Fetch casks in background if missing or stale
         if not has_cache_c or is_stale_c:
-            _log.debug('Casks cache missing or stale, refreshing...')
+            _log.debug('Casks cache missing or stale, refreshing…')
             with BrewBackend._refresh_lock:
                 # Double check if cache is still missing or stale after acquiring the lock
                 double_check_data, double_check_stale = self._load_cached('casks', max_age=43200)
@@ -686,7 +686,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
                         _log.info('Loaded casks from system Homebrew JWS cache (bypassed API download)')
                         self._update_progress(0.9)
                     else:
-                        _log.debug('System Homebrew cache not available or invalid, fetching from API...')
+                        _log.debug('System Homebrew cache not available or invalid, fetching from API…')
                         new_data = self._fetch_json(CASK_API)
                     if new_data:
                         self._save_cache('casks', new_data)
@@ -702,14 +702,14 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
         # If no cache was available on launch, tap scan and clear spinner now
         if not (has_cache_f or has_cache_c):
             self._update_progress(0.92)
-            self._update_status("Scanning local taps...")
+            self._update_status("Scanning local taps…")
             _log.debug('No cache was available on launch, scanning taps and clearing spinner now')
             self._load_tap_packages()
             self._update_progress(0.96)
             GLib.idle_add(self._set_loading_false)
 
         self._update_progress(0.98)
-        self._update_status("Building search provider index...")
+        self._update_status("Building search provider index…")
         self._build_search_provider_cache()
         self._update_progress(1.0)
 
@@ -834,7 +834,7 @@ class BrewBackend(TapsMixin, MediaMixin, GObject.Object):
 
     def _build_search_provider_cache(self):
         """Build a lightweight cache of Linux-compatible packages for the search provider."""
-        _log.info('Building search provider cache...')
+        _log.info('Building search provider cache…')
         sp_cache_path = os.path.join(self._cache_dir, 'linux_packages.json')
         packages_data = []
 
