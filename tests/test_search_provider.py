@@ -219,7 +219,8 @@ def test_search_provider_export():
     # Export first time
     provider.export(conn)
     assert provider.registration_id == 123
-    assert "/org.tunaos.tavern/SearchProvider" in conn.registered
+    # Valid D-Bus object path (dots are illegal in path elements)
+    assert "/org/tunaos/tavern/SearchProvider" in conn.registered
 
     # Export again (should be no-op)
     provider.export(conn)

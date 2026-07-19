@@ -64,9 +64,17 @@ class TavernSearchProvider:
             return
 
         self.connection = connection
+        # Object path must match the ObjectPath in the search-provider ini:
+        # slash-separated app id + /SearchProvider. Dots are illegal in
+        # D-Bus object paths, so the id must be transformed, not embedded.
+        app_id = None
+        if self.application is not None:
+            app_id = self.application.get_application_id()
+        app_id = app_id or 'org.tunaos.tavern'
+        object_path = '/' + app_id.replace('.', '/') + '/SearchProvider'
         try:
             self.registration_id = self.connection.register_object(
-                "/org.tunaos.tavern/SearchProvider",
+                object_path,
                 self._interface_info,
                 self._handle_method_call,
                 None,  # get_property
