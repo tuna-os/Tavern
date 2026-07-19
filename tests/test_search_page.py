@@ -26,6 +26,9 @@ def test_search_page_workflows(tmp_path, monkeypatch):
         return [pkg_rg, pkg_fox]
         
     monkeypatch.setattr(backend, 'search', mock_search)
+    # Deliver async searches synchronously in tests
+    monkeypatch.setattr(backend, 'search_async',
+                        lambda q, t, cb: cb(q, mock_search(q, t)))
     
     # Simulate a valid mock pixbuf to cover tile.set_icon_pixbuf callback
     mock_pixbuf = object()
@@ -76,7 +79,12 @@ def test_search_page_workflows(tmp_path, monkeypatch):
     page.search_entry.set_text('')
     assert page.search_stack.get_visible_child_name() == 'empty'
     
-    # Test search with no results
+    # Test search with no results (entry text must match — late results
+    # for changed text are deliberately dropped)
+    page.search_entry.set_text('empty')
+    if page._search_timeout:
+        GLib.source_remove(page._search_timeout)
+        page._search_timeout = None
     page._do_search('empty')
     assert page.search_stack.get_visible_child_name() == 'no-results'
     

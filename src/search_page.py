@@ -91,7 +91,16 @@ class TavernSearchPage(Adw.Bin):
         self.search_spinner.set_visible(True)
 
         pkg_type = self._current_filter
-        results = self._backend.search(query, pkg_type)
+        if hasattr(self._backend, 'search_async'):
+            # Off-main-thread search; the backend drops superseded queries
+            self._backend.search_async(query, pkg_type, self._on_search_results)
+        else:
+            self._on_search_results(query, self._backend.search(query, pkg_type))
+
+    def _on_search_results(self, query, results):
+        # Ignore late results for text the user has since changed
+        if query != self.search_entry.get_text().strip():
+            return
         _log.debug('Search returned %d results', len(results))
 
         clear_flow(self.results_flow)

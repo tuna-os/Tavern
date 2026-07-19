@@ -280,6 +280,8 @@ class BrewBackend(GObject.Object):
         self._outdated_lock = threading.Lock()
         self._pinned = set()  # formula names pinned via `brew pin`
         self._pinned_lock = threading.Lock()
+        self._search_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='tavern-search')
+        self._search_generation = 0
         self._icon_executor = ThreadPoolExecutor(max_workers=6, thread_name_prefix='tavern-icon')
         self._icon_inflight = {}  # package name -> [(package, callback), ...]
         self._icon_lock = threading.Lock()
@@ -1112,6 +1114,30 @@ class BrewBackend(GObject.Object):
         for pkg, inst in changes:
             pkg.installed = inst
         self.emit('installed-loaded', [])
+
+    def search_async(self, query, pkg_type, callback):
+        """Run search() on a worker thread and deliver results on the main loop.
+
+        Only the newest query is delivered — stale in-flight searches are
+        dropped, so fast typing never floods the UI (issue #49).
+        """
+        self._search_generation += 1
+        gen = self._search_generation
+        self._search_executor.submit(self._search_job, gen, query, pkg_type, callback)
+
+    def _search_job(self, gen, query, pkg_type, callback):
+        if gen != self._search_generation:
+            return  # superseded before it even started
+        try:
+            results = self.search(query, pkg_type)
+        except Exception as e:
+            _log.error('search_async failed for %r: %s', query, e)
+            results = []
+        GLib.idle_add(self._deliver_search, gen, callback, query, results)
+
+    def _deliver_search(self, gen, callback, query, results):
+        if gen == self._search_generation:
+            callback(query, results)
 
     def search(self, query, pkg_type=None):
         """Search packages by name/description. Returns list of Package."""
