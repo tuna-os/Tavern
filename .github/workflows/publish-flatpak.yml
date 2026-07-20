@@ -22,7 +22,7 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Build Flatpak
       uses: flatpak/flatpak-github-actions/flatpak-builder@v6
@@ -50,7 +50,7 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Download OCI Artifact
       uses: actions/download-artifact@v8
