@@ -26,7 +26,7 @@ jobs:
       run: zip -r Tavern-macOS.zip Tavern.app
 
     - name: Upload Release Asset
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: Tavern-macOS.zip
         generate_release_notes: true
@@ -94,7 +94,7 @@ jobs:
         du -sh AppDir/
 
     - name: Upload Release Asset
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: Tavern-Linux.AppImage
       env:
@@ -118,7 +118,7 @@ jobs:
         cache-key: flatpak-builder-${{ github.sha }}
 
     - name: Upload Release Asset
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: Tavern-Linux.flatpak
         generate_release_notes: true
