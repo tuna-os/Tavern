@@ -11,8 +11,6 @@
 import os
 import subprocess
 
-import pytest
-
 import tavern.brew_env as be
 
 
@@ -84,15 +82,9 @@ class TestFindBrew:
         monkeypatch.setattr(subprocess, 'run', boom)
         assert be._find_brew() == 'brew'
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="tuna-os/Tavern#73: 'which brew' with rc=0 but empty stdout returns "
-               "'' instead of falling back to the bare 'brew' command",
-    )
     def test_path_fallback_empty_stdout_uses_bare_brew(self, monkeypatch):
         """Edge case from #73: a successful `which` that prints nothing must not
-        yield an empty BREW_BIN — the fallback contract is the bare 'brew'.
-        Currently broken (returns ''); remove the xfail marker once fixed."""
+        yield an empty BREW_BIN — the fallback contract is the bare 'brew'."""
         monkeypatch.setattr(os.path, 'isfile', lambda p: False)
         fake = subprocess.CompletedProcess(
             args=['which', 'brew'], returncode=0, stdout='', stderr='')

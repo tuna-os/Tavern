@@ -41,8 +41,13 @@ def _find_brew():
         result = subprocess.run(['which', 'brew'], capture_output=True, text=True)
         if result.returncode == 0:
             path = result.stdout.strip()
-            _log.info('Found brew via PATH at %s', path)
-            return path
+            # A `which` that exits 0 but prints nothing (a shell wrapper, or a
+            # mocked/broken which) would otherwise make BREW_BIN the empty
+            # string, and callers would exec '' instead of falling through to
+            # the bare-'brew' contract below.
+            if path:
+                _log.info('Found brew via PATH at %s', path)
+                return path
     except Exception:
         pass
     _log.warning('brew executable not found; falling back to bare "brew"')
