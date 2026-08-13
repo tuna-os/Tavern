@@ -1,0 +1,59 @@
+name: Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  pytest:
+    name: "Python unit tests"
+    runs-on: ubuntu-latest
+    # The GNOME 50 SDK image, same one flatpak.yml builds against.
+    #
+    # This does NOT run on a bare ubuntu-latest with apt-installed bindings,
+    # which is the obvious approach and does not work: Ubuntu 24.04 ships
+    # libadwaita 1.5, and src/task_panel.py uses Adw.Spinner, which arrived in
+    # 1.6. Four widget tests fail with
+    # "'gi.repository.Adw' object has no attribute 'Spinner'" before they test
+    # anything. Running against the runtime the app actually targets avoids
+    # testing the app against a libadwaita it never ships with.
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install pytest
+        run: pip install --break-system-packages pytest pytest-benchmark
+
+      - name: Compile Blueprint UI and the gresource bundle
+        # tests/conftest.py registers a compiled gresource if it finds one at
+        # this exact path, and the Gtk.Template classes cannot be imported
+        # without it — without this step 14 test modules fail at *collection*
+        # with g-resource-error / "could not create new GType".
+        run: |
+          mkdir -p build-ui .flatpak-build/files/share/tavern
+          blueprint-compiler batch-compile build-ui src src/*.blp
+          cp src/style.css build-ui/
+          glib-compile-resources \
+            --target=.flatpak-build/files/share/tavern/tavern.gresource \
+            --sourcedir=build-ui --sourcedir=src \
+            src/tavern.gresource.xml
+
+      - name: Run test suite
+        # xvfb because widget construction needs a display; dbus-run-session
+        # because libadwaita otherwise warns on every widget test that it
+        # cannot acquire the session bus.
+        run: |
+          xvfb-run -a dbus-run-session -- \
+            python3 -m pytest tests/ -m "not slow" --junitxml=junit.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-junit
+          path: junit.xml
+          retention-days: 7
