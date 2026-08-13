@@ -104,8 +104,54 @@ def fake_github_readme(monkeypatch):
 
 # ─── README image extraction ─────────────────────────────────────────────────
 
+@pytest.fixture
+def no_svg_loader(monkeypatch):
+    """Pin gdk-pixbuf's SVG support OFF.
+
+    _fetch_readme_images consults GdkPixbuf.Pixbuf.get_formats() to decide
+    whether to keep .svg URLs, so any assertion about SVG filtering otherwise
+    depends on whether librsvg happens to be installed on the machine running
+    the tests — green on a bare container, red on most desktops and on GitHub's
+    ubuntu runner images, which do ship the SVG loader.
+    """
+    monkeypatch.setattr(
+        GdkPixbuf.Pixbuf, 'get_formats',
+        staticmethod(lambda: [SimpleNamespace(get_name=lambda: 'png'),
+                              SimpleNamespace(get_name=lambda: 'jpeg')]))
+
+
+@pytest.fixture
+def stub_pixbuf_loader(monkeypatch):
+    """Make the download paths decode this module's stand-in payloads.
+
+    After fetching, media.py decodes the bytes with a real
+    GdkPixbuf.PixbufLoader (icons at :135, screenshots at :303) and then calls
+    scale_simple() on the result. The payloads here are byte-count stand-ins —
+    a PNG magic number followed by filler — so the real loader raises, the
+    surrounding try/except swallows it, and the fetch returns None before the
+    assertion under test is ever reached.
+
+    Yields a genuine 4x4 pixbuf rather than a bare Pixbuf() so that the
+    scale_simple()/get_width() calls downstream behave like the real thing.
+    """
+    real = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, 4, 4)
+
+    class _FakeLoader:
+        def write(self, data):
+            return True
+
+        def close(self):
+            return True
+
+        def get_pixbuf(self):
+            return real
+
+    monkeypatch.setattr(GdkPixbuf, 'PixbufLoader', _FakeLoader)
+    return real
+
+
 class TestFetchReadmeImages:
-    def test_extracts_and_resolves_images(self, host, fake_github_readme):
+    def test_extracts_and_resolves_images(self, host, fake_github_readme, no_svg_loader):
         pkg = _pkg(homepage='https://github.com/BurntSushi/ripgrep',
                    source_url='https://github.com/BurntSushi/ripgrep/archive/1.0.tar.gz')
         imgs = host._fetch_readme_images(pkg)
@@ -122,7 +168,7 @@ class TestFetchReadmeImages:
         imgs = host._fetch_readme_images(pkg)
         assert not any('shields.io' in u or 'travis' in u for u in imgs)
 
-    def test_svg_skipped_without_svg_support(self, host, fake_github_readme):
+    def test_svg_skipped_without_svg_support(self, host, fake_github_readme, no_svg_loader):
         pkg = _pkg(homepage='https://github.com/BurntSushi/ripgrep')
         imgs = host._fetch_readme_images(pkg)
         assert not any(u.endswith('.svg') for u in imgs)
@@ -297,7 +343,7 @@ class TestFetchIcon:
         result = host._fetch_icon(pkg)
         assert result is pixbuf
 
-    def test_explicit_icon_url_used_first(self, host, monkeypatch):
+    def test_explicit_icon_url_used_first(self, host, monkeypatch, stub_pixbuf_loader):
         data = self._png_bytes()
         monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
             ('icons.example.com', _FakeResp(data, headers={'Content-Type': 'image/png'})),
@@ -307,7 +353,7 @@ class TestFetchIcon:
         assert result is not None
         assert os.path.exists(os.path.join(host._cache_dir, 'icon_app.png'))
 
-    def test_github_avatar_appended_for_github_homepage(self, host, monkeypatch):
+    def test_github_avatar_appended_for_github_homepage(self, host, monkeypatch, stub_pixbuf_loader):
         data = self._png_bytes()
         monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
             ('github.com', _FakeResp(data, headers={'Content-Type': 'image/png'})),
@@ -331,7 +377,7 @@ class TestFetchIcon:
         pkg = _pkg(name='app')  # no homepage, no icon_url, no source_url
         assert host._fetch_icon(pkg) is None
 
-    def test_ico_conversion_path(self, host, monkeypatch):
+    def test_ico_conversion_path(self, host, monkeypatch, stub_pixbuf_loader):
         # Build a real ICO containing an embedded PNG so ico_to_png decodes it.
         png = b'\x89PNG\r\n\x1a\n' + b'1' * 300
         ico = struct_pack_ico(png)
@@ -372,7 +418,7 @@ class TestFetchScreenshot:
         assert args[0] is pkg
         assert args[1] is pixbuf
 
-    def test_download_saves_and_returns(self, host, idle, monkeypatch):
+    def test_download_saves_and_returns(self, host, idle, monkeypatch, stub_pixbuf_loader):
         data = b'\xff\xd8\xff\xe0' + b'2' * 500  # fake jpeg > 100 bytes
         monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
             ('tavern-metadata', _FakeResp(data, headers={'Content-Type': 'image/jpeg'})),
