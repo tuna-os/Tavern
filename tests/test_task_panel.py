@@ -2,11 +2,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
-from gi.repository import Gtk, GLib
+from gi.repository import Adw, Gtk, GLib
 from tavern.task_panel import TavernTaskRow, TavernTaskPanel
 from tavern.task_manager import Task, TaskManager, TaskStatus, TaskOperation
 from tavern.backend import Package, BrewBackend
 
+# src/task_panel.py constructs Adw.Spinner, which arrived in libadwaita 1.6.
+# Ubuntu 24.04 (GitHub's current ubuntu-latest) ships 1.5, where that raises
+# "AttributeError: 'gi.repository.Adw' object has no attribute 'Spinner'"
+# before the test asserts anything. Skipping rather than failing means these
+# run automatically wherever libadwaita is new enough — including the GNOME
+# runtime the Flatpak ships against — with nobody needing to re-enable them.
+requires_adw_spinner = pytest.mark.skipif(
+    not hasattr(Adw, 'Spinner'),
+    reason='needs libadwaita >= 1.6 for Adw.Spinner (used by src/task_panel.py)',
+)
+
+@requires_adw_spinner
 def test_task_row_states(tmp_path, monkeypatch):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
@@ -63,6 +75,7 @@ def test_task_row_states(tmp_path, monkeypatch):
     row3._stop_pulse()
     row4._stop_pulse()
 
+@requires_adw_spinner
 def test_task_panel_dialog(tmp_path, monkeypatch):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     backend = BrewBackend()

@@ -32,6 +32,18 @@ Gio.Settings = type('Settings', (), {'new': MockSettings})
 
 # ─── Tests ────────────────────────────────────────────────────────────────────
 
+# src/task_panel.py constructs Adw.Spinner, which arrived in libadwaita 1.6.
+# Ubuntu 24.04 (GitHub's current ubuntu-latest) ships 1.5, where that raises
+# "AttributeError: 'gi.repository.Adw' object has no attribute 'Spinner'"
+# before the test asserts anything. Skipping rather than failing means these
+# run automatically wherever libadwaita is new enough — including the GNOME
+# runtime the Flatpak ships against — with nobody needing to re-enable them.
+requires_adw_spinner = pytest.mark.skipif(
+    not hasattr(Adw, 'Spinner'),
+    reason='needs libadwaita >= 1.6 for Adw.Spinner (used by src/task_panel.py)',
+)
+
+@requires_adw_spinner
 def test_window_workflows(tmp_path, monkeypatch):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     

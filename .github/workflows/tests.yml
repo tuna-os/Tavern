@@ -9,30 +9,32 @@ jobs:
   pytest:
     name: "Python unit tests"
     runs-on: ubuntu-latest
-    # The GNOME 50 SDK image, same one flatpak.yml builds against.
-    #
-    # This does NOT run on a bare ubuntu-latest with apt-installed bindings,
-    # which is the obvious approach and does not work: Ubuntu 24.04 ships
-    # libadwaita 1.5, and src/task_panel.py uses Adw.Spinner, which arrived in
-    # 1.6. Four widget tests fail with
-    # "'gi.repository.Adw' object has no attribute 'Spinner'" before they test
-    # anything. Running against the runtime the app actually targets avoids
-    # testing the app against a libadwaita it never ships with.
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
-      options: --privileged
 
     steps:
       - uses: actions/checkout@v7
 
+      # Deliberately NOT actions/setup-python. tests/conftest.py imports gi at
+      # collection time, and PyGObject here is the apt python3-gi built against
+      # the system interpreter — a setup-python interpreter cannot see it and
+      # every module fails to collect.
+      - name: Install GI bindings and build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            python3-gi python3-gi-cairo \
+            gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 \
+            libglib2.0-bin blueprint-compiler xvfb dbus-x11
+
       - name: Install pytest
+        # pytest-benchmark is required, not optional: pyproject's addopts
+        # carries --benchmark-disable, and pytest exits on an unknown arg.
         run: pip install --break-system-packages pytest pytest-benchmark
 
       - name: Compile Blueprint UI and the gresource bundle
         # tests/conftest.py registers a compiled gresource if it finds one at
         # this exact path, and the Gtk.Template classes cannot be imported
-        # without it — without this step 14 test modules fail at *collection*
-        # with g-resource-error / "could not create new GType".
+        # without it — skip this and 14 modules fail at *collection* with
+        # g-resource-error / "could not create new GType".
         run: |
           mkdir -p build-ui .flatpak-build/files/share/tavern
           blueprint-compiler batch-compile build-ui src src/*.blp
@@ -43,9 +45,8 @@ jobs:
             src/tavern.gresource.xml
 
       - name: Run test suite
-        # xvfb because widget construction needs a display; dbus-run-session
-        # because libadwaita otherwise warns on every widget test that it
-        # cannot acquire the session bus.
+        # xvfb because widget construction needs a display; dbus-run-session so
+        # libadwaita is not warning about a missing session bus on every test.
         run: |
           xvfb-run -a dbus-run-session -- \
             python3 -m pytest tests/ -m "not slow" --junitxml=junit.xml
