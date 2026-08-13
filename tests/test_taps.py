@@ -27,6 +27,17 @@ class MockCompletedProcess:
 class _Host(GObject.Object, TapsMixin):
     """Minimal host that mixes in TapsMixin the way BrewBackend does."""
 
+    # TapsMixin emits these on the host; BrewBackend declares them in its own
+    # __gsignals__. Without them here, GObject raises
+    # "unknown signal name: taps-loaded" the moment a scan finishes, so every
+    # test that reaches _apply_tap_scan_results fails. Keep in sync with the
+    # corresponding entries in src/backend.py.
+    __gsignals__ = {
+        'formulae-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'casks-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'taps-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+    }
+
     def __init__(self):
         super().__init__()
         self._formulae = []
@@ -256,6 +267,13 @@ class TestLoadTapPackages:
     def _last_scan(self, idle, host):
         """Run the tap scan, then invoke the captured _apply_tap_scan_results
         call synchronously and return its arguments."""
+        # _apply_tap_scan_results kicks off a REAL daemon thread for trust
+        # status (src/taps.py::_load_tap_trust_status). Left alone it outlives
+        # the test, then calls the patched GLib.idle_add and appends a late
+        # 'taps-loaded' emit into whichever test happens to be running at that
+        # moment — order-dependent, timing-dependent cross-test pollution.
+        # Trust has its own coverage in TestTapTrust, so stub it out here.
+        host._load_tap_trust_status = lambda: None
         host._load_tap_packages()
         assert idle, 'expected a scheduled tap scan'
         fn, args, _ = idle[-1]
@@ -273,7 +291,9 @@ class TestLoadTapPackages:
         assert set(tap_packages) == {'user1/foo', 'user2/bar'}
         assert sorted(p.name for p in tap_packages['user1/foo']) == ['alpha', 'beta', 'gamma']
         assert sorted(p.name for p in tap_packages['user2/bar']) == ['delta']
-        assert [t['name'] for t in non_core] == ['user1/foo', 'user2/bar']
+        # os.listdir() order is arbitrary, so the scan's output order is too —
+        # sort before comparing rather than encoding one filesystem's ordering.
+        assert sorted(t['name'] for t in non_core) == ['user1/foo', 'user2/bar']
         assert f_changed is True and c_changed is True
 
     def test_core_taps_skipped(self, host, idle, fake_taps_root, canned_parsers):
