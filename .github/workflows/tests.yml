@@ -13,6 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # glib-compile-resources is in libglib2.0-dev-bin, NOT libglib2.0-bin
+      # (that one only carries gio/gsettings/glib-compile-schemas), and
+      # libxml2-utils supplies the xmllint that xml-stripblanks in
+      # src/tavern.gresource.xml asks for.
+      #
       # Deliberately NOT actions/setup-python. tests/conftest.py imports gi at
       # collection time, and PyGObject here is the apt python3-gi built against
       # the system interpreter — a setup-python interpreter cannot see it and
@@ -23,7 +28,7 @@ jobs:
           sudo apt-get install -y -qq --no-install-recommends \
             python3-gi python3-gi-cairo \
             gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 \
-            libglib2.0-bin blueprint-compiler xvfb dbus-x11
+            libglib2.0-dev-bin libxml2-utils blueprint-compiler xvfb dbus-x11
 
       - name: Install pytest
         # pytest-benchmark is required, not optional: pyproject's addopts
