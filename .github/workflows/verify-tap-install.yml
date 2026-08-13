@@ -27,8 +27,8 @@ jobs:
       - name: Tap and install Tavern cask
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew tap hanthor/homebrew-tap
-          brew install --cask hanthor/homebrew-tap/tavern
+          brew tap tuna-os/homebrew-tap
+          brew install --cask tuna-os/tap/tavern
 
       - name: Confirm tavern binary is on PATH and executable
         run: |
@@ -43,8 +43,8 @@ jobs:
         if: always()
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew uninstall --cask hanthor/homebrew-tap/tavern || true
-          brew untap hanthor/homebrew-tap || true
+          brew uninstall --cask tuna-os/tap/tavern || true
+          brew untap tuna-os/homebrew-tap || true
 
   verify-macos:
     name: "Verify cask on macOS"
@@ -53,8 +53,8 @@ jobs:
     steps:
       - name: Tap and install Tavern cask
         run: |
-          brew tap hanthor/homebrew-tap
-          brew install --cask hanthor/homebrew-tap/tavern
+          brew tap tuna-os/homebrew-tap
+          brew install --cask tuna-os/tap/tavern
 
       - name: Confirm Tavern.app installed
         run: |
@@ -63,5 +63,5 @@ jobs:
       - name: Uninstall (clean teardown)
         if: always()
         run: |
-          brew uninstall --cask hanthor/homebrew-tap/tavern || true
-          brew untap hanthor/homebrew-tap || true
+          brew uninstall --cask tuna-os/tap/tavern || true
+          brew untap tuna-os/homebrew-tap || true

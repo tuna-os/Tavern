@@ -14,16 +14,14 @@ flatpak install --user tuna-os org.tunaos.tavern
 
 **Homebrew (macOS + Linux):**
 ```bash
-brew tap hanthor/homebrew-tap && brew install --cask hanthor/tap/tavern
+brew tap tuna-os/homebrew-tap && brew install --cask tuna-os/tap/tavern
 ```
 On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage and symlinks it as `tavern` on your PATH.
 
 > [!NOTE]
-> The Homebrew cask is currently published from the maintainer's personal tap
-> (`hanthor/homebrew-tap`); migration to the org tap
-> (`tuna-os/homebrew-tap`) is tracked in
-> [tuna-os/Tavern#79](https://github.com/tuna-os/Tavern/issues/79). The
-> Flatpak above is the org-published channel.
+> The Homebrew cask is published from the org-owned
+> [`tuna-os/homebrew-tap`](https://github.com/tuna-os/homebrew-tap). The
+> Flatpak above is also an org-published channel.
 
 > [!IMPORTANT]
 > **⚠️ Attribution & Disclaimer**
@@ -63,18 +61,16 @@ On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage an
 
 ### Quick Installation via Homebrew
 
-The easiest way to install Tavern is via Homebrew using the `hanthor/tap`:
+The easiest way to install Tavern is via Homebrew using the `tuna-os/tap`:
 
 ```bash
-brew tap hanthor/homebrew-tap
-brew install --cask hanthor/tap/tavern
+brew tap tuna-os/homebrew-tap
+brew install --cask tuna-os/tap/tavern
 ```
 
 > [!NOTE]
-> This is the maintainer-published channel: the cask lives in the personal
-> `hanthor/homebrew-tap`, not the org-owned `tuna-os/homebrew-tap`
-> (migration tracked in [tuna-os/Tavern#79](https://github.com/tuna-os/Tavern/issues/79)).
-> On Linux the [Flatpak](#quick-install) is the org-published, recommended install.
+> The cask is published in the org-owned `tuna-os/homebrew-tap`. On Linux the
+> [Flatpak](#quick-install) remains the org-published, recommended install.
 
 The cask handles both platforms: `Tavern.app` on macOS and a prebuilt AppImage on Linux, so you don't need Tavern's build dependencies on your machine. If you'd prefer a sandboxed install on Linux, use the Flatpak instead (see below).
 

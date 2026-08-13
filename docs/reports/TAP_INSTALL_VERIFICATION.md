@@ -10,7 +10,7 @@
 
 ### Installation Test
 ```bash
-HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask hanthor/tap/tavern
+HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask tuna-os/tap/tavern
 ```
 
 **Result:** ✅ SUCCESS
@@ -21,7 +21,7 @@ HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask hanthor/tap/tavern
 
 ### Uninstallation Test
 ```bash
-HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall --cask hanthor/tap/tavern
+HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall --cask tuna-os/tap/tavern
 ```
 
 **Result:** ✅ SUCCESS
@@ -49,7 +49,7 @@ on_linux do
   version "0.1.2"
   sha256 "604a7bf6a1fb151a44e2e31d4f17af73bb59a27dda620bb224fc0f3a2a76085a"
 
-  url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-Linux.flatpak"
+  url "https://github.com/tuna-os/Tavern/releases/download/v#{version}/Tavern-Linux.flatpak"
   container type: :naked
 
   postflight do
@@ -106,8 +106,8 @@ end
 
 ### One-Line Install
 ```bash
-brew tap hanthor/homebrew-tap
-brew install --cask hanthor/tap/tavern
+brew tap tuna-os/homebrew-tap
+brew install --cask tuna-os/tap/tavern
 ```
 
 ### Launch Application
@@ -119,12 +119,12 @@ Or from application menu: "Tavern"
 
 ### Uninstall
 ```bash
-brew uninstall --cask hanthor/tap/tavern
+brew uninstall --cask tuna-os/tap/tavern
 ```
 
 Optionally remove all app data:
 ```bash
-brew uninstall --zap --cask hanthor/tap/tavern
+brew uninstall --zap --cask tuna-os/tap/tavern
 ```
 
 ## Automated Workflow
@@ -134,7 +134,7 @@ The tap is automatically updated on release publish via `.github/workflows/updat
 1. Release v0.1.x published with `Tavern-Linux.flatpak` asset
 2. Workflow downloads asset and computes SHA256
 3. Workflow generates `Casks/tavern.rb` with correct hash
-4. Workflow commits and pushes to `hanthor/homebrew-tap`
+4. Workflow commits and pushes to `tuna-os/homebrew-tap`
 5. Users run `brew update && brew upgrade --cask` to get latest version
 
 ## Known Issues & Workarounds
@@ -143,22 +143,22 @@ The tap is automatically updated on release publish via `.github/workflows/updat
 **Symptom:** Running `brew reinstall --cask` doesn't execute postflight hook  
 **Workaround:** Uninstall first, then install fresh:
 ```bash
-brew uninstall --cask hanthor/tap/tavern
-brew install --cask hanthor/tap/tavern
+brew uninstall --cask tuna-os/tap/tavern
+brew install --cask tuna-os/tap/tavern
 ```
 
 ### Issue: Homebrew Auto-Update Interrupts Install
 **Symptom:** Install hangs during `Auto-updating Homebrew...`  
 **Workaround:** Disable auto-update:
 ```bash
-HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask hanthor/tap/tavern
+HOMEBREW_NO_AUTO_UPDATE=1 brew install --cask tuna-os/tap/tavern
 ```
 
 ## Verification Commands
 
 Check cask info:
 ```bash
-brew info --cask hanthor/tap/tavern
+brew info --cask tuna-os/tap/tavern
 ```
 
 Check Flatpak installation:
@@ -176,7 +176,7 @@ ps aux | grep "[p]ython3 /app/bin/tavern"
 ✅ **The app is able to be installed from the tap with no build dependencies**
 
 The original requirement is satisfied:
-- ✅ Users can install via `brew install --cask hanthor/tap/tavern`
+- ✅ Users can install via `brew install --cask tuna-os/tap/tavern`
 - ✅ No build tools required (Meson, Blueprint compiler, etc.)
 - ✅ No GTK/Libadwaita system dependencies required
 - ✅ No Python dependencies to install
