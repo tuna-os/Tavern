@@ -8,20 +8,20 @@ Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **
 
 **Flatpak (Linux, recommended, with automatic updates):**
 ```bash
-flatpak remote-add --user --if-not-exists tuna-os oci+https://tuna-os.github.io/Tavern
+flatpak remote-add --user --if-not-exists tuna-os https://tunaos.org/flatpak/tuna-os.flatpakrepo
 flatpak install --user tuna-os org.tunaos.tavern
 ```
 
 **Homebrew (macOS + Linux):**
 ```bash
-brew tap hanthor/homebrew-tap && brew install --cask hanthor/tap/tavern
+brew tap tuna-os/tap && brew install --cask tavern
 ```
 On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage and symlinks it as `tavern` on your PATH.
 
 > [!NOTE]
-> The Homebrew cask is currently published from the maintainer's personal tap
-> (`hanthor/homebrew-tap`); migration to the org tap
-> (`tuna-os/homebrew-tap`) is tracked in
+> The Homebrew cask is published from the org tap (`tuna-os/homebrew-tap`);
+> the old personal-tap instructions (`hanthor/homebrew-tap`) are retired.
+> Auto-publishing the cask from the release pipeline is tracked in
 > [tuna-os/Tavern#79](https://github.com/tuna-os/Tavern/issues/79). The
 > Flatpak above is the org-published channel.
 
@@ -63,17 +63,17 @@ On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage an
 
 ### Quick Installation via Homebrew
 
-The easiest way to install Tavern is via Homebrew using the `hanthor/tap`:
+The easiest way to install Tavern is via Homebrew using the `tuna-os/tap`:
 
 ```bash
-brew tap hanthor/homebrew-tap
-brew install --cask hanthor/tap/tavern
+brew tap tuna-os/tap
+brew install --cask tavern
 ```
 
 > [!NOTE]
-> This is the maintainer-published channel: the cask lives in the personal
-> `hanthor/homebrew-tap`, not the org-owned `tuna-os/homebrew-tap`
-> (migration tracked in [tuna-os/Tavern#79](https://github.com/tuna-os/Tavern/issues/79)).
+> The cask is published from the org-owned `tuna-os/homebrew-tap`; the
+> personal `hanthor/homebrew-tap` channel is retired (auto-publishing from
+> the release pipeline is tracked in [tuna-os/Tavern#79](https://github.com/tuna-os/Tavern/issues/79)).
 > On Linux the [Flatpak](#quick-install) is the org-published, recommended install.
 
 The cask handles both platforms: `Tavern.app` on macOS and a prebuilt AppImage on Linux, so you don't need Tavern's build dependencies on your machine. If you'd prefer a sandboxed install on Linux, use the Flatpak instead (see below).
@@ -124,7 +124,7 @@ meson compile -C builddir run
 To get automatic updates directly through your software center (like GNOME Software or KDE Discover) or CLI, add the official `tuna-os` OCI remote:
 
 ```bash
-flatpak remote-add --user --if-not-exists tuna-os oci+https://tuna-os.github.io/Tavern
+flatpak remote-add --user --if-not-exists tuna-os https://tunaos.org/flatpak/tuna-os.flatpakrepo
 flatpak install --user tuna-os org.tunaos.tavern
 ```
 
