@@ -48,6 +48,7 @@ tavern_sources = [
   'logging_util.py',
   'window.py',
   'backend.py',
+  'backend_cache.py',
   'brew_env.py',
   'package.py',
   'taps.py',
