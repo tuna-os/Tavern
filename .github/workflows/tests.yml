@@ -63,3 +63,80 @@ jobs:
           name: pytest-junit
           path: junit.xml
           retention-days: 7
+
+  pytest-flatpak:
+    name: "Python unit tests (Flatpak sandbox)"
+    runs-on: ubuntu-latest
+    # Runs the same suite the host job above runs, but *inside* a real
+    # flatpak-builder sandbox against the org.gnome.Platform//50 runtime —
+    # the actual libadwaita (1.7+) the app ships against, not Ubuntu's host
+    # 1.5. The host job's requires_adw_spinner tests (test_window.py,
+    # test_task_panel.py, test_tap_page.py) skip there because Adw.Spinner
+    # needs >= 1.6; they run for real here. See #88.
+    steps:
+      - uses: actions/checkout@v7
+
+      # ubuntu-latest is a full VM (not a container), so flatpak-builder's
+      # internal bubblewrap sandboxing works without the --privileged
+      # container flatpak.yml's "Flatpak Build" job needs — that job uses
+      # the third-party flatpak-github-actions builder action, which
+      # documents --privileged as required for itself specifically; a plain
+      # `flatpak-builder` invocation here doesn't go through that action.
+      - name: Install flatpak, flatpak-builder, GI bindings, and build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends \
+            flatpak flatpak-builder \
+            python3-gi python3-gi-cairo \
+            gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 \
+            libglib2.0-dev-bin libxml2-utils blueprint-compiler xvfb dbus-x11
+          flatpak remote-add --user --if-not-exists flathub \
+            https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Install GNOME 50 Platform + SDK
+        run: flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50
+
+      - name: Build the Flatpak
+        run: flatpak-builder --user --force-clean --disable-rofiles-fuse build-dir org.tunaos.tavern.json
+
+      - name: Compile Blueprint UI and the gresource bundle
+        # Same step as the host job — conftest.py looks for this exact path
+        # relative to the repo root regardless of which job runs pytest.
+        run: |
+          mkdir -p build-ui .flatpak-build/files/share/tavern
+          blueprint-compiler batch-compile build-ui src src/*.blp
+          cp src/style.css build-ui/
+          glib-compile-resources \
+            --target=.flatpak-build/files/share/tavern/tavern.gresource \
+            --sourcedir=build-ui --sourcedir=src \
+            src/tavern.gresource.xml
+
+      - name: Install pytest inside the sandbox
+        # The GNOME 50 runtime's Python has no pytest; flatpak-builder --run
+        # is a build-time sandbox (more permissive than an exported app's
+        # finish-args), so it has network access for this one-off install —
+        # nothing here ships in the built .flatpak.
+        run: |
+          flatpak-builder --run build-dir org.tunaos.tavern.json \
+            python3 -m pip install --break-system-packages pytest pytest-benchmark
+
+      - name: Run test suite inside the Flatpak sandbox
+        # x11/session-bus sockets forwarded in so Gtk/Adw widget construction
+        # and D-Bus-backed code (search_provider.py) work the same way the
+        # host job's xvfb-run/dbus-run-session wrapping provides outside.
+        run: |
+          xvfb-run -a dbus-run-session -- \
+            flatpak-builder --run \
+              --env=DISPLAY="$DISPLAY" \
+              --env=DBUS_SESSION_BUS_ADDRESS="$DBUS_SESSION_BUS_ADDRESS" \
+              --socket=x11 --socket=session-bus \
+              build-dir org.tunaos.tavern.json \
+              python3 -m pytest tests/ -m "not slow" --junitxml=junit-flatpak.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pytest-junit-flatpak
+          path: junit-flatpak.xml
+          retention-days: 7
