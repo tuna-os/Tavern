@@ -207,13 +207,18 @@ def test_brewfile_page_workflows(tmp_path, monkeypatch):
     
     # 6. Test Install All
     page._on_install_all_clicked(None)
-    # Assert that brew bundle command was run
-    assert any('bundle' in c for c in subprocess_calls)
-    
+    # Assert that brew bundle command was run. Substring search over the
+    # joined argv, not list membership: _brew_cmd() wraps the call as
+    # ['flatpak-spawn', '--host', 'bash', '-c', 'brew bundle ...'] when
+    # IN_FLATPAK is set (a single combined string, not a bare 'bundle'
+    # element), vs. plain ['brew', 'bundle', ...] otherwise.
+    assert any('bundle' in ' '.join(c) for c in subprocess_calls)
+
     # 7. Test Remove All
     page._on_remove_all_clicked(None)
-    # Assert that uninstall commands were run
-    assert any('uninstall' in c for c in subprocess_calls)
+    # Assert that uninstall commands were run (same IN_FLATPAK wrapping
+    # caveat as above for the brew-formula/cask uninstall call).
+    assert any('uninstall' in ' '.join(c) for c in subprocess_calls)
     assert any('flatpak' in c and 'uninstall' in c for c in subprocess_calls)
 
 def test_brewfile_page_empty_load(tmp_path, monkeypatch):
