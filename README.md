@@ -19,14 +19,12 @@ brew tap tuna-os/homebrew-tap && brew install --cask tuna-os/tap/tavern
 On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage and symlinks it as `tavern` on your PATH.
 
 > [!NOTE]
-> The Homebrew cask now lives in the org-owned
+> The Homebrew cask lives in the org-owned
 > [`tuna-os/homebrew-tap`](https://github.com/tuna-os/homebrew-tap)
 > (moved from the maintainer's personal tap, tuna-os/Tavern#79 —
-> [tuna-os/homebrew-tap#3](https://github.com/tuna-os/homebrew-tap/pull/3)).
-> If `brew install` above 404s, that PR hasn't merged yet; use
-> `brew tap hanthor/homebrew-tap && brew install --cask hanthor/tap/tavern`
-> in the meantime. The Flatpak above remains the org-published,
-> recommended channel either way.
+> [tuna-os/homebrew-tap#3](https://github.com/tuna-os/homebrew-tap/pull/3),
+> merged 2026-08-14). No personal-tap fallback is needed. The Flatpak
+> above remains the org-published, recommended channel either way.
 
 > [!IMPORTANT]
 > **⚠️ Attribution & Disclaimer**
@@ -75,11 +73,10 @@ brew install --cask tuna-os/tap/tavern
 ```
 
 > [!NOTE]
-> This is now the org-owned channel (tuna-os/Tavern#79,
-> [tuna-os/homebrew-tap#3](https://github.com/tuna-os/homebrew-tap/pull/3)).
-> If that PR hasn't merged yet and the install 404s, fall back to
-> `brew tap hanthor/homebrew-tap && brew install --cask hanthor/tap/tavern`.
-> On Linux the [Flatpak](#quick-install) is the org-published, recommended install.
+> This is the org-owned channel (tuna-os/Tavern#79,
+> [tuna-os/homebrew-tap#3](https://github.com/tuna-os/homebrew-tap/pull/3),
+> merged 2026-08-14). On Linux the [Flatpak](#quick-install) is the
+> org-published, recommended install.
 
 The cask handles both platforms: `Tavern.app` on macOS and a prebuilt AppImage on Linux, so you don't need Tavern's build dependencies on your machine. If you'd prefer a sandboxed install on Linux, use the Flatpak instead (see below).
 
