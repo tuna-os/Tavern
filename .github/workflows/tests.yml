@@ -97,7 +97,17 @@ jobs:
         run: flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50
 
       - name: Build the Flatpak
-        run: flatpak-builder --user --force-clean --disable-rofiles-fuse build-dir org.tunaos.tavern.json
+        # --build-only, not --force-clean: this job only needs a build tree
+        # for `flatpak-builder --run` below, not a finished/exported app —
+        # skipping the clean+finish+export phases also skips their
+        # `appstreamcli compose` step, which failed here with a
+        # `file-read-error`/`filters-but-no-output` on a GitHub-hosted
+        # runner despite an identical manifest succeeding both locally and
+        # in flatpak.yml's "Flatpak Build" job (which finishes/exports for
+        # real, via a different action/container). Root cause not fully
+        # pinned down; --build-only sidesteps it rather than guessing
+        # further, and this job was never trying to produce an artifact.
+        run: flatpak-builder --user --build-only --disable-rofiles-fuse build-dir org.tunaos.tavern.json
 
       - name: Compile Blueprint UI and the gresource bundle
         # Same step as the host job — conftest.py looks for this exact path
