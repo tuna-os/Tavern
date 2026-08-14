@@ -771,7 +771,10 @@ class TestBrewBackendExtensions:
             GLib.MainContext.default().iteration(False)
             time.sleep(0.01)
 
-        assert results == [('pin', True), ('unpin', True)]
+        # pin_async/unpin_async run on separate daemon threads and fire their
+        # callbacks via GLib.idle_add — completion order is not guaranteed by
+        # the API, so assert the set of outcomes, not their sequence.
+        assert sorted(results) == [('pin', True), ('unpin', True)]
         assert ['brew', 'pin', 'ripgrep'] in calls
         assert ['brew', 'unpin', 'ripgrep'] in calls
 
