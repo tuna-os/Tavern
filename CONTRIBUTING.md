@@ -41,7 +41,7 @@ Blueprint files (`.blp`) compile to `.ui` XML at build time via `blueprint-compi
 ./run.sh                  # re-runs blueprint-compiler
 ```
 
-When adding a new page, follow the eight-step checklist in [CLAUDE.md](https://github.com/tuna-os/Tavern/blob/main/CLAUDE.md#adding-a-new-page) — it covers Blueprint, Python, window wiring, gresource registration, and meson sources.
+When adding a new page, keep Blueprint, Python, window wiring, gresource registration, and meson sources in sync — the repo layout in [README.md](README.md) and `src/` shows where each piece lands.
 
 ## Pull requests
 
@@ -59,5 +59,4 @@ When adding a new page, follow the eight-step checklist in [CLAUDE.md](https://g
 ## Project docs
 
 - [README.md](README.md) — user-facing docs.
-- [CLAUDE.md](CLAUDE.md) — full developer + architecture guide.
 - [ROADMAP.md](ROADMAP.md) — what's planned.
