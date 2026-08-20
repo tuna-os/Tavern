@@ -9,9 +9,12 @@
 # methods) to exist on whatever it's mixed into, exactly as the original
 # methods did as part of BrewBackend.
 
+import gettext
 import threading
 
 from gi.repository import GLib, Gio
+
+_ = gettext.gettext
 
 from .logging_util import get_logger, log_timing
 from .package import Package
