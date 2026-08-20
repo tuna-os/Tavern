@@ -13,10 +13,13 @@ import gettext
 import json
 import os
 import sys
+import threading
 
 from gi.repository import GLib
 
+from .backend_remote import FORMULA_API, CASK_API
 from .logging_util import get_logger, log_timing
+from .package import Package
 
 _ = gettext.gettext
 
@@ -133,3 +136,76 @@ class CacheMixin:
         except Exception as e:
             _log.warning('Failed to parse system Homebrew JWS cache at %s: %s', path, e)
             return None
+
+    def refresh_cache_files(self):
+        """Fetch/load and save fresh formulae and casks cache files, and rebuild search cache."""
+        with self._refresh_lock:
+            # Double check if cache is fresh before doing heavy work
+            double_check_data, double_check_stale = self._load_cached('formulae', max_age=14400)
+            if double_check_data and not double_check_stale:
+                _log.debug('Cache is already fresh, skipping refresh_cache_files')
+                return
+
+            _log.info('refresh_cache_files starting')
+            
+            # 1. Formulae
+            new_data_f = self._load_from_host_jws('formula')
+            if not new_data_f:
+                _log.debug('System Homebrew formula cache not available, downloading…')
+                new_data_f = self._fetch_json(FORMULA_API)
+            if new_data_f:
+                self._save_cache('formulae', new_data_f)
+                self._formulae = [
+                    Package(d, 'formula', self._installed_formulae) for d in new_data_f
+                ]
+                # Homebrew 6.0.0+: analytics are no longer embedded — fetch separately
+                analytics_thread = threading.Thread(
+                    target=self._patch_analytics,
+                    args=(self._formulae,),
+                    daemon=True,
+                )
+                analytics_thread.start()
+                
+            # 2. Casks
+            new_data_c = self._load_from_host_jws('cask')
+            if not new_data_c:
+                _log.debug('System Homebrew cask cache not available, downloading…')
+                new_data_c = self._fetch_json(CASK_API)
+            if new_data_c:
+                self._save_cache('casks', new_data_c)
+                new_data_c = self._filter_linux_casks(new_data_c)
+                self._casks = [
+                    Package(d, 'cask', self._installed_casks) for d in new_data_c
+                ]
+                
+            self._build_search_provider_cache()
+            _log.info('refresh_cache_files completed')
+
+    def _build_search_provider_cache(self):
+        """Build a lightweight cache of Linux-compatible packages for the search provider."""
+        _log.info('Building search provider cache…')
+        sp_cache_path = os.path.join(self._cache_dir, 'linux_packages.json')
+        packages_data = []
+
+        for pkg in self._formulae:
+            packages_data.append({
+                'name': pkg.name,
+                'display_name': pkg.display_name,
+                'description': pkg.description,
+                'pkg_type': pkg.pkg_type,
+            })
+
+        for pkg in self._casks:
+            packages_data.append({
+                'name': pkg.name,
+                'display_name': pkg.display_name,
+                'description': pkg.description,
+                'pkg_type': pkg.pkg_type,
+            })
+
+        try:
+            with open(sp_cache_path, 'w', encoding='utf-8') as f:
+                json.dump(packages_data, f)
+            _log.info('Saved search provider cache to %s (%d packages)', sp_cache_path, len(packages_data))
+        except Exception as e:
+            _log.error('Failed to save search provider cache: %s', e)
