@@ -526,8 +526,11 @@ class TestReadCapped:
 
     def test_oversized_payload_raises(self):
         big = b'x' * (media_mod.MAX_IMAGE_BYTES + 1)
-        assert len(media_mod._read_capped(SimpleNamespace(read=lambda n: big))) == media_mod.MAX_IMAGE_BYTES + 1
         import pytest
+        # The fixture returns the full body regardless of n; anything over
+        # the cap must be rejected, not silently truncated.
+        with pytest.raises(MemoryError):
+            media_mod._read_capped(SimpleNamespace(read=lambda n: big))
         with pytest.raises(MemoryError):
             media_mod._read_capped(SimpleNamespace(read=lambda n: big * 2))
 
