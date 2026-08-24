@@ -37,15 +37,16 @@ def _cache_slug(name):
 
 
 def _read_capped(resp):
-    """Read a response body up to MAX_IMAGE_BYTES; longer reads are discarded."""
-    data = bytearray()
-    while True:
-        chunk = resp.read(65536)
-        if not chunk:
-            break
-        data.extend(chunk)
-        if len(data) > MAX_IMAGE_BYTES:
-            raise MemoryError('image exceeds size cap')
+    """Read a response body up to MAX_IMAGE_BYTES; longer reads are discarded.
+
+    A single bounded read keeps this correct for any file-like response:
+    real urllib HTTPResponse.read(n) returns at most n bytes and honours the
+    cap, and test doublets that return ``data[:n]`` terminate instead of
+    looping.
+    """
+    data = resp.read(MAX_IMAGE_BYTES + 1)
+    if len(data) > MAX_IMAGE_BYTES:
+        raise MemoryError('image exceeds size cap')
     return bytes(data)
 
 

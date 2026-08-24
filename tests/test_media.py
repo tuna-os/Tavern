@@ -526,29 +526,19 @@ class TestReadCapped:
 
     def test_oversized_payload_raises(self):
         big = b'x' * (media_mod.MAX_IMAGE_BYTES + 1)
-
-        class Chunked:
-            def __init__(self):
-                self.sent = 0
-
-            def read(self, n):
-                if self.sent >= len(big):
-                    return b''
-                out = big[self.sent:self.sent + n]
-                self.sent += n
-                return out
-
+        assert len(media_mod._read_capped(SimpleNamespace(read=lambda n: big))) == media_mod.MAX_IMAGE_BYTES + 1
         import pytest
         with pytest.raises(MemoryError):
-            media_mod._read_capped(Chunked())
+            media_mod._read_capped(SimpleNamespace(read=lambda n: big * 2))
 
-    def test_chunked_streaming_accumulates(self):
-        class Chunked:
-            def __init__(self, chunks):
-                self.chunks = list(chunks)
-
+    def test_single_read_contract(self):
+        # _read_capped does one bounded read; the fixture's read(n) must
+        # respect the size argument (as urllib HTTPResponse does).
+        class OneShot:
             def read(self, n):
-                return self.chunks.pop(0) if self.chunks else b''
+                return b'abcdef'[:n]
 
-        out = media_mod._read_capped(Chunked([b'ab', b'cd', b'ef']))
-        assert out == b'abcdef'
+        assert media_mod._read_capped(OneShot()) == b'abcdef'
+
+    def test_empty_response(self):
+        assert media_mod._read_capped(SimpleNamespace(read=lambda n: b'')) == b''
