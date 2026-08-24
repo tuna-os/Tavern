@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import re
 import threading
 from urllib.request import Request
 
@@ -13,6 +14,39 @@ from .backend_icons import ico_to_png as _ico_to_png
 from .logging_util import get_logger
 
 _log = get_logger('media')
+
+# Media payloads are attacker-influenced (they come from URLs listed in
+# READMEs of arbitrary third-party taps/packages). Cap the download so a
+# malicious README pointing at a multi-GB image is a failed fetch, not an
+# OOM / decompression-bomb on the caller's machine.
+MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MiB — plenty for any real icon/screenshot
+
+# Package names flow into cache filenames. They can come from a malicious
+# tap's formula/cask .rb (``cask "../../../../foo"``) or a crafted Brewfile,
+# so restrict to a safe charset instead of interpolating verbatim.
+_CACHE_SAFE = re.compile(r'[^A-Za-z0-9._-]+')
+
+
+def _cache_slug(name):
+    """Fold an untrusted package name into a safe single path component."""
+    slug = _CACHE_SAFE.sub('_', name or '').strip('._')
+    # Consecutive dots would read as ``..`` to path parsers; collapse them so
+    # no traversal component survives (single dots stay — legitimate in names).
+    slug = re.sub(r'\.{2,}', '_', slug).strip('._')
+    return slug or 'unnamed'
+
+
+def _read_capped(resp):
+    """Read a response body up to MAX_IMAGE_BYTES; longer reads are discarded."""
+    data = bytearray()
+    while True:
+        chunk = resp.read(65536)
+        if not chunk:
+            break
+        data.extend(chunk)
+        if len(data) > MAX_IMAGE_BYTES:
+            raise MemoryError('image exceeds size cap')
+    return bytes(data)
 
 
 def urlopen(req, timeout=None):
@@ -53,7 +87,7 @@ class MediaMixin:
     def _fetch_icon(self, package):
         """Try multiple icon sources for a package. Returns a pixbuf or None."""
         _log.debug('Fetching icon for %s', package.name)
-        icon_path = os.path.join(self._cache_dir, f'icon_{package.name}.png')
+        icon_path = os.path.join(self._cache_dir, f'icon_{_cache_slug(package.name)}.png')
 
         if os.path.exists(icon_path):
             try:
@@ -118,7 +152,7 @@ class MediaMixin:
             try:
                 req = Request(url, headers={'User-Agent': 'Mozilla/5.0 Tavern/0.1'})
                 with urlopen(req, timeout=10) as resp:
-                    data = resp.read()
+                    data = _read_capped(resp)
                     if len(data) < 200:  # Filter out 1x1 pixel / blank responses
                         continue
 
@@ -260,7 +294,9 @@ class MediaMixin:
             try:
                 req = Request(raw_url, headers={'User-Agent': 'Tavern/0.1'})
                 with urlopen(req, timeout=15) as resp:
-                    text = resp.read().decode('utf-8', errors='replace')
+                    # Cap README size — a malicious repo can serve a
+                    # multi-GB README to burn memory while parsing.
+                    text = _read_capped(resp).decode('utf-8', errors='replace')
                 break
             except Exception:
                 continue
@@ -271,7 +307,7 @@ class MediaMixin:
 
     def _fetch_screenshot_thread(self, package, callback):
         """Try to fetch a screenshot image for a package."""
-        screenshot_path = os.path.join(self._cache_dir, f'screenshot_{package.name}.jpg')
+        screenshot_path = os.path.join(self._cache_dir, f'screenshot_{_cache_slug(package.name)}.jpg')
 
         if os.path.exists(screenshot_path):
             try:
@@ -296,7 +332,7 @@ class MediaMixin:
             try:
                 req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
                 with urlopen(req, timeout=10) as resp:
-                    data = resp.read()
+                    data = _read_capped(resp)
                     if len(data) > 100:
                         with open(screenshot_path, 'wb') as f:
                             f.write(data)
@@ -358,7 +394,7 @@ class MediaMixin:
             try:
                 req = Request(raw_url, headers={'User-Agent': 'Tavern/0.1'})
                 with urlopen(req, timeout=10) as resp:
-                    text = resp.read().decode('utf-8', errors='replace')
+                    text = _read_capped(resp).decode('utf-8', errors='replace')
                 break
             except Exception:
                 continue

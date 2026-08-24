@@ -487,3 +487,68 @@ class TestFetchIconAsync:
         fn, args, _ = idle[-1]
         fn(*args)
         assert args[1] is None  # failure yields None, not a crash
+
+
+class TestCacheSlug:
+    """Cache filenames must not let untrusted package names escape the dir."""
+
+    def test_traversal_dots_are_stripped(self):
+        assert media_mod._cache_slug('../../etc/passwd') == 'etc_passwd'
+        assert media_mod._cache_slug('/etc/passwd') == 'etc_passwd'
+
+    def test_shell_metachars_folded(self):
+        assert media_mod._cache_slug('foo;rm -rf /') == 'foo_rm_-rf'
+        assert media_mod._cache_slug("evil$(id)") == 'evil_id'
+
+    def test_safe_names_unchanged(self):
+        assert media_mod._cache_slug('ripgrep') == 'ripgrep'
+        assert media_mod._cache_slug('font-fira-code') == 'font-fira-code'
+        assert media_mod._cache_slug('foo.bar_baz-1.2') == 'foo.bar_baz-1.2'
+
+    def test_empty_falls_back(self):
+        assert media_mod._cache_slug('') == 'unnamed'
+        assert media_mod._cache_slug(None) == 'unnamed'
+
+    def test_slug_is_single_path_component(self):
+        import os
+        slug = media_mod._cache_slug('a/b/../../c')
+        # No separators survive; any ``..`` artifact is collapsed.
+        assert '/' not in slug
+        assert '..' not in slug
+
+
+class TestReadCapped:
+    """Downloads are bounded so a hostile README can't OOM the app."""
+
+    def test_small_payload_passes_through(self):
+        data = b'x' * 100
+        assert media_mod._read_capped(SimpleNamespace(read=lambda n: data)) == data
+
+    def test_oversized_payload_raises(self):
+        big = b'x' * (media_mod.MAX_IMAGE_BYTES + 1)
+
+        class Chunked:
+            def __init__(self):
+                self.sent = 0
+
+            def read(self, n):
+                if self.sent >= len(big):
+                    return b''
+                out = big[self.sent:self.sent + n]
+                self.sent += n
+                return out
+
+        import pytest
+        with pytest.raises(MemoryError):
+            media_mod._read_capped(Chunked())
+
+    def test_chunked_streaming_accumulates(self):
+        class Chunked:
+            def __init__(self, chunks):
+                self.chunks = list(chunks)
+
+            def read(self, n):
+                return self.chunks.pop(0) if self.chunks else b''
+
+        out = media_mod._read_capped(Chunked([b'ab', b'cd', b'ef']))
+        assert out == b'abcdef'
