@@ -339,8 +339,8 @@ class TavernApplication(Adw.Application):
             developers=['James'],
             copyright=_('© 2026 James'),
             license_type=Gtk.License.GPL_3_0,
-            website='https://github.com/hanthor/tavern',
-            issue_url='https://github.com/hanthor/tavern/issues',
+            website='https://github.com/tuna-os/Tavern',
+            issue_url='https://github.com/tuna-os/Tavern/issues',
             comments=_('A Homebrew App Store for GNOME'),
         )
         about.present(self.props.active_window)

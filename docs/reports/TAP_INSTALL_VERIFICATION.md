@@ -49,7 +49,7 @@ on_linux do
   version "0.1.2"
   sha256 "604a7bf6a1fb151a44e2e31d4f17af73bb59a27dda620bb224fc0f3a2a76085a"
 
-  url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-Linux.flatpak"
+  url "https://github.com/tuna-os/Tavern/releases/download/v#{version}/Tavern-Linux.flatpak"
   container type: :naked
 
   postflight do
@@ -106,8 +106,8 @@ end
 
 ### One-Line Install
 ```bash
-brew tap hanthor/homebrew-tap
-brew install --cask hanthor/tap/tavern
+brew tap tuna-os/homebrew-tap
+brew install --cask tuna-os/tap/tavern
 ```
 
 ### Launch Application
@@ -119,12 +119,12 @@ Or from application menu: "Tavern"
 
 ### Uninstall
 ```bash
-brew uninstall --cask hanthor/tap/tavern
+brew uninstall --cask tuna-os/tap/tavern
 ```
 
 Optionally remove all app data:
 ```bash
-brew uninstall --zap --cask hanthor/tap/tavern
+brew uninstall --zap --cask tuna-os/tap/tavern
 ```
 
 ## Automated Workflow
@@ -134,7 +134,7 @@ The tap is automatically updated on release publish via `.github/workflows/updat
 1. Release v0.1.x published with `Tavern-Linux.flatpak` asset
 2. Workflow downloads asset and computes SHA256
 3. Workflow generates `Casks/tavern.rb` with correct hash
-4. Workflow commits and pushes to `hanthor/homebrew-tap`
+4. Workflow commits and pushes to `tuna-os/homebrew-tap`
 5. Users run `brew update && brew upgrade --cask` to get latest version
 
 ## Known Issues & Workarounds
