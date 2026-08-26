@@ -102,3 +102,12 @@ class CacheManager:
             except OSError:
                 continue
 
+
+def cache_manager_for(owner):
+    """Return a manager bound to an owner's current cache directory."""
+    root = Path(owner._cache_dir).resolve()
+    manager = getattr(owner, '_cache_manager', None)
+    if manager is None or manager.root != root:
+        manager = CacheManager(root)
+        owner._cache_manager = manager
+    return manager

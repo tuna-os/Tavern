@@ -20,6 +20,7 @@ from gi.repository import GLib
 from .backend_remote import FORMULA_API, CASK_API
 from .logging_util import get_logger, log_timing
 from .package import Package
+from .cache_policy import cache_manager_for
 
 _ = gettext.gettext
 
@@ -82,7 +83,7 @@ class CacheMixin:
 
     def _save_cache(self, name, data):
         try:
-            self._cache_manager.atomic_write_json(self._cache_path(name), data)
+            cache_manager_for(self).atomic_write_json(self._cache_path(name), data)
             _log.debug('Cache saved: %s', name)
         except Exception as e:
             _log.warning('Cache write failed for %s: %s', name, e)
@@ -217,14 +218,15 @@ class CacheMixin:
             })
 
         try:
-            self._cache_manager.atomic_write_json(sp_cache_path, packages_data)
+            cache_manager_for(self).atomic_write_json(sp_cache_path, packages_data)
             _log.info('Saved search provider cache to %s (%d packages)', sp_cache_path, len(packages_data))
         except Exception as e:
             _log.error('Failed to save search provider cache: %s', e)
 
     def cache_size_bytes(self):
-        return self._cache_manager.size_bytes()
+        return cache_manager_for(self).size_bytes()
 
     def clear_cache(self):
-        self._cache_manager.clear()
-        self._cache_manager._write_version_marker()
+        manager = cache_manager_for(self)
+        manager.clear()
+        manager._write_version_marker()

@@ -11,6 +11,7 @@ gi.require_version('GdkPixbuf', '2.0')
 from gi.repository import GLib, GdkPixbuf
 
 from .backend_icons import ico_to_png as _ico_to_png
+from .cache_policy import cache_manager_for
 from .logging_util import get_logger
 
 _log = get_logger('media')
@@ -173,7 +174,7 @@ class MediaMixin:
                     pixbuf = loader.get_pixbuf()
                     if pixbuf:
                         pixbuf = pixbuf.scale_simple(64, 64, GdkPixbuf.InterpType.BILINEAR)
-                        self._cache_manager.atomic_write_bytes(icon_path, data)
+                        cache_manager_for(self).atomic_write_bytes(icon_path, data)
                         _log.debug('Downloaded and loaded icon for %s from %s: %dx%d', package.name, url, pixbuf.get_width(), pixbuf.get_height())
                         return pixbuf
             except Exception as e:
@@ -334,7 +335,7 @@ class MediaMixin:
                 with urlopen(req, timeout=10) as resp:
                     data = _read_capped(resp)
                     if len(data) > 100:
-                        self._cache_manager.atomic_write_bytes(screenshot_path, data)
+                        cache_manager_for(self).atomic_write_bytes(screenshot_path, data)
                         loader = GdkPixbuf.PixbufLoader()
                         loader.write(data)
                         loader.close()
