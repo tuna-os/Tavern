@@ -67,19 +67,12 @@ class CacheMixin:
 
     def _load_cached(self, name, max_age=3600):
         path = self._cache_path(name)
-        if os.path.exists(path):
-            try:
-                age = GLib.get_real_time() / 1e6 - os.path.getmtime(path)
-                stale = age > max_age
-                with open(path) as f:
-                    data = json.load(f)
-                _log.debug('Cache hit: %s  age=%.0fs  stale=%s', name, age, stale)
-                return data, stale
-            except Exception as e:
-                _log.warning('Cache read failed for %s: %s', name, e)
-        else:
+        data, stale = cache_manager_for(self).read_json(path, max_age)
+        if data is None:
             _log.debug('Cache miss: %s', name)
-        return None, True
+        else:
+            _log.debug('Cache hit: %s  stale=%s', name, stale)
+        return data, stale
 
     def _save_cache(self, name, data):
         try:

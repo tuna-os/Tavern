@@ -3,6 +3,7 @@
 
 import threading
 import time
+import subprocess
 
 import pytest
 
@@ -170,6 +171,38 @@ class TestTaskManager:
         while task.status == TaskStatus.PENDING:
             GLib.MainContext.default().iteration(False)
         assert task.status == TaskStatus.CANCELLED
+
+    def test_cancel_finished_task_is_noop(self, mgr, pkg):
+        task = Task(pkg, TaskOperation.INSTALL)
+        task._set_completed()
+        assert mgr.cancel(task) is False
+
+    def test_cancel_escalates_after_timeout(self, monkeypatch):
+        class Process:
+            pid = 42
+            def wait(self, timeout=None):
+                raise subprocess.TimeoutExpired('brew', timeout)
+
+        signals = []
+        monkeypatch.setattr('tavern.task_manager.os.name', 'posix')
+        monkeypatch.setattr('tavern.task_manager.os.getpgid', lambda pid: pid)
+        monkeypatch.setattr(
+            'tavern.task_manager.os.killpg',
+            lambda process_group, sig: signals.append((process_group, sig)),
+        )
+        assert TaskManager._terminate_after_grace(Process(), timeout=0) is True
+        assert signals == [(42, 9)]
+
+    def test_cancel_does_not_kill_process_that_exits_in_grace_period(self, monkeypatch):
+        class Process:
+            def wait(self, timeout=None):
+                return 0
+
+        monkeypatch.setattr(
+            'tavern.task_manager.os.killpg',
+            lambda *_: pytest.fail('process group should not be killed'),
+        )
+        assert TaskManager._terminate_after_grace(Process(), timeout=0) is False
 
     def test_get_task_for_package(self, mgr, pkg):
         task = mgr.submit(pkg, TaskOperation.INSTALL)

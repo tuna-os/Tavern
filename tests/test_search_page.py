@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import pytest
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, Gdk, GLib
 from tavern.search_page import TavernSearchPage
 from tavern.backend import Package, BrewBackend
 from tavern.package_tile import TavernPackageTile
@@ -123,12 +123,21 @@ def test_search_page_workflows(tmp_path, monkeypatch):
     # Populate once more to get fresh tiles
     page._do_search('rip')
     target_tile = page.results_flow.get_first_child().get_child()
+
+    # Enter activates the first useful result for keyboard-only navigation.
+    assert page._on_search_key_pressed(None, Gdk.KEY_Return, 0, 0) is True
+    assert len(activated_pkgs) == 1
     
     page._on_tile_clicked(target_tile)
-    assert len(activated_pkgs) == 1
+    assert len(activated_pkgs) == 2
     
     page._on_tile_install_requested(target_tile)
     assert len(install_reqs) == 1
     
     page._on_tile_remove_requested(target_tile)
     assert len(remove_reqs) == 1
+
+    page._pinned_only.set_active(True)
+    assert page._active_result_filter_count() == 1
+    page._on_reset_filters(None)
+    assert page._active_result_filter_count() == 0

@@ -65,7 +65,7 @@ class RemoteMixin:
         if cached and not is_stale:
             candidates.append(cached)
         else:
-            remote = self._fetch_json(CURATION_API)
+            remote = self._fetch_json(CURATION_API, max_bytes=128 * 1024)
             if remote:
                 candidates.append(remote)
             if cached:
@@ -145,7 +145,7 @@ class RemoteMixin:
             _log.error('Failed to fetch version history: %s', e)
             return []
 
-    def _fetch_json(self, url):
+    def _fetch_json(self, url, max_bytes=None):
         """Fetch JSON from URL with a timeout and detailed error reporting."""
         _log.debug('Fetching JSON: %s', url)
         import gzip
@@ -194,6 +194,8 @@ class RemoteMixin:
                             break
                         buffer.write(chunk)
                         downloaded += len(chunk)
+                        if max_bytes is not None and downloaded > max_bytes:
+                            raise ValueError('JSON response exceeds size limit')
                         
                         if not is_catalog:
                             continue
@@ -225,6 +227,8 @@ class RemoteMixin:
                             self._update_status(_(f"Decompressing Homebrew {display_name} catalog…"))
                         _log.debug('Decompressing gzip response for %s', url)
                         content = gzip.decompress(content)
+                        if max_bytes is not None and len(content) > max_bytes:
+                            raise ValueError('Decompressed JSON exceeds size limit')
                     
                     if is_catalog:
                         self._update_status(_(f"Parsing Homebrew {display_name} catalog…"))

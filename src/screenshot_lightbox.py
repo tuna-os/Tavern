@@ -1,6 +1,8 @@
 # screenshot_lightbox.py - Clickable screenshot lightbox with zoom
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import gettext
+
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -9,17 +11,19 @@ from gi.repository import Gtk, Gdk, GLib, GObject, Adw
 from .logging_util import get_logger
 
 _log = get_logger('screenshot_lightbox')
+_ = gettext.gettext
 
 class TavernScreenshotLightbox(Adw.Window):
     __gtype_name__ = 'TavernScreenshotLightbox'
 
-    def __init__(self, paintable, **kwargs):
+    def __init__(self, paintable, caption=None, **kwargs):
         super().__init__(**kwargs)
         self.set_modal(True)
         self.set_hide_on_close(True)
         self.add_css_class('lightbox-overlay')
 
         self._paintable = paintable
+        self._caption = caption or _('Package screenshot')
         self._scale = 1.0
         self._min_scale = 0.5
         self._max_scale = 5.0
@@ -45,6 +49,8 @@ class TavernScreenshotLightbox(Adw.Window):
         self.picture.add_css_class('lightbox-image')
         self.picture.set_valign(Gtk.Align.CENTER)
         self.picture.set_halign(Gtk.Align.CENTER)
+        self.picture.update_property(
+            [Gtk.AccessibleProperty.LABEL], [self._caption])
         self.scroll.set_child(self.picture)
 
         # Controls wrapper
@@ -55,18 +61,30 @@ class TavernScreenshotLightbox(Adw.Window):
         controls_box.set_margin_end(12)
         overlay.add_overlay(controls_box)
 
+        for icon, label, callback in (
+            ('zoom-out-symbolic', _('Zoom out'), lambda _button: self._zoom_by(0.9)),
+            ('zoom-original-symbolic', _('Reset zoom'), lambda _button: self._reset_zoom()),
+            ('zoom-in-symbolic', _('Zoom in'), lambda _button: self._zoom_by(1.1)),
+        ):
+            button = Gtk.Button.new_from_icon_name(icon)
+            button.set_tooltip_text(label)
+            button.update_property([Gtk.AccessibleProperty.LABEL], [label])
+            button.add_css_class('lightbox-close-button')
+            button.connect('clicked', callback)
+            controls_box.append(button)
+
         # Fullscreen toggle button
         self.fs_btn = Gtk.Button.new_from_icon_name('view-fullscreen-symbolic')
-        self.fs_btn.set_tooltip_text('Toggle Fullscreen')
-        self.fs_btn.update_property([Gtk.AccessibleProperty.LABEL], ['Toggle fullscreen'])
+        self.fs_btn.set_tooltip_text(_('Toggle Fullscreen'))
+        self.fs_btn.update_property([Gtk.AccessibleProperty.LABEL], [_('Toggle fullscreen')])
         self.fs_btn.add_css_class('lightbox-close-button') # Reusing style for consistency
         self.fs_btn.connect('clicked', self._on_fullscreen_toggled)
         controls_box.append(self.fs_btn)
 
         # Close button
         close_btn = Gtk.Button.new_from_icon_name('window-close-symbolic')
-        close_btn.set_tooltip_text('Close')
-        close_btn.update_property([Gtk.AccessibleProperty.LABEL], ['Close screenshot viewer'])
+        close_btn.set_tooltip_text(_('Close'))
+        close_btn.update_property([Gtk.AccessibleProperty.LABEL], [_('Close screenshot viewer')])
         close_btn.add_css_class('lightbox-close-button')
         close_btn.connect('clicked', lambda _: self.close())
         controls_box.append(close_btn)
@@ -89,6 +107,15 @@ class TavernScreenshotLightbox(Adw.Window):
             else:
                 self.close()
             return True
+        if keyval in (Gdk.KEY_plus, Gdk.KEY_equal, Gdk.KEY_KP_Add):
+            self._zoom_by(1.1)
+            return True
+        if keyval in (Gdk.KEY_minus, Gdk.KEY_KP_Subtract):
+            self._zoom_by(0.9)
+            return True
+        if keyval in (Gdk.KEY_0, Gdk.KEY_KP_0):
+            self._reset_zoom()
+            return True
         return False
 
     def _on_fullscreen_toggled(self, button):
@@ -102,12 +129,16 @@ class TavernScreenshotLightbox(Adw.Window):
 
     def _on_scroll(self, controller, dx, dy):
         zoom_factor = 1.1 if dy < 0 else 0.9
-        new_scale = self._scale * zoom_factor
-        
-        if self._min_scale <= new_scale <= self._max_scale:
-            self._scale = new_scale
-            self._update_zoom()
+        self._zoom_by(zoom_factor)
         return True
+
+    def _zoom_by(self, factor):
+        self._scale = min(self._max_scale, max(self._min_scale, self._scale * factor))
+        self._update_zoom()
+
+    def _reset_zoom(self):
+        self._scale = 1.0
+        self._update_zoom()
 
     def _update_zoom(self):
         orig_width = self._paintable.get_intrinsic_width()
@@ -131,6 +162,10 @@ class TavernScreenshotLightbox(Adw.Window):
             self.set_decorated(False)
         
         self.present()
+        settings = Gtk.Settings.get_default()
+        if settings is not None and not settings.get_property('gtk-enable-animations'):
+            self.set_opacity(1.0)
+            return
         self.set_opacity(0.0)
         try:
             target = Adw.PropertyAnimationTarget.new(self, 'opacity')

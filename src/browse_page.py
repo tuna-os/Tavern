@@ -1,6 +1,8 @@
 # browse_page.py - Browse / discover page
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import sys
+
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -69,7 +71,8 @@ class TavernBrowsePage(Adw.Bin):
     def populate_formulae(self, packages):
         _log.debug('populate_formulae: %d packages', len(packages))
         self._formulae = packages
-        section = curation_section(self._curation, 'popular-formulae')
+        section = curation_section(
+            self._curation, 'popular-formulae', platform=sys.platform)
         preferred = section['packages'] if section else POPULAR_FORMULAE
         self._fill_flow(self.popular_flow, packages, preferred)
         self._fill_recent(packages)
@@ -78,7 +81,8 @@ class TavernBrowsePage(Adw.Bin):
     def populate_casks(self, packages):
         _log.debug('populate_casks: %d packages', len(packages))
         self._casks = packages
-        section = curation_section(self._curation, 'popular-casks')
+        section = curation_section(
+            self._curation, 'popular-casks', platform=sys.platform)
         preferred = section['packages'] if section else POPULAR_CASKS
         self._fill_flow(self.casks_flow, packages, preferred)
         self._maybe_show_content()
@@ -125,7 +129,8 @@ class TavernBrowsePage(Adw.Bin):
 
     def _fill_recent(self, packages):
         clear_flow(self.recent_flow)
-        section = curation_section(self._curation, 'tunaos-picks')
+        section = curation_section(
+            self._curation, 'tunaos-picks', platform=sys.platform)
         selected = curated_packages(packages, section['packages'], limit=12) if section else []
         if len(selected) < 12:
             selected_names = {package.name for package in selected}
