@@ -9,6 +9,7 @@ from gi.repository import Gio, GLib, Gtk, Adw
 
 from tavern.application import TavernApplication
 from tavern.backend import BrewBackend
+from tavern.search_service import TavernSearchService
 
 class MockDBusConnection:
     def register_object(self, path, interface, method_call, get_property, set_property):
@@ -31,7 +32,7 @@ def test_application_init_and_actions(monkeypatch, tmp_path):
     quit_action.activate(None)
     assert getattr(app, '_quit_called', False) is True
 
-def test_application_dbus_registration(monkeypatch, tmp_path):
+def test_search_service_dbus_registration(monkeypatch, tmp_path):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     
     # Monkeypatch Gio.Application D-Bus methods to prevent type checking and session bus crashes
@@ -39,16 +40,18 @@ def test_application_dbus_registration(monkeypatch, tmp_path):
     monkeypatch.setattr(Gio.Application, 'do_dbus_unregister', lambda *args: None)
     
     app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestDbus")
+    assert not hasattr(app, '_search_provider')
+
+    service = TavernSearchService(desktop_app_id="org.tunaos.tavern.TestDbus")
     conn = MockDBusConnection()
     
     # Register DBus
-    app.do_dbus_register(conn, '/org.tunaos.tavern')
-    assert app._search_provider is not None
-    assert app._search_provider.registration_id == 101
+    service.do_dbus_register(conn, '/org/tunaos/tavern/SearchProvider')
+    assert service._provider.registration_id == 101
     
     # Unregister DBus
-    app.do_dbus_unregister(conn, '/org.tunaos.tavern')
-    assert app._search_provider.registration_id == 0
+    service.do_dbus_unregister(conn, '/org/tunaos/tavern/SearchProvider')
+    assert service._provider.registration_id == 0
 
 def test_application_show_package(monkeypatch, tmp_path):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
