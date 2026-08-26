@@ -3,7 +3,7 @@
 import pytest
 
 from tavern.catalog_policy import (
-    CatalogFilters, curated_packages, filter_packages, search_rank,
+    CatalogFilters, curation_section, curated_packages, filter_packages, search_rank,
     sort_packages, validate_curation,
 )
 from tavern.package import Package
@@ -42,8 +42,12 @@ def test_search_rank_prefers_exact_then_prefix_then_description():
 def test_validate_and_resolve_curation():
     data = validate_curation({
         'schema_version': 1,
-        'sections': [{'title': 'Essentials', 'packages': ['git', 'missing']}],
+        'sections': [{
+            'id': 'essentials', 'title': 'Essentials',
+            'package_type': 'formula', 'packages': ['git', 'missing'],
+        }],
     })
+    assert curation_section(data, 'essentials')['title'] == 'Essentials'
     assert curated_packages([package('git')], data['sections'][0]['packages'])[0].name == 'git'
 
 

@@ -43,6 +43,22 @@ Blueprint files (`.blp`) compile to `.ui` XML at build time via `blueprint-compi
 
 When adding a new page, keep Blueprint, Python, window wiring, gresource registration, and meson sources in sync — the repo layout in [README.md](README.md) and `src/` shows where each piece lands.
 
+### Localization
+
+Wrap every user-visible Blueprint value in `_()`, for example
+`label: _("Install");`, and add new Blueprint/Python sources to
+`po/POTFILES.in`. Python UI strings should use `gettext.gettext` (`_`) or
+`ngettext` for plurals. Before opening a PR, run:
+
+```bash
+python3 tools/check-translations.py
+meson setup build
+meson compile -C build tavern-pot
+```
+
+Add a locale code to `po/LINGUAS` only when its `.po` catalog is ready to
+ship. Translation-only PRs are welcome and do not require changes to Python.
+
 ## Pull requests
 
 - Keep PRs focused — one change, one PR.

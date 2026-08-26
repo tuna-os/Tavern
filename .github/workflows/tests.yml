@@ -56,6 +56,9 @@ jobs:
           xvfb-run -a dbus-run-session -- \
             python3 -m pytest tests/ -m "not slow" --junitxml=junit.xml
 
+      - name: Check translation coverage
+        run: python3 tools/check-translations.py
+
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v7

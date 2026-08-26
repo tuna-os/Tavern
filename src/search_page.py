@@ -1,16 +1,20 @@
 # search_page.py - Search page widget
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import gettext
+
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GLib, GObject
 from .backend import BrewBackend
+from .catalog_policy import CatalogFilters, filter_packages, sort_packages
 from .package_tile import TavernPackageTile, clear_flow
 from .logging_util import get_logger
 
 _log = get_logger('search_page')
+_ = gettext.gettext
 
 
 @Gtk.Template(resource_path='/org.tunaos.tavern/search-page.ui')
@@ -31,12 +35,33 @@ class TavernSearchPage(Adw.Bin):
     filter_all = Gtk.Template.Child()
     filter_formula = Gtk.Template.Child()
     filter_cask = Gtk.Template.Child()
+    filter_box = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._backend = None
         self._search_timeout = None
         self._current_filter = None  # None=all, 'formula', 'cask'
+        self._result_filters = Gtk.MenuButton(
+            icon_name='view-filter-symbolic', tooltip_text=_('Filter results'))
+        popover = Gtk.Popover()
+        filters_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL, spacing=8,
+            margin_top=12, margin_bottom=12, margin_start=12, margin_end=12,
+        )
+        self._installed_only = Gtk.CheckButton(label=_('Installed'))
+        self._outdated_only = Gtk.CheckButton(label=_('Updates available'))
+        self._vulnerable_only = Gtk.CheckButton(label=_('Security advisories'))
+        self._compatible_only = Gtk.CheckButton(label=_('Compatible with this system'))
+        for control in (
+            self._installed_only, self._outdated_only,
+            self._vulnerable_only, self._compatible_only,
+        ):
+            control.connect('toggled', self._on_filter_changed)
+            filters_box.append(control)
+        popover.set_child(filters_box)
+        self._result_filters.set_popover(popover)
+        self.filter_box.append(self._result_filters)
 
         self.search_entry.connect('changed', self._on_search_changed)
         self.clear_button.connect('clicked', self._on_clear)
@@ -101,7 +126,21 @@ class TavernSearchPage(Adw.Bin):
         # Ignore late results for text the user has since changed
         if query != self.search_entry.get_text().strip():
             return
-        _log.debug('Search returned %d results', len(results))
+        outdated = set()
+        pinned = set()
+        if self._backend:
+            outdated.update(getattr(self._backend, '_outdated_formulae', {}))
+            outdated.update(getattr(self._backend, '_outdated_casks', {}))
+            pinned = self._backend.get_pinned()
+        filters = CatalogFilters(
+            installed_only=self._installed_only.get_active(),
+            outdated_only=self._outdated_only.get_active(),
+            vulnerable_only=self._vulnerable_only.get_active(),
+            compatible_only=self._compatible_only.get_active(),
+        )
+        results = filter_packages(results, filters, outdated=outdated, pinned=pinned)
+        results = sort_packages(results, 'updates', outdated=outdated, pinned=pinned)
+        _log.debug('Search returned %d filtered results', len(results))
 
         clear_flow(self.results_flow)
 
@@ -120,6 +159,15 @@ class TavernSearchPage(Adw.Bin):
         self.search_spinner.set_visible(False)
 
     def _on_filter_changed(self, button):
+        result_controls = (
+            self._installed_only, self._outdated_only,
+            self._vulnerable_only, self._compatible_only,
+        )
+        if button in result_controls:
+            query = self.search_entry.get_text().strip()
+            if query:
+                self._do_search(query)
+            return
         if not button.get_active():
             return
         if button == self.filter_formula:

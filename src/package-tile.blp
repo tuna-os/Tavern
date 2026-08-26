@@ -134,7 +134,7 @@ template $TavernPackageTile: Adw.Bin {
       StackPage {
         name: "install";
         child: Button install_button {
-          label: "Install";
+          label: _("Install");
 
           styles ["medium-pill", "suggested-action"]
         };
@@ -144,7 +144,7 @@ template $TavernPackageTile: Adw.Bin {
       StackPage {
         name: "installed";
         child: Button remove_button {
-          label: "Remove";
+          label: _("Remove");
 
           styles ["medium-pill"]
         };
@@ -168,7 +168,7 @@ template $TavernPackageTile: Adw.Bin {
             }
 
             Label task_action_label {
-              label: "Working…";
+              label: _("Working…");
               ellipsize: end;
 
               styles ["caption"]

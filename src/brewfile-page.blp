@@ -24,7 +24,7 @@ template $TavernBrewfilePage: Adw.Bin {
           }
 
           Label {
-            label: "Loading Brewfile packages…";
+            label: _("Loading Brewfile packages…");
 
             styles ["dim-label"]
           }
@@ -57,7 +57,7 @@ template $TavernBrewfilePage: Adw.Bin {
                 visible: false;
 
                 Label {
-                  label: "Taps";
+                  label: _("Taps");
                   xalign: 0.0;
                   margin-start: 4;
 
@@ -79,7 +79,7 @@ template $TavernBrewfilePage: Adw.Bin {
                 visible: false;
 
                 Label {
-                  label: "Formulae";
+                  label: _("Formulae");
                   xalign: 0.0;
                   margin-start: 4;
 
@@ -103,7 +103,7 @@ template $TavernBrewfilePage: Adw.Bin {
                 visible: false;
 
                 Label {
-                  label: "Casks";
+                  label: _("Casks");
                   xalign: 0.0;
                   margin-start: 4;
 
@@ -127,7 +127,7 @@ template $TavernBrewfilePage: Adw.Bin {
                 visible: false;
 
                 Label {
-                  label: "Flatpaks";
+                  label: _("Flatpaks");
                   xalign: 0.0;
                   margin-start: 4;
 
@@ -156,16 +156,16 @@ template $TavernBrewfilePage: Adw.Bin {
 
       [start]
       Button remove_all_button {
-        label: "Remove All";
-        tooltip-text: "Remove all installed packages from this Brewfile";
+        label: _("Remove All");
+        tooltip-text: _("Remove all installed packages from this Brewfile");
 
         styles ["destructive-action"]
       }
 
       [end]
       Button install_all_button {
-        label: "Install All";
-        tooltip-text: "Install all packages from this Brewfile";
+        label: _("Install All");
+        tooltip-text: _("Install all packages from this Brewfile");
 
         styles ["suggested-action"]
       }

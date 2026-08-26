@@ -36,6 +36,7 @@ FORMULA_DETAIL_API = 'https://formulae.brew.sh/api/formula/{}.json'
 CASK_DETAIL_API = 'https://formulae.brew.sh/api/cask/{}.json'
 ANALYTICS_ON_REQUEST_API = 'https://formulae.brew.sh/api/analytics/install-on-request/{}.json'
 FLATHUB_APPSTREAM_API = 'https://flathub.org/api/v2/appstream/{}'
+CURATION_API = 'https://raw.githubusercontent.com/tuna-os/Tavern/main/data/curation.json'
 
 
 def urlopen(req, timeout=None):
@@ -54,6 +55,37 @@ def _brew_cmd(args):
 
 class RemoteMixin:
     """Remote catalog/detail/analytics fetching mixed into BrewBackend."""
+
+    def get_curation(self):
+        """Return validated, cached curation with an offline-safe fallback."""
+        from .catalog_policy import DEFAULT_CURATION, validate_curation
+
+        cached, is_stale = self._load_cached('curation', max_age=21600)
+        candidates = []
+        if cached and not is_stale:
+            candidates.append(cached)
+        else:
+            remote = self._fetch_json(CURATION_API)
+            if remote:
+                candidates.append(remote)
+            if cached:
+                candidates.append(cached)
+        candidates.append(DEFAULT_CURATION)
+        for candidate in candidates:
+            try:
+                curation = validate_curation(candidate)
+                if candidate is not DEFAULT_CURATION:
+                    self._save_cache('curation', curation)
+                return curation
+            except ValueError as error:
+                _log.warning('Rejected invalid curation metadata: %s', error)
+        return validate_curation(DEFAULT_CURATION)
+
+    def get_curation_async(self, callback):
+        def worker():
+            curation = self.get_curation()
+            GLib.idle_add(callback, curation)
+        threading.Thread(target=worker, daemon=True, name='tavern-curation').start()
 
     def get_flatpak_info(self, app_id):
         """Fetch Flatpak appstream metadata from Flathub."""

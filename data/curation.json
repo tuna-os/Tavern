@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "sections": [
+    {
+      "id": "popular-formulae",
+      "title": "Popular Formulae",
+      "package_type": "formula",
+      "packages": ["git", "wget", "curl", "node", "python@3.12", "ffmpeg", "htop", "vim", "neovim", "tmux", "ripgrep", "fzf", "jq", "bat", "eza", "imagemagick", "yt-dlp", "gh", "go", "rust"]
+    },
+    {
+      "id": "popular-casks",
+      "title": "Popular Casks",
+      "package_type": "cask",
+      "packages": ["firefox", "google-chrome", "visual-studio-code", "vlc", "slack", "zoom", "spotify", "discord", "rectangle", "obsidian", "warp", "tableplus", "postman", "docker", "alfred"]
+    },
+    {
+      "id": "tunaos-picks",
+      "title": "TunaOS Picks",
+      "package_type": "formula",
+      "packages": ["ripgrep", "fd", "fzf", "bat", "eza", "zoxide", "jq", "shellcheck", "just", "btop", "lazygit", "starship"]
+    }
+  ]
+}
