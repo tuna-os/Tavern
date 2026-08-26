@@ -731,7 +731,7 @@ class TavernBrewfilePage(Adw.Bin):
             # Remove formulae
             if formulae:
                 try:
-                    cmd = _brew_cmd(['uninstall', '--formula'] + formulae)
+                    cmd = _brew_cmd(['uninstall', '--formula'] + list(formulae))
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         _log.info('brew uninstall --formula completed for %d packages', len(formulae))
@@ -744,7 +744,7 @@ class TavernBrewfilePage(Adw.Bin):
             # Remove casks
             if casks:
                 try:
-                    cmd = _brew_cmd(['uninstall', '--cask'] + casks)
+                    cmd = _brew_cmd(['uninstall', '--cask'] + list(casks))
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         _log.info('brew uninstall --cask completed for %d packages', len(casks))
@@ -757,7 +757,7 @@ class TavernBrewfilePage(Adw.Bin):
             # Remove flatpaks
             if flatpaks:
                 try:
-                    cmd = ['flatpak', 'uninstall', '-y'] + flatpaks
+                    cmd = ['flatpak', 'uninstall', '-y'] + list(flatpaks)
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         _log.info('flatpak uninstall completed for %d packages', len(flatpaks))
