@@ -15,6 +15,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from .backend import Package
 from .package_tile import TavernPackageTile
 from .logging_util import get_logger, log_timing
+from .brewfile_plan import build_plan
 
 _log = get_logger('brewfile_page')
 
@@ -628,29 +629,14 @@ class TavernBrewfilePage(Adw.Bin):
         with self._cask_error_lock:
             cask_errors = set(self._cask_errors.keys())
 
-        taps = [t if isinstance(t, str) else t['name'] for t in self.parsed_data.get('taps', []) if (t if isinstance(t, str) else t['name']) not in tap_errors]
-        formulae = list(self.parsed_data.get('formulae', []))
-        casks = [c for c in self.parsed_data.get('casks', []) if c not in cask_errors]
-        flatpaks = [f for f in self.parsed_data.get('flatpaks', []) if f not in flatpak_errors]
-
-        lines = []
-        parsed_taps = self.parsed_data.get('taps', [])
-        for tap_entry in parsed_taps:
-            if isinstance(tap_entry, dict):
-                tap_name = tap_entry['name']
-            else:
-                tap_name = tap_entry
-            if tap_name not in tap_errors:
-                # Preserve trusted: field for Homebrew 6.0.0+ round-trips
-                if isinstance(tap_entry, dict) and tap_entry.get('trusted'):
-                    lines.append(f'tap "{tap_name}", trusted: true')
-                else:
-                    lines.append(f'tap "{tap_name}"')
-        lines.extend([f'brew "{name}"' for name in formulae])
-        lines.extend([f'cask "{name}"' for name in casks])
-        lines.extend([f'flatpak "{app_id}"' for app_id in flatpaks])
-
-        if not lines:
+        plan = build_plan(
+            self.parsed_data,
+            tap_errors=tap_errors,
+            cask_errors=cask_errors,
+            flatpak_errors=flatpak_errors,
+        )
+        rendered_brewfile = plan.render()
+        if not rendered_brewfile:
             _log.warning('Install-all filtered Brewfile is empty; nothing to install')
             return
 
@@ -663,7 +649,7 @@ class TavernBrewfilePage(Adw.Bin):
                 delete=False,
             )
             with temp_file:
-                temp_file.write('\n'.join(lines) + '\n')
+                temp_file.write(rendered_brewfile)
             filtered_path = temp_file.name
         except Exception as e:
             _log.error('Failed to create filtered Brewfile for install-all: %s', e)
@@ -672,10 +658,10 @@ class TavernBrewfilePage(Adw.Bin):
         _log.info(
             'Install-all via brew bundle using filtered Brewfile: %s (kept taps=%d formulae=%d casks=%d flatpaks=%d; dropped taps=%d casks=%d flatpaks=%d)',
             filtered_path,
-            len(taps),
-            len(formulae),
-            len(casks),
-            len(flatpaks),
+            len(plan.taps),
+            len(plan.formulae),
+            len(plan.casks),
+            len(plan.flatpaks),
             len(tap_errors),
             len(cask_errors),
             len(flatpak_errors),
@@ -718,9 +704,13 @@ class TavernBrewfilePage(Adw.Bin):
             cask_errors = set(self._cask_errors.keys())
 
         # Filter to error-free packages only
-        casks = [c for c in self.parsed_data.get('casks', []) if c not in cask_errors]
-        formulae = list(self.parsed_data.get('formulae', []))
-        flatpaks = [f for f in self.parsed_data.get('flatpaks', []) if f not in flatpak_errors]
+        plan = build_plan(
+            self.parsed_data,
+            tap_errors=tap_errors,
+            cask_errors=cask_errors,
+            flatpak_errors=flatpak_errors,
+        )
+        formulae, casks, flatpaks = plan.formulae, plan.casks, plan.flatpaks
 
         if not casks and not formulae and not flatpaks:
             _log.warning('Remove-all filtered list is empty; nothing to remove')
