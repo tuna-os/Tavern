@@ -53,6 +53,7 @@ tavern_sources = [
   'backend_state.py',
   'backend_ui.py',
   'brew_env.py',
+  'brewfile_plan.py',
   'package.py',
   'taps.py',
   'media.py',
