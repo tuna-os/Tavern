@@ -11,7 +11,6 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gio, GLib, Gtk
 from .window import TavernWindow
-from .search_provider import TavernSearchProvider
 from .logging_util import get_logger
 
 _ = gettext.gettext
@@ -34,7 +33,6 @@ class TavernApplication(Adw.Application):
         self._tap_to_open = None
         self._brewfile_to_open = None
         
-        self._search_provider = None
 
         self.create_action('quit', lambda *_: self.quit(), ['<primary>q'])
         self.create_action('about', self._on_about_action)
@@ -48,19 +46,6 @@ class TavernApplication(Adw.Application):
         self.add_action(show_pkg)
 
         _log.debug('TavernApplication created  version=%s', version)
-
-    # ── D-Bus registration (for GNOME Shell search provider) ──────
-    def do_dbus_register(self, connection, object_path):
-        """Export search provider interface before the app is activated."""
-        self._search_provider = TavernSearchProvider(self)
-        self._search_provider.export(connection)
-        return Gio.Application.do_dbus_register(self, connection, object_path)
-
-    def do_dbus_unregister(self, connection, object_path):
-        """Unexport search provider on shutdown."""
-        if self._search_provider:
-            self._search_provider.unexport()
-        Gio.Application.do_dbus_unregister(self, connection, object_path)
 
     # ── Startup & Background Cache Refresher Worker ─────────────────
     def do_startup(self):

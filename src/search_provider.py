@@ -48,8 +48,9 @@ SEARCH_PROVIDER_XML = """
 class TavernSearchProvider:
     """Implements the org.gnome.Shell.SearchProvider2 D-Bus interface."""
 
-    def __init__(self, application):
+    def __init__(self, application, desktop_app_id=None):
         self.application = application
+        self.desktop_app_id = desktop_app_id
         self.connection = None
         self.registration_id = 0
         self._node_info = Gio.DBusNodeInfo.new_for_xml(SEARCH_PROVIDER_XML)
@@ -70,7 +71,7 @@ class TavernSearchProvider:
         app_id = None
         if self.application is not None:
             app_id = self.application.get_application_id()
-        app_id = app_id or 'org.tunaos.tavern'
+        app_id = self.desktop_app_id or app_id or 'org.tunaos.tavern'
         object_path = '/' + app_id.replace('.', '/') + '/SearchProvider'
         try:
             self.registration_id = self.connection.register_object(
@@ -164,7 +165,7 @@ class TavernSearchProvider:
             # Fallback icon: the app's own icon, resolved from the actual
             # application id so it also works for the .Devel build (whose
             # installed icons are renamed to org.tunaos.tavern.Devel*).
-            app_id = self.application.get_application_id() or 'org.tunaos.tavern'
+            app_id = self.desktop_app_id or self.application.get_application_id() or 'org.tunaos.tavern'
             fallback_icon = Gio.ThemedIcon.new_with_default_fallbacks(app_id)
 
             metas = []
@@ -199,7 +200,10 @@ class TavernSearchProvider:
             _log.info('Activating result: %s', pkg_id)
             
             # Use the application action to show the package
-            self.application.activate_action("show-package", GLib.Variant("s", pkg_id))
+            if hasattr(self.application, 'open_package'):
+                self.application.open_package(pkg_id)
+            else:
+                self.application.activate_action("show-package", GLib.Variant("s", pkg_id))
             invocation.return_value(None)
 
         elif method_name == "LaunchSearch":
@@ -210,9 +214,11 @@ class TavernSearchProvider:
             # Open app and search (we re-use show-package with the query, or could just open window)
             # Actually just activating the app is usually enough for LaunchSearch
             # because GNOME Shell moves focus to the app
-            self.application.activate()
+            if hasattr(self.application, 'open_search'):
+                self.application.open_search(query)
+            else:
+                self.application.activate()
             invocation.return_value(None)
 
         else:
             invocation.return_error_literal(Gio.DBusError.UNKNOWN_METHOD, "Unknown method")
-
