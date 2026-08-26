@@ -33,7 +33,8 @@
                 {
                     "type": "git",
                     "url": "https://github.com/GNOME/blueprint-compiler.git",
-                    "tag": "v0.22.2"
+                    "tag": "v0.22.2",
+                    "commit": "ed35ac74de0c1bb1f5e852410b97edd1f08904c9"
                 }
             ]
         },
@@ -41,13 +42,13 @@
             "name": "python3-markdown",
             "buildsystem": "simple",
             "build-commands": [
-                "pip3 install --prefix=/app markdown"
+                "pip3 install --no-index --find-links=. --prefix=/app markdown==3.10.3"
             ],
             "sources": [
                 {
-                    "type": "inline",
-                    "contents": "",
-                    "dest-filename": "dummy"
+                    "type": "file",
+                    "url": "https://files.pythonhosted.org/packages/64/69/4a5af2bc115a9a33fefe51709749de8262be3f9ba063d1753a837cdbc49c/markdown-3.10.3-py3-none-any.whl",
+                    "sha256": "fa6c92a00a4a3c98b22728c64a935ae1928250ae65058a6ded814d2cc29a4cea"
                 }
             ]
         },

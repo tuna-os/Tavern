@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=@APPLICATION_ID@.SearchProvider
+Exec=@bindir@/tavern-search-provider

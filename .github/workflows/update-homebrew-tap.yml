@@ -39,13 +39,13 @@ jobs:
 
           # Download macOS app
           echo "Downloading Tavern-macOS.zip..."
-          curl -sL -o /tmp/Tavern-macOS.zip "https://github.com/hanthor/Tavern/releases/download/v${VERSION}/Tavern-macOS.zip"
+          curl --fail --silent --show-error --location -o /tmp/Tavern-macOS.zip "https://github.com/tuna-os/Tavern/releases/download/v${VERSION}/Tavern-macOS.zip"
           MACOS_SHA256=$(sha256sum /tmp/Tavern-macOS.zip | awk '{print $1}')
           echo "macos_sha256=${MACOS_SHA256}" >> $GITHUB_OUTPUT
 
           # Download Linux AppImage
           echo "Downloading Tavern-Linux.AppImage..."
-          curl -sL -o /tmp/Tavern-Linux.AppImage "https://github.com/hanthor/Tavern/releases/download/v${VERSION}/Tavern-Linux.AppImage"
+          curl --fail --silent --show-error --location -o /tmp/Tavern-Linux.AppImage "https://github.com/tuna-os/Tavern/releases/download/v${VERSION}/Tavern-Linux.AppImage"
 
           APPIMAGE_SHA256=$(sha256sum /tmp/Tavern-Linux.AppImage | awk '{print $1}')
           echo "appimage_sha256=${APPIMAGE_SHA256}" >> $GITHUB_OUTPUT
@@ -58,7 +58,7 @@ jobs:
 
             on_macos do
               sha256 "${{ steps.download.outputs.macos_sha256 }}"
-              url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-macOS.zip"
+              url "https://github.com/tuna-os/Tavern/releases/download/v#{version}/Tavern-macOS.zip"
 
               app "Tavern.app"
 
@@ -71,7 +71,7 @@ jobs:
 
             on_linux do
               sha256 "${{ steps.download.outputs.appimage_sha256 }}"
-              url "https://github.com/hanthor/Tavern/releases/download/v#{version}/Tavern-Linux.AppImage"
+              url "https://github.com/tuna-os/Tavern/releases/download/v#{version}/Tavern-Linux.AppImage"
 
               # Wrap the AppImage with --appimage-extract-and-run so the cask
               # works on any glibc-based distro without requiring libfuse2 on
@@ -98,10 +98,10 @@ jobs:
 
             name "Tavern"
             desc "Modern Homebrew client built with Python and GTK 4"
-            homepage "https://github.com/hanthor/Tavern"
+            homepage "https://github.com/tuna-os/Tavern"
 
             livecheck do
-              url "https://github.com/hanthor/Tavern/releases.atom"
+              url "https://github.com/tuna-os/Tavern/releases.atom"
               strategy :github_latest
             end
           end

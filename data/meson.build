@@ -70,6 +70,13 @@ configure_file(
   install_dir: get_option('datadir') / 'dbus-1' / 'services'
 )
 
+configure_file(
+  input: 'org.tunaos.tavern.SearchProvider.service.in',
+  output: '@0@.SearchProvider.service'.format(APPLICATION_ID),
+  configuration: service_conf,
+  install_dir: get_option('datadir') / 'dbus-1' / 'services'
+)
+
 # ── Validation ────────────────────────────────────────────────────────────────
 desktop_file_validate = find_program('desktop-file-validate', required: false)
 if desktop_file_validate.found()

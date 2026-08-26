@@ -40,6 +40,15 @@ configure_file(
   install_mode: 'rwxr-xr-x',
 )
 
+configure_file(
+  input: 'tavern-search-provider.in',
+  output: 'tavern-search-provider',
+  configuration: conf,
+  install: true,
+  install_dir: get_option('bindir'),
+  install_mode: 'rwxr-xr-x',
+)
+
 # Install Python sources
 tavern_sources = [
   '__init__.py',
@@ -72,6 +81,7 @@ tavern_sources = [
   'global_progress.py',
   'brewfile_page.py',
   'search_provider.py',
+  'search_service.py',
   'version_history_dialog.py',
   'screenshot_lightbox.py',
   'stats_dialog.py',

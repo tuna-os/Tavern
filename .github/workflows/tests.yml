@@ -59,6 +59,12 @@ jobs:
       - name: Check translation coverage
         run: python3 tools/check-translations.py
 
+      - name: Check release contract and immutable inputs
+        run: |
+          VERSION=$(sed -n "s/.*version: '\([^']*\)'.*/\1/p" meson.build | head -1)
+          python3 tools/validate-release.py --version "$VERSION"
+          python3 tools/check-supply-chain.py
+
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v7

@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+import os
+import sys
+
+pkgdatadir = os.environ.get('TAVERN_DATADIR', '@PKGDATADIR@')
+sys.path.insert(1, pkgdatadir)
+
+from tavern.search_service import main
+
+raise SystemExit(main('@APPLICATION_ID@'))

@@ -2,125 +2,166 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
+
+permissions:
+  contents: read
 
 jobs:
-  build-macos:
-    name: "macOS App Bundle"
-    runs-on: macos-26
-    permissions:
-      contents: write
+  validate:
+    name: Validate release contract
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: python3 tools/validate-release.py --tag "${GITHUB_REF_NAME}"
+      - name: Require a tag from main history
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
-    - name: Install dependencies
-      run: |
-        brew update
-        brew install gtk4 libadwaita blueprint-compiler meson ninja pkg-config desktop-file-utils
-
-    - name: Build App Bundle
-      run: ./run.sh --cask
-
-    - name: Zip App Bundle
-      run: zip -r Tavern-macOS.zip Tavern.app
-
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v3
-      with:
-        files: Tavern-macOS.zip
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-macos:
+    name: macOS app bundle
+    needs: validate
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install gtk4 libadwaita blueprint-compiler meson ninja pkg-config desktop-file-utils
+      - name: Build app bundle
+        run: |
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          ./run.sh --cask
+      - name: Create normalized archive
+        run: |
+          find Tavern.app -exec touch -t 198001010000 {} +
+          COPYFILE_DISABLE=1 zip -X -r Tavern-macOS.zip Tavern.app
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-macos
+          path: Tavern-macOS.zip
+          if-no-files-found: error
 
   build-appimage:
-    name: "Linux AppImage"
+    name: Linux AppImage
+    needs: validate
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
-    - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            meson ninja-build pkg-config gettext desktop-file-utils \
+            blueprint-compiler python3 python3-gi python3-requests python3-markdown \
+            libgtk-4-dev libadwaita-1-dev libgirepository1.0-dev gobject-introspection \
+            libfuse2 curl
+      - name: Build and stage AppDir
+        run: |
+          export SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          meson setup builddir-appimage --prefix=/usr
+          meson compile -C builddir-appimage
+          DESTDIR="$PWD/AppDir" meson install -C builddir-appimage
+      - name: Fetch verified packaging tools
+        run: |
+          curl --fail --location --retry 3 -o linuxdeploy-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+          curl --fail --location --retry 3 -o linuxdeploy.sha256 \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage.sha256
+          EXPECTED_LINUXDEPLOY_SHA256="$(awk '{print $1}' linuxdeploy.sha256)"
+          echo "${EXPECTED_LINUXDEPLOY_SHA256}  linuxdeploy-x86_64.AppImage" | sha256sum --check
 
-    - name: Install build dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          meson ninja-build pkg-config gettext desktop-file-utils \
-          blueprint-compiler python3 python3-gi python3-requests python3-markdown \
-          libgtk-4-dev libadwaita-1-dev libgirepository1.0-dev gobject-introspection \
-          libfuse2 curl
-
-    - name: Build and stage AppDir
-      run: |
-        meson setup builddir-appimage --prefix=/usr
-        meson compile -C builddir-appimage
-        DESTDIR="$PWD/AppDir" meson install -C builddir-appimage
-
-    - name: Debug AppDir contents
-      run: |
-        echo "=== AppDir structure ==="
-        find AppDir -type f | sort || echo "AppDir is empty or missing!"
-        echo "=== checking desktop file ==="
-        ls -la AppDir/usr/share/applications/org.tunaos.tavern.desktop || echo "desktop file missing!"
-        echo "=== checking icon ==="
-        ls -la AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg || echo "icon missing!"
-        echo "=== checking binary ==="
-        ls -la AppDir/usr/bin/tavern || echo "binary missing!"
-
-    - name: Build AppImage
-      run: |
-        curl -L -o linuxdeploy-x86_64.AppImage \
-          https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-        curl -L -o linuxdeploy-plugin-gtk.sh \
-          https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh
-
-        chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk.sh
-
-        export ARCH=x86_64
-        export LDAI_OUTPUT=Tavern-Linux.AppImage
-        export LDAI_UPDATE_INFORMATION="gh-releases-zsync|hanthor|Tavern|latest|Tavern-Linux.AppImage.zsync"
-        export DEPLOY_GTK_VERSION=4
-
-        ./linuxdeploy-x86_64.AppImage \
-          --appdir AppDir \
-          --plugin gtk \
-          --desktop-file AppDir/usr/share/applications/org.tunaos.tavern.desktop \
-          --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg \
-          --output appimage
-
-        # Debug: check if GTK plugin bundled libraries
-        echo "=== AppDir contents after plugin ==="
-        find AppDir -name "*.so*" -type f | sort | head -30
-        du -sh AppDir/
-
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v3
-      with:
-        files: Tavern-Linux.AppImage
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          curl --fail --location --retry 3 -o linuxdeploy-plugin-gtk.sh \
+            https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/7a3fbc31a9e5075073ff8790f26effbac5f84453/linuxdeploy-plugin-gtk.sh
+          echo 'b0f4cbc684a0103a9651f0955b635eaea0096b3a66c0f5a2c2aa337960375171  linuxdeploy-plugin-gtk.sh' | sha256sum --check
+          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-gtk.sh
+      - name: Build AppImage
+        env:
+          ARCH: x86_64
+          LDAI_OUTPUT: Tavern-Linux.AppImage
+          LDAI_UPDATE_INFORMATION: gh-releases-zsync|tuna-os|Tavern|latest|Tavern-Linux.AppImage.zsync
+          DEPLOY_GTK_VERSION: 4
+        run: |
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --plugin gtk \
+            --desktop-file AppDir/usr/share/applications/org.tunaos.tavern.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg \
+            --output appimage
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-appimage
+          path: Tavern-Linux.AppImage
+          if-no-files-found: error
 
   build-flatpak:
-    name: "Flatpak Bundle"
+    name: Flatpak bundle
+    needs: validate
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
+    steps:
+      - uses: actions/checkout@v7
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: Tavern-Linux.flatpak
+          manifest-path: org.tunaos.tavern.json
+          cache-key: flatpak-builder-${{ github.sha }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-flatpak
+          path: Tavern-Linux.flatpak
+          if-no-files-found: error
+
+  publish:
+    name: Attest and publish release
+    needs: [build-macos, build-appimage, build-flatpak]
+    runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+      actions: write
     steps:
-    - uses: actions/checkout@v7
-
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-      with:
-        bundle: Tavern-Linux.flatpak
-        manifest-path: org.tunaos.tavern.json
-        cache-key: flatpak-builder-${{ github.sha }}
-
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v3
-      with:
-        files: Tavern-Linux.flatpak
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/Tavern.spdx.json
+          upload-artifact: false
+      - name: Generate checksums
+        working-directory: dist
+        run: sha256sum Tavern-Linux.AppImage Tavern-Linux.flatpak Tavern-macOS.zip Tavern.spdx.json > SHA256SUMS
+      - name: Generate signed provenance
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Generate signed SBOM attestation
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+          sbom-path: dist/Tavern.spdx.json
+      - name: Publish one release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+      - name: Dispatch downstream publishing from this tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-flatpak.yml --ref "$GITHUB_REF_NAME"
+          gh workflow run update-homebrew-tap.yml --ref main -f release_tag="$GITHUB_REF_NAME"
