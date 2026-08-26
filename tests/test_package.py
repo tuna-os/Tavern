@@ -91,6 +91,50 @@ class TestCaskParsing:
         pkg = Package(data, 'cask')
         assert pkg.tap == 'homebrew/cask'
 
+    def test_supported_platforms_are_authoritative(self):
+        pkg = Package({
+            'token': 'linux-app',
+            'supported_platforms': ['linux'],
+            'depends_on': {'macos': {'>=': ['12']}},
+        }, 'cask')
+        assert pkg.supported_platforms == ['linux']
+        assert pkg.compatibility_source == 'supported_platforms'
+        assert pkg.supports_platform('linux') is True
+        assert pkg.supports_platform('darwin') is False
+
+    def test_legacy_platform_fallback(self):
+        pkg = Package({'token': 'old-app', 'depends_on': {'macos': {'>=': ['12']}}}, 'cask')
+        assert pkg.compatibility_source == 'legacy-depends-on'
+        assert pkg.supports_platform('linux') is False
+        assert pkg.supports_platform('darwin') is True
+
+
+class TestSecurityMetadata:
+    def test_open_advisory_with_fix(self, sample_formula_data):
+        data = dict(sample_formula_data)
+        data['vulnerabilities'] = {
+            'open': [{'id': 'CVE-2026-0001'}],
+            'patched': [],
+            'fixed_count': 1,
+        }
+        pkg = Package(data, 'formula')
+        assert pkg.has_known_vulnerability is True
+        assert pkg.vulnerability_fix_available is True
+        assert pkg.security_status == 'fix-available'
+        assert pkg.advisory_ids == ['CVE-2026-0001']
+        assert pkg.advisory_summary == '1 known advisory — fix available'
+
+    def test_open_advisory_without_fix(self, sample_formula_data):
+        data = dict(sample_formula_data)
+        data['vulnerabilities'] = {'open': [{'id': 'CVE-2026-0002'}]}
+        pkg = Package(data, 'formula')
+        assert pkg.security_status == 'affected'
+
+    def test_missing_advisory_data_is_normalized(self, sample_formula_data):
+        pkg = Package(sample_formula_data, 'formula')
+        assert pkg.vulnerabilities == {'open': [], 'patched': [], 'fixed_count': 0}
+        assert pkg.security_status == 'no-known-advisories'
+
 
 # ─── Flatpak parsing ──────────────────────────────────────────────────────────
 

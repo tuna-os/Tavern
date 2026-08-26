@@ -99,6 +99,19 @@ class TestTask:
         assert finished_args == [False]
         assert task.is_active is False
 
+    def test_set_cancelled(self, pkg):
+        task = Task(pkg, TaskOperation.INSTALL)
+        task._set_running()
+        task._set_cancelled()
+        assert task.status == TaskStatus.CANCELLED
+        assert task.is_active is False
+        assert pkg.task_active is False
+
+    def test_batch_title(self, pkg):
+        other = Package({'name': 'fd'}, 'formula')
+        task = Task(pkg, TaskOperation.UPGRADE, packages=[pkg, other])
+        assert task.title == 'Upgrading 2 packages'
+
     def test_update_phase_only_moves_forward(self, pkg):
         task = Task(pkg, TaskOperation.INSTALL)
         task._set_running()
@@ -141,6 +154,22 @@ class TestTaskManager:
     def test_upgrade_convenience(self, mgr, pkg):
         task = mgr.upgrade(pkg)
         assert task.operation == TaskOperation.UPGRADE
+
+    def test_upgrade_many_uses_one_task(self, mgr, pkg):
+        mgr._running = True
+        other = Package({'name': 'fd'}, 'formula')
+        task = mgr.upgrade_many([pkg, other])
+        assert task.packages == [pkg, other]
+        assert len(mgr.tasks) == 1
+        assert mgr._queue == [task]
+
+    def test_cancel_pending_task(self, mgr, pkg):
+        mgr._running = True
+        task = mgr.install(pkg)
+        assert mgr.cancel(task) is True
+        while task.status == TaskStatus.PENDING:
+            GLib.MainContext.default().iteration(False)
+        assert task.status == TaskStatus.CANCELLED
 
     def test_get_task_for_package(self, mgr, pkg):
         task = mgr.submit(pkg, TaskOperation.INSTALL)

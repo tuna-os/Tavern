@@ -65,6 +65,7 @@ from .backend_cache import CacheMixin
 from .backend_remote import RemoteMixin
 from .backend_state import StateMixin
 from .backend_ui import UiMixin
+from .cache_policy import CacheManager
 
 
 class BrewBackend(TapsMixin, MediaMixin, CacheMixin, RemoteMixin, StateMixin, UiMixin, GObject.Object):
@@ -106,6 +107,7 @@ class BrewBackend(TapsMixin, MediaMixin, CacheMixin, RemoteMixin, StateMixin, Ui
         self._icon_lock = threading.Lock()
         self._cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
         os.makedirs(self._cache_dir, exist_ok=True)
+        self._cache_manager = CacheManager(self._cache_dir)
         _log.debug('BrewBackend init  cache_dir=%s', self._cache_dir)
 
     @property

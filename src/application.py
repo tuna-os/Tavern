@@ -306,6 +306,31 @@ class TavernApplication(Adw.Application):
         group.add(interval_row)
 
         page.add(group)
+
+        storage_group = Adw.PreferencesGroup(title=_('Storage'))
+        window = self.props.active_window
+        backend = getattr(window, 'backend', None)
+        cache_size = backend.cache_size_bytes() if backend else 0
+        cache_row = Adw.ActionRow(
+            title=_('Downloaded Metadata and Media'),
+            subtitle=_('{size:.1f} MB currently used').format(
+                size=cache_size / (1024 * 1024)),
+        )
+        clear_button = Gtk.Button(label=_('Clear Cache'), valign=Gtk.Align.CENTER)
+        clear_button.add_css_class('destructive-action')
+        clear_button.update_property(
+            [Gtk.AccessibleProperty.LABEL], [_('Clear Tavern cache')])
+
+        def _clear_cache(_button):
+            if not backend:
+                return
+            backend.clear_cache()
+            cache_row.set_subtitle(_('0.0 MB currently used'))
+
+        clear_button.connect('clicked', _clear_cache)
+        cache_row.add_suffix(clear_button)
+        storage_group.add(cache_row)
+        page.add(storage_group)
         dialog = Adw.PreferencesDialog(title=_('Preferences'), search_enabled=True,
                                        content_width=600)
         dialog.add(page)

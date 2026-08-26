@@ -268,14 +268,6 @@ class UiMixin:
                 if query in pkg.name.lower() or query in pkg.display_name.lower() or query in pkg.description.lower():
                     results.append(pkg)
 
-        # Sort: exact name matches first, then starts-with, then contains
-        def sort_key(pkg):
-            n = pkg.name.lower()
-            if n == query:
-                return (0, n)
-            if n.startswith(query):
-                return (1, n)
-            return (2, n)
-
-        results.sort(key=sort_key)
+        from .catalog_policy import search_rank
+        results.sort(key=lambda package: search_rank(package, query))
         return results

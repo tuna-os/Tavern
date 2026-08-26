@@ -82,18 +82,31 @@ class CacheMixin:
 
     def _save_cache(self, name, data):
         try:
-            with open(self._cache_path(name), 'w') as f:
-                json.dump(data, f)
+            self._cache_manager.atomic_write_json(self._cache_path(name), data)
             _log.debug('Cache saved: %s', name)
         except Exception as e:
             _log.warning('Cache write failed for %s: %s', name, e)
 
     @staticmethod
     def _filter_linux_casks(data):
-        """Drop casks that require macOS when running on Linux."""
+        """Drop casks Homebrew declares unsupported on Linux.
+
+        Homebrew 6.0.18 added ``supported_platforms`` to the public cask API.
+        Prefer it and retain the old ``depends_on.macos`` heuristic only for
+        older/custom-tap payloads that do not expose the new field.
+        """
         if not sys.platform.startswith('linux'):
             return data
-        return [d for d in data if 'macos' not in (d.get('depends_on') or {})]
+        filtered = []
+        for item in data:
+            platforms = item.get('supported_platforms')
+            if isinstance(platforms, (list, tuple)):
+                if any(str(value).lower() == 'linux' for value in platforms):
+                    filtered.append(item)
+                continue
+            if 'macos' not in (item.get('depends_on') or {}):
+                filtered.append(item)
+        return filtered
 
     def _get_host_brew_cache_paths(self):
         """Get the paths to the system Homebrew JWS cache files."""
@@ -204,8 +217,14 @@ class CacheMixin:
             })
 
         try:
-            with open(sp_cache_path, 'w', encoding='utf-8') as f:
-                json.dump(packages_data, f)
+            self._cache_manager.atomic_write_json(sp_cache_path, packages_data)
             _log.info('Saved search provider cache to %s (%d packages)', sp_cache_path, len(packages_data))
         except Exception as e:
             _log.error('Failed to save search provider cache: %s', e)
+
+    def cache_size_bytes(self):
+        return self._cache_manager.size_bytes()
+
+    def clear_cache(self):
+        self._cache_manager.clear()
+        self._cache_manager._write_version_marker()

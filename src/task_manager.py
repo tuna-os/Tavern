@@ -1,7 +1,9 @@
 # task_manager.py - Centralized installation/removal task manager
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import os
 import re
+import signal
 import subprocess
 import threading
 import time
@@ -110,16 +112,20 @@ class Task(GObject.Object):
         'finished': (GObject.SignalFlags.RUN_LAST, None, (bool,)),  # success
     }
 
-    def __init__(self, package, operation, **kwargs):
+    def __init__(self, package, operation, packages=None, **kwargs):
         super().__init__(**kwargs)
         self.package   = package
+        self.packages = list(packages or [package])
         self.operation = operation          # TaskOperation.*
         self._process  = None
         self._output_lines = []            # kept for diagnostics, never shown raw
+        self._cancel_requested = threading.Event()
 
     # ── Read-only helpers ────────────────────────────────────────
     @property
     def title(self):
+        if len(self.packages) > 1:
+            return f'{TaskOperation.label(self.operation)} {len(self.packages)} packages'
         return f'{TaskOperation.label(self.operation)} {self.package.display_name or self.package.name}'
 
     @property
@@ -131,34 +137,45 @@ class Task(GObject.Object):
         self.status = TaskStatus.RUNNING
         self.status_text = 'Starting…'
         self.progress = 0.05
-        self.package.task_active   = True
-        self.package.task_progress = 0.05
-        self.package.task_label    = 'Starting…'
+        for package in self.packages:
+            package.task_active   = True
+            package.task_progress = 0.05
+            package.task_label    = 'Starting…'
 
     def _update_phase(self, label, fraction):
         self.status_text = label
         if fraction > self.progress:
             self.progress = fraction
-        self.package.task_label = label
-        if fraction > self.package.task_progress:
-            self.package.task_progress = fraction
+        for package in self.packages:
+            package.task_label = label
+            if fraction > package.task_progress:
+                package.task_progress = fraction
+
+    def _reset_packages(self):
+        for package in self.packages:
+            package.task_active = False
+            package.task_progress = 0.0
+            package.task_label = ''
 
     def _set_completed(self):
         self.status = TaskStatus.COMPLETED
         self.progress = 1.0
         self.status_text = 'Done'
-        self.package.task_active   = False
-        self.package.task_progress = 0.0
-        self.package.task_label    = ''
+        self._reset_packages()
         self.emit('finished', True)
 
     def _set_failed(self, detail=''):
         self.status = TaskStatus.FAILED
         self.error_detail = detail
         self.status_text = 'Failed'
-        self.package.task_active   = False
-        self.package.task_progress = 0.0
-        self.package.task_label    = ''
+        self._reset_packages()
+        self.emit('finished', False)
+
+    def _set_cancelled(self):
+        self.status = TaskStatus.CANCELLED
+        self.status_text = 'Cancelled'
+        self.error_detail = ''
+        self._reset_packages()
         self.emit('finished', False)
 
 
@@ -191,7 +208,7 @@ class TaskManager(GObject.Object):
     def get_task_for_package(self, package):
         """Return the active task for *package*, or None."""
         for t in reversed(self._tasks):
-            if t.package is package and t.is_active:
+            if package in t.packages and t.is_active:
                 return t
         return None
 
@@ -210,6 +227,23 @@ class TaskManager(GObject.Object):
         self._maybe_start_next()
         return task
 
+    def submit_many(self, packages, operation):
+        """Queue one compatible Homebrew transaction for several packages."""
+        packages = list(dict.fromkeys(packages))
+        if not packages:
+            return None
+        if len(packages) == 1:
+            return self.submit(packages[0], operation)
+        task = Task(packages[0], operation, packages=packages)
+        task.connect('notify', lambda *a: GLib.idle_add(self.emit, 'task-changed', task))
+        self._tasks.append(task)
+        with self._lock:
+            self._queue.append(task)
+        self._update_active_count()
+        self.emit('task-added', task)
+        self._maybe_start_next()
+        return task
+
     # ── Convenience wrappers ─────────────────────────────────────
     def install(self, package):
         return self.submit(package, TaskOperation.INSTALL)
@@ -219,6 +253,31 @@ class TaskManager(GObject.Object):
 
     def upgrade(self, package):
         return self.submit(package, TaskOperation.UPGRADE)
+
+    def upgrade_many(self, packages):
+        return self.submit_many(packages, TaskOperation.UPGRADE)
+
+    def cancel(self, task):
+        """Cancel a pending task or interrupt the active process group."""
+        with self._lock:
+            if task.status == TaskStatus.PENDING and task in self._queue:
+                self._queue.remove(task)
+                GLib.idle_add(task._set_cancelled)
+                GLib.idle_add(self._finish_task, task)
+                return True
+            process = task._process if task.status == TaskStatus.RUNNING else None
+
+        if process is None:
+            return False
+        task._cancel_requested.set()
+        try:
+            if os.name == 'posix':
+                os.killpg(os.getpgid(process.pid), signal.SIGINT)
+            else:
+                process.terminate()
+        except (ProcessLookupError, OSError):
+            _log.debug('Task process already exited while cancelling %s', task.title)
+        return True
 
     # ── Internal runner ──────────────────────────────────────────
     def _maybe_start_next(self):
@@ -237,7 +296,9 @@ class TaskManager(GObject.Object):
         GLib.idle_add(task._set_running)
 
         args = [task.operation]
-        if task.qualified_install_name:
+        if len(task.packages) > 1:
+            args.extend(package.full_name or package.name for package in task.packages)
+        elif task.qualified_install_name:
             # Fully-qualified name already encodes the tap; no --cask/--formula needed
             args.append(task.qualified_install_name)
         else:
@@ -253,6 +314,7 @@ class TaskManager(GObject.Object):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                start_new_session=(os.name == 'posix'),
             )
             task._process = process
             _log.debug('Subprocess PID: %d', process.pid)
@@ -266,11 +328,14 @@ class TaskManager(GObject.Object):
                     GLib.idle_add(task._update_phase, label, frac)
 
             process.wait()
-            success = process.returncode == 0
+            cancelled = task._cancel_requested.is_set()
+            success = process.returncode == 0 and not cancelled
             _log.info('Brew exited: %s  rc=%d  lines=%d',
                       task.title, process.returncode, len(task._output_lines))
 
-            if success:
+            if cancelled:
+                GLib.idle_add(task._set_cancelled)
+            elif success:
                 GLib.idle_add(self._apply_task_success, task)
             else:
                 detail = self._extract_error(task._output_lines)
@@ -328,20 +393,20 @@ class TaskManager(GObject.Object):
 
     def _update_package_state(self, task):
         """Update the Package object + backend installed sets after a successful op."""
-        pkg = task.package
         backend = self._backend
-        if task.operation == TaskOperation.INSTALL:
-            pkg.installed = True
-            if pkg.pkg_type == 'formula':
-                backend._installed_formulae.add(pkg.name)
-            else:
-                backend._installed_casks.add(pkg.name)
-        elif task.operation == TaskOperation.REMOVE:
-            pkg.installed = False
-            if pkg.pkg_type == 'formula':
-                backend._installed_formulae.discard(pkg.name)
-            else:
-                backend._installed_casks.discard(pkg.name)
+        for pkg in task.packages:
+            if task.operation in (TaskOperation.INSTALL, TaskOperation.UPGRADE):
+                pkg.installed = True
+                if pkg.pkg_type == 'formula':
+                    backend._installed_formulae.add(pkg.name)
+                else:
+                    backend._installed_casks.add(pkg.name)
+            elif task.operation == TaskOperation.REMOVE:
+                pkg.installed = False
+                if pkg.pkg_type == 'formula':
+                    backend._installed_formulae.discard(pkg.name)
+                else:
+                    backend._installed_casks.discard(pkg.name)
 
     def _update_active_count(self):
         count = sum(1 for t in self._tasks if t.is_active)

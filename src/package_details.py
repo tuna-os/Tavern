@@ -46,6 +46,8 @@ class TavernPackageDetails(Adw.NavigationPage):
     version_label = Gtk.Template.Child()
     license_row = Gtk.Template.Child()
     license_label = Gtk.Template.Child()
+    security_row = Gtk.Template.Child()
+    security_label = Gtk.Template.Child()
     info_listbox = Gtk.Template.Child()
     homepage_row = Gtk.Template.Child()
     homepage_label = Gtk.Template.Child()
@@ -153,6 +155,14 @@ class TavernPackageDetails(Adw.NavigationPage):
             self.license_row.set_visible(True)
         else:
             _log.debug('No license for %s', package.name)
+
+        self.security_row.set_visible(package.has_known_vulnerability)
+        if package.has_known_vulnerability:
+            ids = ', '.join(package.advisory_ids[:3])
+            detail = package.advisory_summary
+            if ids:
+                detail = f'{detail} ({ids})'
+            self.security_label.set_label(detail)
 
         if package.homepage:
             _log.debug('Setting homepage: %s', package.homepage)

@@ -38,6 +38,7 @@ class TavernPackageTile(Adw.Bin):
     name_label        = Gtk.Template.Child()
     desc_label        = Gtk.Template.Child()
     type_badge        = Gtk.Template.Child()
+    security_warning  = Gtk.Template.Child()
     installed_row     = Gtk.Template.Child()
     progress_revealer = Gtk.Template.Child()
     task_progress_bar = Gtk.Template.Child()
@@ -88,6 +89,13 @@ class TavernPackageTile(Adw.Bin):
         self._package = package
         self.name_label.set_label(package.display_name or package.name)
         self.desc_label.set_label(package.description or '')
+        self.security_warning.set_visible(package.has_known_vulnerability)
+        if package.has_known_vulnerability:
+            self.security_warning.set_tooltip_text(package.advisory_summary)
+        self.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            [self._accessible_label(package)],
+        )
 
         if getattr(package, 'is_font', False):
             self.type_badge.set_label('font')
@@ -122,6 +130,15 @@ class TavernPackageTile(Adw.Bin):
     def get_package(self):
         return self._package
 
+    @staticmethod
+    def _accessible_label(package):
+        parts = [package.display_name or package.name, package.pkg_type]
+        if package.installed:
+            parts.append('installed')
+        if package.has_known_vulnerability:
+            parts.append(package.advisory_summary)
+        return ', '.join(parts)
+
     # ── Property listeners ──────────────────────────────────────────────────
 
     def _on_pkg_prop_changed(self, pkg, pspec):
@@ -147,6 +164,10 @@ class TavernPackageTile(Adw.Bin):
         if not self._package:
             return
         pkg = self._package
+        self.update_property(
+            [Gtk.AccessibleProperty.LABEL],
+            [self._accessible_label(pkg)],
+        )
 
         if pkg.pkg_type == 'flatpak':
             self.installed_row.set_visible(False)

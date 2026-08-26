@@ -14,7 +14,7 @@ def test_installed_page_refresh_and_actions(tmp_path, monkeypatch):
     backend = BrewBackend()
     task_manager = TaskManager(backend)
     queued_updates = []
-    monkeypatch.setattr(task_manager, 'upgrade', lambda pkg: queued_updates.append(pkg))
+    monkeypatch.setattr(task_manager, 'upgrade_many', lambda pkgs: queued_updates.extend(pkgs))
     
     # Mock fetch_icon_async
     mock_pixbuf = object()

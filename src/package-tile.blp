@@ -56,6 +56,14 @@ template $TavernPackageTile: Adw.Bin {
 
           styles ["caption", "badge", "type-badge"]
         }
+
+        Image security_warning {
+          icon-name: "security-low-symbolic";
+          tooltip-text: _("Known security advisory");
+          visible: false;
+
+          styles ["warning"]
+        }
       }
 
       Label desc_label {
@@ -84,7 +92,7 @@ template $TavernPackageTile: Adw.Bin {
         }
 
         Label {
-          label: "Installed";
+          label: _("Installed");
         }
       }
 
