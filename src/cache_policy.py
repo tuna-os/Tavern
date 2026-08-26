@@ -4,6 +4,7 @@
 import json
 import os
 import tempfile
+import time
 from pathlib import Path
 
 
@@ -54,6 +55,24 @@ class CacheManager:
             temp_path = Path(handle.name)
         os.replace(temp_path, target)
         self.enforce_quota(protected={target, self.root / 'CACHE_VERSION'})
+
+    def read_json(self, path, max_age, *, now=None):
+        """Read JSON and report staleness, removing corrupt cache entries."""
+        target = self._safe_path(path)
+        if not target.exists():
+            return None, True
+        try:
+            stat = target.stat()
+            data = json.loads(target.read_text(encoding='utf-8'))
+            os.utime(target, None)
+            age = (time.time() if now is None else now) - stat.st_mtime
+            return data, age > max_age
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            try:
+                target.unlink()
+            except OSError:
+                pass
+            return None, True
 
     def files(self):
         return [path for path in self.root.rglob('*') if path.is_file()]

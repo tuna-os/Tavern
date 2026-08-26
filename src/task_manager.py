@@ -17,6 +17,8 @@ from .logging_util import get_logger, profile, log_timing
 
 _log = get_logger('task_manager')
 
+CANCEL_GRACE_SECONDS = 5
+
 
 # ── Brew output → friendly phase mapping ─────────────────────────
 _PHASE_PATTERNS = [
@@ -277,7 +279,28 @@ class TaskManager(GObject.Object):
                 process.terminate()
         except (ProcessLookupError, OSError):
             _log.debug('Task process already exited while cancelling %s', task.title)
+        threading.Thread(
+            target=self._terminate_after_grace,
+            args=(process,), daemon=True, name='tavern-task-cancel',
+        ).start()
         return True
+
+    @staticmethod
+    def _terminate_after_grace(process, timeout=CANCEL_GRACE_SECONDS):
+        """Wait for a graceful interrupt, then stop the whole process group."""
+        try:
+            process.wait(timeout=timeout)
+            return False
+        except subprocess.TimeoutExpired:
+            pass
+        try:
+            if os.name == 'posix':
+                os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+            else:
+                process.kill()
+            return True
+        except (ProcessLookupError, OSError):
+            return False
 
     # ── Internal runner ──────────────────────────────────────────
     def _maybe_start_next(self):

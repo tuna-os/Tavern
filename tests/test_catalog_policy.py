@@ -51,6 +51,39 @@ def test_validate_and_resolve_curation():
     assert curated_packages([package('git')], data['sections'][0]['packages'])[0].name == 'git'
 
 
+def test_curation_constraints_and_safe_editorial_metadata():
+    data = validate_curation({
+        'schema_version': 1,
+        'sections': [{
+            'id': 'seasonal', 'title': 'Seasonal', 'package_type': 'cask',
+            'packages': ['firefox', 'firefox'], 'summary': 'A timely pick.',
+            'link': 'https://example.com/picks', 'platforms': ['linux'],
+            'starts_at': '2026-08-01', 'ends_at': '2026-08-31',
+        }],
+    })
+    section = curation_section(
+        data, 'seasonal', platform='linux', today='2026-08-15')
+    assert section['packages'] == ['firefox']
+    assert curation_section(
+        data, 'seasonal', platform='darwin', today='2026-08-15') is None
+    assert curation_section(
+        data, 'seasonal', platform='linux', today='2026-09-01') is None
+
+
+@pytest.mark.parametrize('field,value', [
+    ('link', 'javascript:alert(1)'),
+    ('platforms', ['windows']),
+    ('starts_at', 'tomorrow'),
+])
+def test_unsafe_curation_metadata_is_rejected(field, value):
+    section = {
+        'id': 'bad', 'title': 'Bad', 'package_type': 'formula',
+        'packages': ['git'], field: value,
+    }
+    with pytest.raises(ValueError):
+        validate_curation({'schema_version': 1, 'sections': [section]})
+
+
 @pytest.mark.parametrize('data', [{}, {'schema_version': 2, 'sections': []}, {'schema_version': 1}])
 def test_invalid_curation_is_rejected(data):
     with pytest.raises(ValueError):

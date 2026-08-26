@@ -50,3 +50,21 @@ def test_manager_rebinds_when_owner_cache_directory_changes(tmp_path):
     second = cache_manager_for(owner)
     assert first is not second
     assert second.root == (tmp_path / 'second').resolve()
+
+
+def test_read_json_reports_stale_and_updates_access_time(tmp_path):
+    manager = CacheManager(tmp_path)
+    path = tmp_path / 'catalog.json'
+    manager.atomic_write_json(path, {'packages': ['git']})
+    assert manager.read_json(path, 60, now=path.stat().st_mtime + 30) == (
+        {'packages': ['git']}, False,
+    )
+    assert manager.read_json(path, 60, now=path.stat().st_mtime + 90)[1] is True
+
+
+def test_read_json_removes_corrupt_entry(tmp_path):
+    manager = CacheManager(tmp_path)
+    path = tmp_path / 'catalog.json'
+    path.write_text('{broken', encoding='utf-8')
+    assert manager.read_json(path, 60) == (None, True)
+    assert not path.exists()

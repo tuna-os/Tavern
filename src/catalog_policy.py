@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass
+from datetime import date, datetime, timezone
+from urllib.parse import urlparse
 
 
 DEFAULT_CURATION = {
@@ -142,6 +144,7 @@ def validate_curation(data):
     if not isinstance(sections, list):
         raise ValueError('Curation sections must be a list')
     normalized = []
+    section_ids = set()
     for section in sections:
         if not isinstance(section, dict):
             raise ValueError('Curation section must be an object')
@@ -159,11 +162,41 @@ def validate_curation(data):
             isinstance(name, str) and name for name in packages
         ):
             raise ValueError('Curation packages must be non-empty strings')
+        section_id = section_id.strip()
+        if section_id in section_ids:
+            raise ValueError('Curation section ids must be unique')
+        section_ids.add(section_id)
+        summary = section.get('summary', '')
+        link = section.get('link', '')
+        platforms = section.get('platforms', [])
+        starts_at = section.get('starts_at', '')
+        ends_at = section.get('ends_at', '')
+        if not isinstance(summary, str) or len(summary) > 240:
+            raise ValueError('Curation summary must be at most 240 characters')
+        if link and (not isinstance(link, str) or urlparse(link).scheme != 'https'):
+            raise ValueError('Curation links must use HTTPS')
+        if not isinstance(platforms, list) or not all(
+            value in ('linux', 'darwin') for value in platforms
+        ):
+            raise ValueError('Curation platforms must contain linux or darwin')
+        for value in (starts_at, ends_at):
+            if value:
+                try:
+                    date.fromisoformat(value)
+                except (TypeError, ValueError):
+                    raise ValueError('Curation validity dates must use YYYY-MM-DD')
+        if starts_at and ends_at and starts_at > ends_at:
+            raise ValueError('Curation validity window is inverted')
         normalized.append({
-            'id': section_id.strip(),
+            'id': section_id,
             'title': title.strip(),
             'package_type': package_type,
-            'packages': packages[:24],
+            'packages': list(dict.fromkeys(packages))[:24],
+            'summary': summary.strip(),
+            'link': link,
+            'platforms': platforms,
+            'starts_at': starts_at,
+            'ends_at': ends_at,
         })
     return {'schema_version': 1, 'sections': normalized[:8]}
 
@@ -173,8 +206,22 @@ def curated_packages(packages, names, limit=24):
     return [by_name[name] for name in names if name in by_name][:limit]
 
 
-def curation_section(data, section_id):
+def curation_section(data, section_id, *, platform=None, today=None):
+    """Return a section only when its platform and validity window apply."""
+    if today is None:
+        today = datetime.now(timezone.utc).date()
+    elif isinstance(today, str):
+        today = date.fromisoformat(today)
     for section in data.get('sections', []):
         if section.get('id') == section_id:
+            platforms = section.get('platforms') or []
+            if platforms and platform not in platforms:
+                return None
+            starts_at = section.get('starts_at')
+            ends_at = section.get('ends_at')
+            if starts_at and today < date.fromisoformat(starts_at):
+                return None
+            if ends_at and today > date.fromisoformat(ends_at):
+                return None
             return section
     return None

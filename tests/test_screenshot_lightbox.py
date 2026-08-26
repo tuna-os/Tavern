@@ -51,6 +51,16 @@ def test_lightbox_key_press(paintable):
     # Test non-Escape key (should return False)
     assert lightbox._on_key_pressed(None, Gdk.KEY_a, 0, 0) is False
 
+
+def test_lightbox_keyboard_zoom(paintable):
+    lightbox = TavernScreenshotLightbox(paintable, caption='Firefox screenshot')
+    assert lightbox._on_key_pressed(None, Gdk.KEY_plus, 0, 0) is True
+    assert lightbox._scale > 1.0
+    assert lightbox._on_key_pressed(None, Gdk.KEY_0, 0, 0) is True
+    assert lightbox._scale == 1.0
+    assert lightbox._on_key_pressed(None, Gdk.KEY_minus, 0, 0) is True
+    assert lightbox._scale < 1.0
+
 def test_lightbox_zoom(paintable):
     lightbox = TavernScreenshotLightbox(paintable)
     
