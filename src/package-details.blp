@@ -260,6 +260,39 @@ template $TavernPackageDetails: Adw.NavigationPage {
                     }
                   }
 
+                  ListBoxRow security_row {
+                    activatable: false;
+                    visible: false;
+
+                    Box {
+                      orientation: horizontal;
+                      spacing: 12;
+                      margin-start: 12;
+                      margin-end: 12;
+                      margin-top: 10;
+                      margin-bottom: 10;
+
+                      Image {
+                        icon-name: "security-low-symbolic";
+                        styles ["warning"]
+                      }
+
+                      Label {
+                        label: _("Security");
+                        xalign: 0.0;
+                        hexpand: true;
+                      }
+
+                      Label security_label {
+                        xalign: 1.0;
+                        wrap: true;
+                        selectable: true;
+                        max-width-chars: 36;
+                        styles ["warning"]
+                      }
+                    }
+                  }
+
                   ListBoxRow homepage_row {
                     activatable: true;
                     

@@ -123,8 +123,7 @@ class TavernInstalledPage(Adw.Bin):
 
         updates = [pkg for pkg in self._backend.get_installed_packages() if self._is_outdated(pkg)]
         _log.info('Update All clicked: %d packages', len(updates))
-        for pkg in updates:
-            self._task_manager.upgrade(pkg)
+        self._task_manager.upgrade_many(updates)
 
     def _on_tile_clicked(self, tile):
         pkg = tile.get_package()

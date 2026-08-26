@@ -103,6 +103,13 @@ class TavernTaskRow(Gtk.ListBoxRow):
 
         outer.append(info)
 
+        self._cancel_button = Gtk.Button(icon_name='process-stop-symbolic')
+        self._cancel_button.set_tooltip_text('Cancel task')
+        self._cancel_button.update_property(
+            [Gtk.AccessibleProperty.LABEL], ['Cancel task'])
+        self._cancel_button.connect('clicked', self._on_cancel_clicked)
+        outer.append(self._cancel_button)
+
         # ── Right indicator (spinner / done / error) ─────────────────────────
         right = Gtk.Box(valign=Gtk.Align.CENTER)
         right.set_margin_start(4)
@@ -152,6 +159,7 @@ class TavernTaskRow(Gtk.ListBoxRow):
         pending = t.status == TaskStatus.PENDING
         done    = t.status == TaskStatus.COMPLETED
         failed  = t.status == TaskStatus.FAILED
+        cancelled = t.status == TaskStatus.CANCELLED
 
         # Progress section
         self._progress_revealer.set_reveal_child(running)
@@ -177,12 +185,21 @@ class TavernTaskRow(Gtk.ListBoxRow):
             self._set_pill_style('pill-error')
             if t.error_detail:
                 self.set_tooltip_text(t.error_detail)
+        elif cancelled:
+            self._pill.set_label('Cancelled')
+            self._set_pill_style('pill-waiting')
 
         # Right indicator
         active = pending or running
         self._spinner.set_visible(active)
         self._done_icon.set_visible(done)
         self._error_icon.set_visible(failed)
+        self._cancel_button.set_visible(active)
+
+    def _on_cancel_clicked(self, _button):
+        manager = getattr(self, '_task_manager', None)
+        if manager:
+            manager.cancel(self._task)
 
     def _start_pulse(self):
         if self._pulse_source is None:
@@ -243,6 +260,7 @@ class TavernTaskPanel(Adw.Dialog):
         if task in self._rows:
             return
         row = TavernTaskRow(task)
+        row._task_manager = self._task_manager
         self._rows[task] = row
         self.task_list_box.prepend(row)
 
@@ -250,13 +268,13 @@ class TavernTaskPanel(Adw.Dialog):
         has_tasks = bool(self._rows)
         self.panel_stack.set_visible_child_name('tasks' if has_tasks else 'empty')
         has_done = any(
-            t.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)
+            t.status in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED)
             for t in self._rows
         )
         self.clear_button.set_visible(has_done)
 
     def _on_clear_clicked(self, _button):
-        finished = [t for t in self._rows if t.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)]
+        finished = [t for t in self._rows if t.status in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED)]
         for task in finished:
             row = self._rows.pop(task)
             self.task_list_box.remove(row)

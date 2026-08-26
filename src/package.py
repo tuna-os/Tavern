@@ -1,6 +1,8 @@
 # package.py - Package model for formulae, casks, and flatpaks
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import sys
+
 import gi
 from gi.repository import GObject
 
@@ -32,6 +34,11 @@ class Package(GObject.Object):
         self.source_url = ''
         self.dependencies = []  # list[str] — formula names this package depends on
         self.tap = ''           # e.g. 'homebrew/core' or 'foo/bar' for tapped pkgs
+        self.supported_platforms = []
+        self.compatibility_source = 'unknown'
+        self.vulnerabilities = {'open': [], 'patched': [], 'fixed_count': 0}
+        self.deprecated = False
+        self.disabled = False
         self._installs_30d = None
         self._installs_90d = None
         self._installs_365d = None
@@ -46,6 +53,15 @@ class Package(GObject.Object):
 
     def _from_api(self, data, pkg_type, installed_set=None):
         self._raw_analytics = data.get('analytics', {})
+        raw_vulnerabilities = data.get('vulnerabilities') or {}
+        if isinstance(raw_vulnerabilities, dict):
+            self.vulnerabilities = {
+                'open': list(raw_vulnerabilities.get('open') or []),
+                'patched': list(raw_vulnerabilities.get('patched') or []),
+                'fixed_count': int(raw_vulnerabilities.get('fixed_count') or 0),
+            }
+        self.deprecated = bool(data.get('deprecated', False))
+        self.disabled = bool(data.get('disabled', False))
         self._installs_30d = None
         self._installs_90d = None
         self._installs_365d = None
@@ -80,8 +96,22 @@ class Package(GObject.Object):
             # Cask download URL
             self.source_url = data.get('url', '') or ''
             self.tap = data.get('tap', '') or ''
+            platforms = data.get('supported_platforms')
+            if isinstance(platforms, (list, tuple)):
+                self.supported_platforms = [
+                    str(platform).lower() for platform in platforms if platform
+                ]
+                self.compatibility_source = 'supported_platforms'
+            else:
+                depends_on = data.get('depends_on') or {}
+                self.supported_platforms = (
+                    ['macos'] if isinstance(depends_on, dict) and 'macos' in depends_on
+                    else []
+                )
+                self.compatibility_source = 'legacy-depends-on'
         else:
             app_id = data.get('id', '')
+            name = app_id
             self.name = app_id
             self.full_name = app_id
             self.display_name = data.get('name', '') or app_id
@@ -102,6 +132,70 @@ class Package(GObject.Object):
     def is_font(self):
         """True for Homebrew font casks (font-* naming convention)."""
         return self.pkg_type == 'cask' and self.name.startswith('font-')
+
+    @property
+    def has_known_vulnerability(self):
+        """Whether Homebrew currently reports an open advisory."""
+        return bool(self.vulnerabilities.get('open'))
+
+    @property
+    def vulnerability_fix_available(self):
+        """Whether Homebrew reports that at least one advisory has a fix."""
+        return self.has_known_vulnerability and bool(
+            self.vulnerabilities.get('fixed_count')
+            or self.vulnerabilities.get('patched')
+        )
+
+    @property
+    def security_status(self):
+        if self.has_known_vulnerability:
+            return 'fix-available' if self.vulnerability_fix_available else 'affected'
+        return 'no-known-advisories'
+
+    @property
+    def advisory_ids(self):
+        ids = []
+        for item in self.vulnerabilities.get('open', []):
+            if isinstance(item, str):
+                ids.append(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            value = item.get('id') or item.get('advisory_id') or item.get('cve')
+            if value:
+                ids.append(str(value))
+        return ids
+
+    @property
+    def advisory_summary(self):
+        count = len(self.vulnerabilities.get('open', []))
+        if not count:
+            return 'No known advisories'
+        suffix = 'fix available' if self.vulnerability_fix_available else 'no fix reported'
+        label = 'advisory' if count == 1 else 'advisories'
+        return f'{count} known {label} — {suffix}'
+
+    def supports_platform(self, platform=None):
+        """Return whether Homebrew declares this package usable on *platform*.
+
+        Formulae and Flatpaks are not filtered here. For casks, the modern
+        ``supported_platforms`` API field wins. Older/custom tap payloads keep
+        the legacy ``depends_on.macos`` fallback so they remain usable.
+        """
+        if self.pkg_type != 'cask':
+            return True
+
+        platform = (platform or sys.platform).lower()
+        wanted = 'linux' if platform.startswith('linux') else 'macos'
+        if self.compatibility_source == 'supported_platforms':
+            aliases = {
+                'macos': {'macos', 'darwin'},
+                'linux': {'linux'},
+            }
+            return bool(set(self.supported_platforms) & aliases[wanted])
+        if wanted == 'linux':
+            return 'macos' not in self.supported_platforms
+        return True
 
     def _parse_analytics(self):
         if self._installs_30d is not None:
@@ -154,5 +248,3 @@ class Package(GObject.Object):
     @installs_365d.setter
     def installs_365d(self, value):
         self._installs_365d = value
-
-
