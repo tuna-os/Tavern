@@ -4,6 +4,42 @@
 from dataclasses import dataclass
 
 
+DEFAULT_CURATION = {
+    'schema_version': 1,
+    'sections': [
+        {
+            'id': 'popular-formulae',
+            'title': 'Popular Formulae',
+            'package_type': 'formula',
+            'packages': [
+                'git', 'wget', 'curl', 'node', 'python@3.12', 'ffmpeg',
+                'htop', 'vim', 'neovim', 'tmux', 'ripgrep', 'fzf', 'jq',
+                'bat', 'eza', 'imagemagick', 'yt-dlp', 'gh', 'go', 'rust',
+            ],
+        },
+        {
+            'id': 'popular-casks',
+            'title': 'Popular Casks',
+            'package_type': 'cask',
+            'packages': [
+                'firefox', 'google-chrome', 'visual-studio-code', 'vlc',
+                'slack', 'zoom', 'spotify', 'discord', 'rectangle',
+                'obsidian', 'warp', 'tableplus', 'postman', 'docker', 'alfred',
+            ],
+        },
+        {
+            'id': 'tunaos-picks',
+            'title': 'TunaOS Picks',
+            'package_type': 'formula',
+            'packages': [
+                'ripgrep', 'fd', 'fzf', 'bat', 'eza', 'zoxide', 'jq',
+                'shellcheck', 'just', 'btop', 'lazygit', 'starship',
+            ],
+        },
+    ],
+}
+
+
 @dataclass(frozen=True)
 class CatalogFilters:
     query: str = ''
@@ -109,18 +145,36 @@ def validate_curation(data):
     for section in sections:
         if not isinstance(section, dict):
             raise ValueError('Curation section must be an object')
+        section_id = section.get('id')
         title = section.get('title')
+        package_type = section.get('package_type')
         packages = section.get('packages')
+        if not isinstance(section_id, str) or not section_id.strip():
+            raise ValueError('Curation section id is required')
         if not isinstance(title, str) or not title.strip():
             raise ValueError('Curation section title is required')
+        if package_type not in ('formula', 'cask'):
+            raise ValueError('Curation package_type must be formula or cask')
         if not isinstance(packages, list) or not all(
             isinstance(name, str) and name for name in packages
         ):
             raise ValueError('Curation packages must be non-empty strings')
-        normalized.append({'title': title.strip(), 'packages': packages[:24]})
+        normalized.append({
+            'id': section_id.strip(),
+            'title': title.strip(),
+            'package_type': package_type,
+            'packages': packages[:24],
+        })
     return {'schema_version': 1, 'sections': normalized[:8]}
 
 
 def curated_packages(packages, names, limit=24):
     by_name = {package.name: package for package in packages}
     return [by_name[name] for name in names if name in by_name][:limit]
+
+
+def curation_section(data, section_id):
+    for section in data.get('sections', []):
+        if section.get('id') == section_id:
+            return section
+    return None

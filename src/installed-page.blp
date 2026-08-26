@@ -41,8 +41,8 @@ template $TavernInstalledPage: Adw.Bin {
 
         child: Adw.StatusPage {
           icon-name: "package-x-generic-symbolic";
-          title: "Nothing Installed";
-          description: "Packages you install will appear here";
+          title: _("Nothing Installed");
+          description: _("Packages you install will appear here");
         };
       }
 
@@ -53,7 +53,7 @@ template $TavernInstalledPage: Adw.Bin {
           orientation: vertical;
 
           /* Search bar */
-          Box {
+          Box installed_toolbar {
             orientation: horizontal;
             margin-start: 24;
             margin-end: 24;
@@ -63,7 +63,7 @@ template $TavernInstalledPage: Adw.Bin {
 
             SearchEntry search_entry {
               hexpand: true;
-              placeholder-text: "Search installed packages…";
+              placeholder-text: _("Search installed packages…");
             }
           }
 
@@ -100,7 +100,7 @@ template $TavernInstalledPage: Adw.Bin {
                     }
 
                     Button update_all_button {
-                      label: "Update All";
+                      label: _("Update All");
                     }
                   }
 
@@ -116,7 +116,7 @@ template $TavernInstalledPage: Adw.Bin {
 
                 /* Shown when filter matches nothing */
                 Label no_results_label {
-                  label: "No packages match your search";
+                  label: _("No packages match your search");
                   xalign: 0.0;
                   margin-start: 4;
                   visible: false;

@@ -8,6 +8,7 @@ gi.require_version('Adw', '1')
 from gi.repository import Adw, Gtk, GObject
 from .backend import BrewBackend
 from .package_tile import TavernPackageTile, clear_flow
+from .catalog_policy import DEFAULT_CURATION, curation_section, curated_packages
 from .logging_util import get_logger
 
 _log = get_logger('browse_page')
@@ -46,22 +47,40 @@ class TavernBrowsePage(Adw.Bin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._backend = None
+        self._curation = DEFAULT_CURATION
+        self._formulae = []
+        self._casks = []
 
     def set_backend(self, backend):
         self._backend = backend
+        if hasattr(backend, 'get_curation_async'):
+            backend.get_curation_async(self._on_curation_loaded)
+
+    def _on_curation_loaded(self, curation):
+        self._curation = curation
+        if self._formulae:
+            self.populate_formulae(self._formulae)
+        if self._casks:
+            self.populate_casks(self._casks)
 
     def set_loading(self):
         self.browse_stack.set_visible_child_name('loading')
 
     def populate_formulae(self, packages):
         _log.debug('populate_formulae: %d packages', len(packages))
-        self._fill_flow(self.popular_flow, packages, POPULAR_FORMULAE)
+        self._formulae = packages
+        section = curation_section(self._curation, 'popular-formulae')
+        preferred = section['packages'] if section else POPULAR_FORMULAE
+        self._fill_flow(self.popular_flow, packages, preferred)
         self._fill_recent(packages)
         self._maybe_show_content()
 
     def populate_casks(self, packages):
         _log.debug('populate_casks: %d packages', len(packages))
-        self._fill_flow(self.casks_flow, packages, POPULAR_CASKS)
+        self._casks = packages
+        section = curation_section(self._curation, 'popular-casks')
+        preferred = section['packages'] if section else POPULAR_CASKS
+        self._fill_flow(self.casks_flow, packages, preferred)
         self._maybe_show_content()
 
     def _load_tile_icon(self, tile, package):
@@ -106,18 +125,14 @@ class TavernBrowsePage(Adw.Bin):
 
     def _fill_recent(self, packages):
         clear_flow(self.recent_flow)
-            
-        if not packages:
-            return
-            
-        import random
-        from datetime import date
-        
-        # Use today's date as a seed so the "Discover" list changes daily but stays consistent
-        rng = random.Random(date.today().toordinal())
-        
-        # Pick 12 random packages
-        selected = rng.sample(packages, min(12, len(packages)))
+        section = curation_section(self._curation, 'tunaos-picks')
+        selected = curated_packages(packages, section['packages'], limit=12) if section else []
+        if len(selected) < 12:
+            selected_names = {package.name for package in selected}
+            fallback = [package for package in packages if package.name not in selected_names]
+            fallback.sort(key=lambda package: (
+                -(package.installs_30d or 0), package.name.casefold()))
+            selected.extend(fallback[:12 - len(selected)])
         
         for pkg in selected:
             tile = TavernPackageTile(package=pkg)

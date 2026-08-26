@@ -2,7 +2,7 @@ using Gtk 4.0;
 using Adw 1;
 
 template $TavernTaskPanel: Adw.Dialog {
-  title: "Downloads & Tasks";
+  title: _("Downloads & Tasks");
   content-width: 440;
   content-height: 520;
 
@@ -14,7 +14,7 @@ template $TavernTaskPanel: Adw.Dialog {
       [end]
       Button clear_button {
         icon-name: "edit-clear-all-symbolic";
-        tooltip-text: "Clear Completed";
+        tooltip-text: _("Clear Completed");
         visible: false;
 
         styles ["flat"]
@@ -29,8 +29,8 @@ template $TavernTaskPanel: Adw.Dialog {
 
         child: Adw.StatusPage {
           icon-name: "folder-download-symbolic";
-          title: "No Tasks";
-          description: "Install, remove or upgrade packages and their progress will appear here.";
+          title: _("No Tasks");
+          description: _("Install, remove or upgrade packages and their progress will appear here.");
         };
       }
 

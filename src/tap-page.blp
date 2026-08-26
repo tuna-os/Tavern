@@ -26,11 +26,11 @@ template $TavernTapPage: Adw.Bin {
 
         child: Adw.StatusPage {
           icon-name: "package-x-generic-symbolic";
-          title: "No Custom Taps";
-          description: "Add Homebrew taps with brew tap user/repo to see their packages here.";
+          title: _("No Custom Taps");
+          description: _("Add Homebrew taps with brew tap user/repo to see their packages here.");
 
           child: Button add_tap_empty_button {
-            label: "Add Tap";
+            label: _("Add Tap");
             halign: center;
 
             styles ["pill", "suggested-action"]
@@ -58,7 +58,7 @@ template $TavernTapPage: Adw.Bin {
               spacing: 4;
 
               Label {
-                label: "Taps";
+                label: _("Taps");
                 hexpand: true;
                 xalign: 0.0;
 
@@ -67,14 +67,14 @@ template $TavernTapPage: Adw.Bin {
 
               Button add_tap_button {
                 icon-name: "list-add-symbolic";
-                tooltip-text: "Add Tap";
+                tooltip-text: _("Add Tap");
 
                 styles ["flat", "circular"]
               }
 
               Button remove_tap_button {
                 icon-name: "list-remove-symbolic";
-                tooltip-text: "Remove Selected Tap";
+                tooltip-text: _("Remove Selected Tap");
                 sensitive: false;
 
                 styles ["flat", "circular"]
@@ -110,8 +110,8 @@ template $TavernTapPage: Adw.Bin {
 
               child: Adw.StatusPage {
                 icon-name: "view-grid-symbolic";
-                title: "Select a Tap";
-                description: "Choose a tap from the sidebar to browse its packages.";
+                title: _("Select a Tap");
+                description: _("Choose a tap from the sidebar to browse its packages.");
               };
             }
 

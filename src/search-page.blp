@@ -40,7 +40,7 @@ template $TavernSearchPage: Adw.Bin {
 
             Text search_entry {
               hexpand: true;
-              placeholder-text: "Search formulae, casks, and more…";
+              placeholder-text: _("Search formulae, casks, and more…");
             }
 
             Gtk.Spinner search_spinner {
@@ -52,10 +52,10 @@ template $TavernSearchPage: Adw.Bin {
             Button clear_button {
               visible: false;
               icon-name: "edit-clear-symbolic";
-              tooltip-text: "Clear Search";
+              tooltip-text: _("Clear Search");
 
               accessibility {
-                label: "Clear search";
+                label: _("Clear search");
               }
 
               styles [
@@ -78,21 +78,21 @@ template $TavernSearchPage: Adw.Bin {
         spacing: 6;
 
         ToggleButton filter_all {
-          label: "All";
+          label: _("All");
           active: true;
 
           styles ["pill"]
         }
 
         ToggleButton filter_formula {
-          label: "Formulae";
+          label: _("Formulae");
           group: filter_all;
 
           styles ["pill"]
         }
 
         ToggleButton filter_cask {
-          label: "Casks";
+          label: _("Casks");
           group: filter_all;
 
           styles ["pill"]
@@ -107,8 +107,8 @@ template $TavernSearchPage: Adw.Bin {
 
           child: Adw.StatusPage {
             icon-name: "system-search-symbolic";
-            title: "Search Homebrew";
-            description: "Find formulae and casks to install";
+            title: _("Search Homebrew");
+            description: _("Find formulae and casks to install");
           };
         }
 
@@ -117,8 +117,8 @@ template $TavernSearchPage: Adw.Bin {
 
           child: Adw.StatusPage {
             icon-name: "edit-find-symbolic";
-            title: "No Results";
-            description: "Try a different search term";
+            title: _("No Results");
+            description: _("Try a different search term");
           };
         }
 
