@@ -26,6 +26,17 @@
   </provides>
   <content_rating type="oars-1.1" />
 
+  <!-- 1000x700 is Flathub's maximum for a non-HiDPI screenshot. Regenerated
+       by .github/workflows/screenshots.yml, which photographs the published
+       Flatpak. Committed deliberately rather than pushed by CI, so a bad
+       capture cannot publish itself unreviewed. -->
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/tuna-os/Tavern/main/docs/screenshots/main-window.png</image>
+      <caption>Browsing popular Homebrew formulae</caption>
+    </screenshot>
+  </screenshots>
+
   <!-- Without these a store shows "Desktop Only" and cannot say the app fits
        the viewer's device. The GNOME/Adwaita layout goes down to phone width. -->
   <requires>
