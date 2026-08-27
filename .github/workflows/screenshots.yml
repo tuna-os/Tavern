@@ -1,0 +1,57 @@
+name: Screenshots
+
+# Photographs the app as it actually ships: installs the published Flatpak
+# from the tuna-os remote and captures that. No build, and the image shows the
+# artifact users install, so a packaging regression surfaces as a broken
+# screenshot rather than only as a bug report.
+on:
+  pull_request:
+    paths:
+      - "data/org.tunaos.tavern.metainfo.xml.in"
+      - ".github/workflows/screenshots.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    # Not a container: Flatpak needs bubblewrap, which wants privileges the
+    # job container does not have.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Flatpak
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq flatpak
+
+      - name: Install the published app
+        run: |
+          # Flathub too: the app's runtime (org.gnome.Platform) lives there,
+          # and the tuna-os remote carries only the apps.
+          flatpak remote-add --user --if-not-exists \
+            flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak remote-add --user --if-not-exists \
+            tuna-os https://tunaos.org/flatpak/tuna-os.flatpakrepo
+          flatpak install --user -y tuna-os org.tunaos.tavern
+          flatpak info --user org.tunaos.tavern
+
+      - uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@claude/sweet-gauss-5h3cma
+        with:
+          # --socket=x11 so the sandbox can see the Xvfb the action started.
+          # Homebrew is absent on the runner, so this shows whatever Tavern
+          # does with no brew present -- which is exactly what needs looking
+          # at before any of it is published.
+          command: flatpak run --user --socket=x11 org.tunaos.tavern
+          name: main-window
+          out-dir: docs/screenshots
+          settle: "15"
+
+      # Uploaded for review, deliberately NOT committed by CI. An unreviewed
+      # auto-commit is how a bad capture publishes itself.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: docs/screenshots/

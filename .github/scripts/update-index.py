@@ -67,6 +67,15 @@ def main():
         }
 
     # 6. Build new image entry
+    #
+    # Both label families have to survive into the index. Flatpak resolves and
+    # installs a ref from the org.flatpak.* labels, and builds the remote's
+    # AppStream catalogue -- app name, icon, licence, screenshots, release
+    # notes -- from the org.freedesktop.appstream.* ones that
+    # `flatpak build-bundle --oci` writes out of the app's metainfo file.
+    # Keeping only org.flatpak.* left every app in the remote showing as a bare
+    # application ID with an "Unknown" licence in software centres.
+    keep_prefixes = ("org.flatpak.", "org.freedesktop.appstream.")
     image_entry = {
         "Digest": manifest_digest,
         "MediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -74,7 +83,7 @@ def main():
         "Architecture": architecture,
         "Tags": args.tags,
         "Labels": {
-            k: v for k, v in labels.items() if k.startswith("org.flatpak.")
+            k: v for k, v in labels.items() if k.startswith(keep_prefixes)
         }
     }
 
