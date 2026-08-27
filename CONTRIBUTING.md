@@ -17,7 +17,7 @@ Build, install to `~/.local`, and launch:
 TAVERN_LOG=debug ./run.sh # with verbose logging
 ```
 
-For a sandboxed Flatpak build:
+For a sandboxed Flatpak build (requires [`just`](https://github.com/casey/just)):
 
 ```bash
 just dev                  # build + install + run as Flatpak
@@ -25,10 +25,12 @@ just dev                  # build + install + run as Flatpak
 
 ## Tests
 
+Running the test suite requires PyGObject and GTK 4/Libadwaita development bindings installed on the host system:
+
 ```bash
-pytest tests/                                       # full suite
-pytest tests/test_backend.py -v                     # one file
-pytest tests/test_benchmarks.py --benchmark-enable  # benchmarks
+python3 -m pytest tests/                                       # full suite
+python3 -m pytest tests/test_backend.py -v                     # one file
+python3 -m pytest tests/test_benchmarks.py --benchmark-enable  # benchmarks
 ```
 
 Tests run headlessly — the autouse fixtures in `tests/conftest.py` mock `Gio.Settings` and dialog `.present()` calls so nothing pops on screen. If you add new dialog types, extend that fixture.
@@ -67,7 +69,7 @@ and [release process](docs/RELEASING.md).
 
 - Keep PRs focused — one change, one PR.
 - Include a screenshot or short clip for any user-visible UI change.
-- Run `pytest tests/` locally before opening.
+- Run `python3 -m pytest tests/` locally before opening.
 - Reference the issue you're closing (`Closes #123`).
 
 ## Code style
