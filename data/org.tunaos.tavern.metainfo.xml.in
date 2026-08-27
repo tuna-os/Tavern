@@ -4,7 +4,6 @@
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>Tavern</name>
-  <developer_name>TunaOS</developer_name>
   <summary>Browse and install Homebrew packages</summary>
   <description>
     <p>
@@ -15,11 +14,29 @@
   <url type="homepage">https://github.com/tuna-os/Tavern</url>
   <url type="bugtracker">https://github.com/tuna-os/Tavern/issues</url>
   <url type="vcs-browser">https://github.com/tuna-os/Tavern</url>
+  <!-- <developer_name> is deprecated in favour of this; appstreamcli flags
+       the old form and reports developer-info-missing alongside it. -->
+  <developer id="org.tunaos">
+    <name>TunaOS</name>
+  </developer>
+
   <launchable type="desktop-id">@APPLICATION_ID@.desktop</launchable>
   <provides>
     <binary>tavern</binary>
   </provides>
   <content_rating type="oars-1.1" />
+
+  <!-- Without these a store shows "Desktop Only" and cannot say the app fits
+       the viewer's device. The GNOME/Adwaita layout goes down to phone width. -->
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>touch</control>
+  </supports>
   <releases>
     <release version="0.1.63" date="2026-08-26">
       <description>
