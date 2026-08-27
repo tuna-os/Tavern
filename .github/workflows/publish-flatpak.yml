@@ -1,5 +1,11 @@
 name: Build and Publish Flatpak OCI
 
+# Build/publish body lives in tuna-os/.github's reusable publish-flatpak.yml
+# (tunaos#1183 recommendation #2). This file just keeps this branch's own
+# trigger policy -- promote-to-prod.yml on main fast-forwards this branch
+# and explicitly dispatches this workflow (a bot push alone doesn't
+# re-trigger the push event), so both triggers stay.
+
 on:
   push:
     branches:
@@ -11,72 +17,11 @@ permissions:
   packages: write
 
 jobs:
-  build-oci:
-    name: "Build Flatpak OCI"
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
-      options: --privileged
-
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v7
-
-    - name: Build Flatpak
-      uses: flatpak/flatpak-github-actions/flatpak-builder@v6
-      with:
-        manifest-path: org.tunaos.tavern.json
-        cache-key: flatpak-builder-${{ github.sha }}
-        build-bundle: false
-        upload-artifact: false
-
-    - name: Export OCI Directory
-      run: |
-        flatpak build-bundle --oci --arch=x86_64 repo tavern.oci org.tunaos.tavern
-
-    - name: Upload OCI Artifact
-      uses: actions/upload-artifact@v7
-      with:
-        name: tavern-oci
-        path: tavern.oci/
-        retention-days: 1
-
-  publish-oci:
-    name: "Publish OCI & Update Index"
-    needs: build-oci
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v7
-
-    - name: Download OCI Artifact
-      uses: actions/download-artifact@v8
-      with:
-        name: tavern-oci
-        path: tavern.oci
-
-    - name: Log in to GHCR
-      run: |
-        echo "${{ env.GITHUB_TOKEN }}" | skopeo login ghcr.io -u "${{ github.actor }}" --password-stdin
-
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Push OCI to GHCR
-      run: |
-        echo "Pushing latest tag..."
-        skopeo copy oci:tavern.oci docker://ghcr.io/tuna-os/tavern:latest
-        
-        if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
-          VERSION_TAG="${{ github.ref_name }}"
-          echo "Pushing version tag ${VERSION_TAG}..."
-          skopeo copy oci:tavern.oci docker://ghcr.io/tuna-os/tavern:${VERSION_TAG}
-        fi
-
-    - name: Update central index (tuna-os/docs)
-      uses: tuna-os/.github/.github/actions/publish-flatpak-index@main
-      with:
-        oci-dir: tavern.oci
-        repo-name: tuna-os/tavern
-        tags: latest
-        token: ${{ secrets.FLATPAK_INDEX_TOKEN }}
+  publish:
+    uses: tuna-os/.github/.github/workflows/publish-flatpak.yml@main
+    with:
+      app-id: org.tunaos.tavern
+      manifest-path: org.tunaos.tavern.json
+      repo-name: tuna-os/tavern
+      archs: '["x86_64"]'
+    secrets: inherit
