@@ -74,29 +74,9 @@ jobs:
         fi
 
     - name: Update central index (tuna-os/docs)
-      env:
-        FLATPAK_INDEX_TOKEN: ${{ secrets.FLATPAK_INDEX_TOKEN }}
-      run: |
-        git clone --depth 1 \
-          https://github.com/tuna-os/docs.git \
-          index-repo
-        # Use header-based auth so the token never lands in the remote URL
-        # (avoids leaks via .git/config, `git remote -v`, and process listings).
-        git -C index-repo config --local http.extraheader \
-          "AUTHORIZATION: basic $(printf 'x-access-token:%s' "$FLATPAK_INDEX_TOKEN" | base64)"
-        pip install requests
-        python3 .github/scripts/update-index.py \
-          --oci-dir tavern.oci \
-          --index-file index-repo/static/flatpak/index/static \
-          --repo-name tuna-os/tavern \
-          --tags latest
-        cd index-repo
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git add static/flatpak/index/static
-        if git diff --cached --quiet; then
-          echo "No index changes"
-        else
-          git commit -m "chore(flatpak): update Tavern OCI index"
-          git push origin main
-        fi
+      uses: tuna-os/.github/.github/actions/publish-flatpak-index@main
+      with:
+        oci-dir: tavern.oci
+        repo-name: tuna-os/tavern
+        tags: latest
+        token: ${{ secrets.FLATPAK_INDEX_TOKEN }}
