@@ -1,5 +1,11 @@
 # Brewfile Loading Error Handling - Verification Report
 
+> [!WARNING]
+> This is a historical verification snapshot from March 3, 2026, not current
+> testing guidance. Commands and observed behavior are preserved as recorded.
+> See the [reports index](README.md) and current
+> [contributor guide](../../CONTRIBUTING.md) before repeating this procedure.
+
 **Date:** March 3, 2026  
 **Test Files:** 
 - `/usr/share/ublue-os/homebrew/full-desktop.Brewfile` (58 flatpaks)
