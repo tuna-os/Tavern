@@ -1,5 +1,13 @@
 # Homebrew Tap Install Verification Report
 
+> [!WARNING]
+> This is a historical verification snapshot from June 2, 2026. It describes
+> retired tap names, packaging behavior, and release artifacts and must not be
+> used as current installation or release guidance. Use the
+> [README](../../README.md) for supported installation channels and the current
+> [release guide](../RELEASING.md) for the release contract. See the
+> [reports index](README.md) for how historical reports are maintained.
+
 ## ✅ Verification Complete
 
 **Date:** 2026-06-02  

@@ -65,6 +65,9 @@ Additional maintainer guides cover the [cache lifecycle](docs/CACHE.md),
 [curation feed](docs/CURATION.md), [accessibility release pass](docs/ACCESSIBILITY.md),
 and [release process](docs/RELEASING.md).
 
+The files under [`docs/reports/`](docs/reports/README.md) are dated historical
+verification snapshots, not maintained contributor instructions.
+
 ## Pull requests
 
 - Keep PRs focused — one change, one PR.
