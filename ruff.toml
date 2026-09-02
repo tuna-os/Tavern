@@ -1,0 +1,12 @@
+# Ruff configuration for src/ and tests/.
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = ["E4", "E7", "E9", "F"]
+
+[lint.per-file-ignores]
+# Tests import fixtures/classes for their patching side effects as well as
+# direct use; existing unused-import debt here is pre-existing and not
+# something this config attempts to silently paper over.
+"tests/*" = []
