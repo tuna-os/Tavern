@@ -1,0 +1,36 @@
+name: Postmortem Template
+description: Document root cause and preventive measures following an operational incident
+title: "[Postmortem]: "
+labels: ["postmortem"]
+body:
+  - type: markdown
+    attributes:
+      value: Postmortem document for completed incident investigation.
+  - type: textarea
+    id: incident-ref
+    attributes:
+      label: Incident Reference
+      description: Link to original incident issue or PR.
+    validations:
+      required: true
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Event Timeline
+      description: Key events from detection to resolution.
+    validations:
+      required: true
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: Root Cause Analysis
+      description: Explanation of why the failure occurred and why existing guards missed it.
+    validations:
+      required: true
+  - type: textarea
+    id: action-items
+    attributes:
+      label: Action Items & Prevention
+      description: Concrete work to prevent recurrence.
+    validations:
+      required: true
