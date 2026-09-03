@@ -1,0 +1,29 @@
+name: Incident Report
+description: Report an operational incident or severe regression in Tavern
+title: "[Incident]: "
+labels: ["incident"]
+body:
+  - type: markdown
+    attributes:
+      value: Please fill out this incident report for critical build, CI, or release failures.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Incident Summary
+      description: What happened, what was impacted, and current operational status.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: User & System Impact
+      description: Describe affected components, environments, or users.
+    validations:
+      required: true
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Mitigation / Immediate Workaround
+      description: Steps taken to contain the issue or restore service.
+    validations:
+      required: false
