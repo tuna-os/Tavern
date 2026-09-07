@@ -25,15 +25,43 @@ just dev                  # build + install + run as Flatpak
 
 ## Tests
 
-Running the test suite requires PyGObject and GTK 4/Libadwaita development bindings installed on the host system:
+The host test suite uses the system Python because the distro's PyGObject
+bindings are not visible to a separate Python installation. On Ubuntu, install
+the test and UI compilation prerequisites first:
 
 ```bash
-python3 -m pytest tests/                                       # full suite
-python3 -m pytest tests/test_backend.py -v                     # one file
-python3 -m pytest tests/test_benchmarks.py --benchmark-enable  # benchmarks
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+  python3-gi python3-gi-cairo \
+  gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 \
+  libglib2.0-dev-bin libxml2-utils blueprint-compiler xvfb dbus-x11
+python3 -m pip install --break-system-packages pytest pytest-benchmark
+```
+
+Compile the Blueprint UI and resource bundle to the path loaded by
+`tests/conftest.py`, then run the tests with a display and session bus:
+
+```bash
+mkdir -p build-ui .flatpak-build/files/share/tavern
+blueprint-compiler batch-compile build-ui src src/*.blp
+cp src/style.css build-ui/
+glib-compile-resources \
+  --target=.flatpak-build/files/share/tavern/tavern.gresource \
+  --sourcedir=build-ui --sourcedir=src src/tavern.gresource.xml
+
+xvfb-run -a dbus-run-session -- \
+  python3 -m pytest tests/ -m "not slow"                    # host suite
+xvfb-run -a dbus-run-session -- \
+  python3 -m pytest tests/test_backend.py -v                 # one file
+xvfb-run -a dbus-run-session -- \
+  python3 -m pytest tests/test_benchmarks.py --benchmark-enable
 ```
 
 Tests run headlessly — the autouse fixtures in `tests/conftest.py` mock `Gio.Settings` and dialog `.present()` calls so nothing pops on screen. If you add new dialog types, extend that fixture.
+
+The `pytest-flatpak` CI job also runs the suite inside the GNOME 50 SDK. Use
+`just dev` for interactive Flatpak development; the complete sandboxed test
+sequence is maintained in `.github/workflows/tests.yml`.
 
 ## Working on the UI
 
