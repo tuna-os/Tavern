@@ -94,9 +94,10 @@ def test_cask_parses_with_ruby():
     if not ruby_bin:
         pytest.skip('No ruby available to compile-check the cask')
 
-    tmpfile = '/tmp/tavern_cask_compile_check.rb'
-    with open(tmpfile, 'w', encoding='utf-8') as f:
+    import tempfile
+    with tempfile.NamedTemporaryFile('w', suffix='.rb', delete=False, encoding='utf-8') as f:
         f.write(CASK_SOURCE)
+        tmpfile = f.name
     try:
         result = subprocess.run(
             [ruby_bin, '-c', tmpfile],
@@ -106,4 +107,5 @@ def test_cask_parses_with_ruby():
             f'Cask Ruby failed to parse:\n{result.stderr}'
         assert 'Syntax OK' in result.stdout
     finally:
-        os.unlink(tmpfile)
+        if os.path.exists(tmpfile):
+            os.unlink(tmpfile)
