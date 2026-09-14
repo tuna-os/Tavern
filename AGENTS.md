@@ -98,22 +98,18 @@ build.
 
 ## Publishing paths
 
-`publish-flatpak.yml` / `promote-to-prod.yml` cover the Flatpak channel, and
-this repo carries **two** vendored copies of the flatpak index writer:
-`.github/scripts/update-index.py` and `scripts/update-index.py`. They differ
-from each other and from every other copy in the org.
+`publish-flatpak.yml` / `promote-to-prod.yml` cover the Flatpak channel. The
+publisher invokes the vendored `.github/scripts/update-index.py` index writer.
 
 `tuna-os/.github` runs `flatpak-tooling-drift-check.yml` weekly against eight
 application repos, comparing their `.github/scripts/update-index.py` to
 `.github/actions/update-flatpak-index/update-index.py`. **Tavern is not in that
-list**, so neither copy here is checked by anything. On default branches today:
+list**, so the copy here is not checked by anything. On default branches today:
 
 | copy | blob |
 |---|---|
 | `.github/actions/update-flatpak-index/update-index.py` (org canonical) | `6eaa8186` |
 | `Tavern/.github/scripts/update-index.py` | `ec916224` |
-| `Tavern/scripts/update-index.py` | `127aed10` |
 
-Migrating to the composite action would remove both, which is what that
-workflow's comment says it is an interim guard for. Short of that, changing one
-copy here means checking the other deliberately.
+Migrating to the composite action would remove the vendored copy, which is what
+that workflow's comment says it is an interim guard for.
