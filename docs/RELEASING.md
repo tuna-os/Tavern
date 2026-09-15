@@ -2,8 +2,9 @@
 
 Tavern releases have one version source and one trigger. The version in
 `meson.build` is authoritative; the newest AppStream release entry must match
-it. A release tag is created only by the manually dispatched **Prepare Release
-Tag** workflow. Merging to `main` never invents or increments a version.
+it. After the `Tests` workflow passes on `main`, **Prepare Release Tag** reads
+that version, validates it, tags the tested commit, and dispatches the release
+workflow. Merging to `main` never invents or increments a version.
 
 ## Release checklist
 
@@ -11,8 +12,8 @@ Tag** workflow. Merging to `main` never invents or increments a version.
    in `data/org.tunaos.tavern.metainfo.xml.in`.
 2. Run `python3 tools/validate-release.py --version X.Y.Z`, the test suite, and
    the Flatpak build.
-3. Merge the release-preparation PR to `main`.
-4. Dispatch **Prepare Release Tag** with `X.Y.Z`.
+3. Merge the release-preparation PR to `main` and wait for `Tests` to pass.
+4. Prepare Release Tag runs automatically after that successful test workflow.
 5. Prepare Release Tag explicitly dispatches Release at that tag. A tag push
    made with `GITHUB_TOKEN` alone does not start another workflow.
    Release validates the tag/metadata contract,
