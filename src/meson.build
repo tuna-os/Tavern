@@ -78,6 +78,7 @@ tavern_sources = [
   'tap_page.py',
   'task_manager.py',
   'task_panel.py',
+  'tap_metadata.py',
   'global_progress.py',
   'brewfile_page.py',
   'search_provider.py',

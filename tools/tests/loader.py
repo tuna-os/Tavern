@@ -1,5 +1,10 @@
-# conftest.py - keeps this suite isolated from tests/conftest.py's gi import
 # SPDX-License-Identifier: GPL-3.0-or-later
+"""Shared module loader for tools/tests/ — kept gi-free on purpose.
+
+tests/conftest.py imports gi at collection time, which this sandbox (and any
+host without PyGObject) cannot satisfy. Loading tools/*.py scripts by file
+path here avoids depending on that conftest.py entirely.
+"""
 import importlib.util
 import sys
 from pathlib import Path
