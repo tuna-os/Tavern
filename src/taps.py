@@ -12,6 +12,7 @@ from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
 from .package import Package
+from .tap_metadata import parse_cask_file, parse_formula_file
 
 _log = get_logger('taps')
 
@@ -184,75 +185,11 @@ class TapsMixin:
         fast enough to run for tens/hundreds of formulae without noticeable delay.
         Returns a dict compatible with Package._from_api or None on failure.
         """
-        import re
-        try:
-            with open(rb_path, 'r', encoding='utf-8', errors='replace') as f:
-                src = f.read(8192)  # Only need the header section
-        except Exception:
-            return None
-
-        def extract(pattern, default=''):
-            m = re.search(pattern, src, re.MULTILINE)
-            return m.group(1).strip() if m else default
-
-        desc = extract(r'^\s*desc\s+["\']([^"\']+)["\']')
-        homepage = extract(r'^\s*homepage\s+["\']([^"\']+)["\']')
-        version = extract(r'^\s*version\s+["\']([^"\']+)["\']') or \
-                  extract(r'tag:\s+["\']v?([^"\']+)["\']')
-        url = extract(r'^\s*url\s+["\']([^"\']+)["\']')
-        license_ = extract(r'^\s*license\s+["\']([^"\']+)["\']')
-
-        return {
-            'name': pkg_name,
-            'full_name': f'{tap_name}/{pkg_name}',
-            'desc': desc,
-            'homepage': homepage,
-            'versions': {'stable': version},
-            'license': license_,
-            'urls': {'stable': {'url': url}},
-        }
+        return parse_formula_file(rb_path, tap_name, pkg_name)
 
     def _minimal_cask_data_from_rb(self, rb_path, tap_name, pkg_name):
         """Same as _minimal_formula_data_from_rb but for cask .rb files."""
-        import re
-        try:
-            with open(rb_path, 'r', encoding='utf-8', errors='replace') as f:
-                src = f.read(8192)
-        except Exception:
-            return None
-
-        def extract(pattern, default=''):
-            m = re.search(pattern, src, re.MULTILINE)
-            return m.group(1).strip() if m else default
-
-        version = extract(r'^\s*version\s+["\']([^"\']+)["\']')
-        name_extracted = extract(r'^\s*name\s+["\']([^"\']+)["\']')
-        desc = extract(r'^\s*desc\s+["\']([^"\']+)["\']')
-        homepage = extract(r'^\s*homepage\s+["\']([^"\']+)["\']')
-        url = extract(r'^\s*url\s+["\']([^"\']+)["\']')
-
-        # Detect macOS dependencies: only_if builds, requires_zap 'macos' etc.
-        depends_on = {}
-        if 'macos' in src.lower():
-            ma = re.search(r'depends_on\s+macos:', src)
-            if ma:
-                depends_on['macos'] = True
-
-        name_m = re.search(r'cask\s+["\']([^"\']+)["\']', src)
-        token = name_m.group(1) if name_m else pkg_name
-
-        cask_names = [name_extracted] if name_extracted else ([desc] if desc else [token])
-
-        return {
-            'token': token,
-            'full_token': f'{tap_name}/{token}',
-            'name': cask_names,
-            'desc': desc,
-            'homepage': homepage,
-            'version': version,
-            'url': url,
-            'depends_on': depends_on,
-        }
+        return parse_cask_file(rb_path, tap_name, pkg_name)
 
 
 
@@ -550,4 +487,3 @@ class TapsMixin:
             _log.error('update_tap %s failed: %s', tap_name, e)
             if callback:
                 GLib.idle_add(callback, False, str(e))
-
