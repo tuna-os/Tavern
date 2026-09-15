@@ -1219,7 +1219,10 @@ class TestBrewBackendExtensions:
         monkeypatch.setattr('tavern.git_forge.get_forge_for_url', lambda url: (MockForge(), 'BurntSushi', 'ripgrep'))
         
         cached_releases = [{'version': '2.0.0', 'date': '2026-05-31', 'changelog': 'Cache hit works'}]
-        monkeypatch.setattr(backend, '_load_cached', lambda key: (cached_releases, False))
+        def load_cached(key, max_age):
+            assert max_age == 86400
+            return cached_releases, False
+        monkeypatch.setattr(backend, '_load_cached', load_cached)
         
         history = backend.get_version_history('ripgrep', 'formula')
         assert history == cached_releases
@@ -1235,7 +1238,7 @@ class TestBrewBackendExtensions:
                 raise Exception("Git Forge connection failed")
         
         monkeypatch.setattr('tavern.git_forge.get_forge_for_url', lambda url: (FailingForge(), 'BurntSushi', 'ripgrep'))
-        monkeypatch.setattr(backend, '_load_cached', lambda key: (None, True))
+        monkeypatch.setattr(backend, '_load_cached', lambda key, max_age: (None, True))
         
         assert backend.get_version_history('ripgrep', 'formula') == []
 

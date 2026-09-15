@@ -1,0 +1,82 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $TavernDoctorPage: Adw.Bin {
+  ScrolledWindow {
+    hscrollbar-policy: never;
+    Adw.Clamp {
+      maximum-size: 850;
+      margin-start: 18;
+      margin-end: 18;
+      margin-top: 24;
+      margin-bottom: 24;
+      Box {
+        orientation: vertical;
+        spacing: 18;
+        Box {
+          spacing: 12;
+          Label {
+            label: _("Brew Doctor");
+            wrap: true;
+            xalign: 0;
+            hexpand: true;
+            styles ["title-1"]
+          }
+          Gtk.Spinner spinner {}
+          Button run_button {
+            label: _("Run Check");
+            valign: center;
+            styles ["suggested-action"]
+          }
+          Button copy_button {
+            icon-name: "edit-copy-symbolic";
+            tooltip-text: _("Copy Doctor Output");
+            sensitive: false;
+            valign: center;
+            accessibility { label: _("Copy doctor output"); }
+          }
+        }
+        Label {
+          label: _("Check your Homebrew installation for common problems. This check does not run suggested fixes.");
+          wrap: true;
+          xalign: 0;
+        }
+        Label status_label {
+          label: _("Ready to check");
+          xalign: 0;
+          wrap: true;
+          styles ["title-3"]
+        }
+        Label error_label {
+          visible: false;
+          xalign: 0;
+          wrap: true;
+          selectable: true;
+          styles ["error"]
+        }
+        ListBox findings_list {
+          visible: false;
+          selection-mode: none;
+          styles ["boxed-list"]
+        }
+        Expander raw_expander {
+          label: _("Raw Output");
+          visible: false;
+          ScrolledWindow {
+            min-content-height: 200;
+            TextView raw_view {
+              editable: false;
+              cursor-visible: false;
+              monospace: true;
+              wrap-mode: word_char;
+              top-margin: 12;
+              bottom-margin: 12;
+              left-margin: 12;
+              right-margin: 12;
+            }
+          }
+        }
+      }
+    }
+  }
+}

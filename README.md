@@ -57,6 +57,7 @@ On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage an
 - **📄 Brewfile Support**: Open and manage `.Brewfile`s to bulk-install or remove entire environments.
 - **⚡ Task Management**: Queued installs, removals, and upgrades with per-package progress and a task panel.
 - **🫖 Tap Manager**: Add, remove, update, and trust Homebrew taps; browse tap contents.
+- **🩺 Brew Doctor**: Check Homebrew health, inspect warnings, retry, and copy diagnostic output.
 - **🌗 Native Design**: Libadwaita interface following the GNOME HIG — dark mode, adaptive layouts, keyboard shortcuts, and a preferences dialog.
 - **🐧 Linux First**: Smart filtering to hide macOS-only casks on Linux systems.
 

@@ -37,6 +37,7 @@ CASK_DETAIL_API = 'https://formulae.brew.sh/api/cask/{}.json'
 ANALYTICS_ON_REQUEST_API = 'https://formulae.brew.sh/api/analytics/install-on-request/{}.json'
 FLATHUB_APPSTREAM_API = 'https://flathub.org/api/v2/appstream/{}'
 CURATION_API = 'https://raw.githubusercontent.com/tuna-os/Tavern/main/data/curation.json'
+VERSION_HISTORY_TTL = 24 * 60 * 60
 
 
 def urlopen(req, timeout=None):
@@ -130,7 +131,7 @@ class RemoteMixin:
         
         # Check cache first (24h TTL)
         cache_key = f'version-history-{pkg_type}-{package_name}'
-        cached_data, is_stale = self._load_cached(cache_key)
+        cached_data, is_stale = self._load_cached(cache_key, max_age=VERSION_HISTORY_TTL)
         if cached_data and not is_stale:
             _log.debug('Version history cache hit for %s', package_name)
             return cached_data
