@@ -199,6 +199,10 @@ template $TavernWindow: Adw.ApplicationWindow {
 menu primary_menu {
   section {
     item {
+      label: _("_Maintenance…");
+      action: "win.maintenance";
+    }
+    item {
       label: _("_Open Brewfile…");
       action: "win.open-brewfile";
     }

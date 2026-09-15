@@ -1,6 +1,7 @@
 """Doctor parsing and cache contracts do not need GTK or a real brew."""
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
+import json
 
 import pytest
 
@@ -86,3 +87,38 @@ def test_concurrent_loads_share_one_report():
         reports = list(pool.map(lambda _index: service.load(), range(8)))
     assert all(report is reports[0] for report in reports)
     assert len(calls) == 1
+
+
+def test_homebrew_seven_structured_findings():
+    data = {'tier': 3, 'findings': [
+        {'text': 'Unlinked kegs\nDetails', 'tier': 1, 'affects': ['hello'], 'links': [],
+         'remediation': {'commands': ['brew link hello'], 'text': 'Review this first'}},
+        {'text': 'Old platform', 'tier': 3, 'remediation': None},
+    ]}
+    report = doctor.parse_report(json.dumps(data), 1)
+    assert report.tier == 3
+    assert report.issues[0].severity == 'unsupported'
+    assert report.issues[1].title == 'Unlinked kegs'
+    assert report.issues[1].body == 'Details\nReview this first\nbrew link hello'
+
+
+@pytest.mark.parametrize('data,code', [({}, 0), ([], 0),
+    ({'tier': 1, 'findings': []}, 1), ({'tier': 9, 'findings': []}, 0),
+    ({'tier': 1, 'findings': ['broken']}, 1),
+    ({'tier': 1, 'findings': [{'text': ''}]}, 1)])
+def test_invalid_structured_report_is_not_healthy(data, code):
+    with pytest.raises(doctor.DoctorError):
+        doctor.parse_report(json.dumps(data), code)
+
+
+def test_structured_report_keeps_stderr_separate_from_json_parsing():
+    result = SimpleNamespace(stdout='{"tier": 1, "findings": []}', stderr='Warning on stderr', returncode=0)
+    report = doctor.DoctorService(lambda: result).load()
+    assert report.tier == 1
+    assert 'Warning on stderr' in report.raw_output
+
+
+def test_json_command_cannot_treat_non_json_success_as_healthy():
+    result = SimpleNamespace(stdout='Unexpected proxy response', stderr='', returncode=0, doctor_json=True)
+    with pytest.raises(doctor.DoctorError, match='Invalid Homebrew diagnostic JSON'):
+        doctor.DoctorService(lambda: result).load()

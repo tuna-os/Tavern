@@ -17,6 +17,9 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 - ✅ Indexed search off the main thread ([#49](https://github.com/tuna-os/Tavern/issues/49))
 - ✅ Font cask previews ([#39](https://github.com/tuna-os/Tavern/issues/39))
 - ✅ Read-only Brew Doctor report, retry, raw output, and copy (#170 phase 1)
+- ✅ Homebrew 7 diagnostics, security scans, install previews, user services, and cleanup previews
+- ✅ Complete Brewfile source preservation and confirmed tasks; no automatic tap changes on open (#113)
+- ✅ Explicit historical formula installs through `brew version-install`
 
 ## Release health
 
@@ -44,10 +47,10 @@ new tags alone are not evidence of a stable release.
 - **Release parity** — finish the artifact and install checks in #104.
 - **Brew Doctor** — assess explicit fix actions and report export next (#170).
 - **Backend contracts** — add focused state tests (#153), then separate state
-  ownership (#172) and Brewfile execution (#113). Tap parsing is now separate.
+  ownership (#172). Tap parsing and Brewfile execution now have separate boundaries.
 - **Performance** — measure the proposals in #171 before changing search,
   list widgets, or cache policy. Keep feature and performance work incremental.
-- **Dynamic Brewfile taps** — auto-tap repos referenced in Brewfiles
+- **Cask lifecycle steps** — assess Homebrew 7 declarative steps in the org tap before Ruby flight hooks expire in December 2027.
 - **Local icon/screenshot cache** — ORAS-based database for faster loads
 
 ## Maintenance policy

@@ -79,6 +79,7 @@ class TavernWindow(Adw.ApplicationWindow):
         # Task manager (central operation coordinator)
         task_mgr_start = time.perf_counter()
         self.task_manager = TaskManager(self.backend)
+        self.task_manager.install_preview = self._preview_install
         self.task_manager.connect('task-added', self._on_task_added)
         self.task_manager.connect('task-finished', self._on_task_finished)
         self.task_manager.connect('notify::active-count', self._on_active_count_changed)
@@ -135,6 +136,9 @@ class TavernWindow(Adw.ApplicationWindow):
         open_brewfile_action = Gio.SimpleAction.new('open-brewfile', None)
         open_brewfile_action.connect('activate', self._on_open_brewfile)
         self.add_action(open_brewfile_action)
+        maintenance_action = Gio.SimpleAction.new('maintenance', None)
+        maintenance_action.connect('activate', self._on_maintenance)
+        self.add_action(maintenance_action)
         self.get_application().set_accels_for_action('win.open-brewfile', ['<Ctrl>o'])
 
         update_tap_action = Gio.SimpleAction.new('update-selected-tap', None)
@@ -222,6 +226,12 @@ class TavernWindow(Adw.ApplicationWindow):
         _log.info('Task finished: %s  status=%s', task.title, task.status)
         pkg = task.package
         from .task_manager import TaskStatus
+        if pkg is None:
+            self.toast_overlay.add_toast(Adw.Toast.new(
+                task.title + ': ' + task.status_text))
+            if mgr.active_count == 0:
+                self.backend.refresh_installed_async()
+            return
         if task.status == TaskStatus.COMPLETED:
             verb = _('Installed') if task.operation == 'install' else (
                 _('Removed') if task.operation == 'uninstall' else _('Upgraded')
@@ -474,6 +484,19 @@ class TavernWindow(Adw.ApplicationWindow):
     def _on_install_requested(self, page, package):
         _log.info('Install requested from page: %s (%s)', package.name, package.pkg_type)
         self.task_manager.install(package)
+
+    def _preview_install(self, task, approve):
+        from .command_dialog import show_command
+        show_command(self, _('Review Installation'),
+                     _('Homebrew will show the packages and dependencies it would install. '
+                       'The actual installation may differ if Homebrew changes before it runs.'),
+                     args=(*task.command, '--dry-run'), confirm=approve,
+                     confirm_label=_('Install'), cancelled=task._set_cancelled,
+                     allow_legacy_install=True)
+
+    def _on_maintenance(self, *_args):
+        from .maintenance_page import MaintenancePage
+        self.navigation_view.push(MaintenancePage(self.task_manager))
 
     def _on_remove_requested(self, page, package):
         _log.info('Remove requested from page: %s (%s)', package.name, package.pkg_type)

@@ -9,13 +9,16 @@ from gi.repository import Adw, Gtk, GObject, GLib
 import subprocess
 import time
 import threading
-import tempfile
-import os
+import gettext
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from .backend import Package
 from .package_tile import TavernPackageTile
 from .logging_util import get_logger, log_timing
 from .brewfile_plan import build_plan
+from .brewfile_document import BrewfileDocument
+from .command_dialog import show_command
+
+_ = gettext.gettext
 
 _log = get_logger('brewfile_page')
 
@@ -40,29 +43,31 @@ class TavernBrewfilePage(Adw.Bin):
     flatpaks_flow = Gtk.Template.Child()
     install_all_button = Gtk.Template.Child()
     remove_all_button = Gtk.Template.Child()
+    source_button = Gtk.Template.Child()
+    deps_button = Gtk.Template.Child()
+    source_notice = Gtk.Template.Child()
+    extra_entries_label = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.backend = None
         self.task_manager = None
         self._brewfile_path = None
+        self._document = None
+        self._default_notice = self.source_notice.get_label()
         self.parsed_data = None
         self._packages = []
-        self._taps_to_add = []
-        self._tap_errors = {}
         self._flatpak_errors = {}
         self._cask_errors = {}
         self._tile_map = {}  # Maps package name -> (tile, package) for lazy icon loading
-        self._tap_lock = threading.Lock()
         self._flatpak_error_lock = threading.Lock()
         self._cask_error_lock = threading.Lock()
-        self._pending_taps = 0
-        self._taps_done_event = threading.Event()
-        self._taps_done_event.set()
         
         # Connect button signals
         self.install_all_button.connect('clicked', self._on_install_all_clicked)
         self.remove_all_button.connect('clicked', self._on_remove_all_clicked)
+        self.source_button.connect('clicked', self._show_source)
+        self.deps_button.connect('clicked', self._show_dependencies)
 
     def set_backend_and_manager(self, backend, task_manager):
         """Set the backend and task manager after widget creation."""  
@@ -75,17 +80,29 @@ class TavernBrewfilePage(Adw.Bin):
         _log.info('Loading Brewfile: %s', path)
         _log.info('=' * 70)
         self._brewfile_path = path
+        self._packages = []
+        self._tile_map = {}
+        self.source_notice.set_label(self._default_notice)
+        try:
+            self._document = BrewfileDocument.read(path)
+        except (OSError, UnicodeError) as error:
+            self._document = None
+            self.parsed_data = None
+            self.source_notice.set_label(str(error))
+            self.brewfile_stack.set_visible_child_name('content')
+            return
+        self.extra_entries_label.set_label('\n'.join(
+            f'{kind}: {name}' for kind, name in self._document.extra_entries))
         
         overall_start = time.perf_counter()
         self.brewfile_stack.set_visible_child_name('loading')
-        self._tap_errors = {}
         self._flatpak_errors = {}
         self._cask_errors = {}
         
         # Parse the brewfile
         self.parsed_data = self.backend.parse_brewfile(path)
         
-        # Tap any taps that aren't already tapped
+        # Display tap declarations without executing the Brewfile or adding taps.
         self._process_taps()
         
         # Load packages in a thread to avoid blocking UI
@@ -102,160 +119,17 @@ class TavernBrewfilePage(Adw.Bin):
         thread.start()
 
     def _process_taps(self):
-        """Process taps from the Brewfile."""
-        if not self.parsed_data or not self.parsed_data.get('taps'):
-            self._taps_done_event.set()
-            return
-            
-        self.taps_section.set_visible(True)
-        
-        # Clear existing
+        """Render declarations only. Reading a file must never add its taps."""
+        taps = (self.parsed_data or {}).get('taps', [])
+        self.taps_section.set_visible(bool(taps))
         while child := self.taps_flow.get_first_child():
             self.taps_flow.remove(child)
-
-        taps = self.parsed_data.get('taps', [])
-        with self._tap_lock:
-            self._pending_taps = len(taps)
-            if self._pending_taps > 0:
-                self._taps_done_event.clear()
-            else:
-                self._taps_done_event.set()
-        
-        for tap_entry in taps:
-            # Support both old (string) and new (dict) tap formats
-            if isinstance(tap_entry, dict):
-                tap_name = tap_entry['name']
-                tap_trusted = tap_entry.get('trusted', False)
-            else:
-                tap_name = tap_entry
-                tap_trusted = False
-            # Create a compact pill-style box
-            box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-            box.add_css_class('pill')
-            box.set_margin_start(4)
-            box.set_margin_end(4)
-            box.set_margin_top(4)
-            box.set_margin_bottom(4)
-            
-            # Add tap label
-            label = Gtk.Label(label=tap_name)
-            box.append(label)
-
-            # Show trust icon for Homebrew 6.0.0+ trusted taps
-            if tap_trusted:
-                trust_icon = Gtk.Image.new_from_icon_name('security-high-symbolic')
-                trust_icon.add_css_class('success')
-                trust_icon.set_tooltip_text('Tap explicitly trusted')
-                box.append(trust_icon)
-
-            # Add click handler for failed taps
-            click_gesture = Gtk.GestureClick.new()
-            click_gesture.connect('released', lambda _g, _n, _x, _y, tap_name=tap_name: self._on_tap_clicked(tap_name))
-            box.add_controller(click_gesture)
-            
-            # Add spinner
-            spinner = Gtk.Spinner()
-            spinner.start()
-            box.append(spinner)
-            
-            self.taps_flow.append(box)
-            
-            # Tap it
-            self._tap_async(tap_name, box, spinner, label)
-
-    def _tap_async(self, tap, box, spinner, label):
-        """Tap a repository with profiling and detailed error reporting."""
-        _log.info('Tapping: %s', tap)
-        tap_start = time.perf_counter()
-        error_message = None
-        
-        def on_complete(success, elapsed_ms, error_msg=None):
-            # Remove the spinner
-            try:
-                box.remove(spinner)
-            except Exception as e:
-                _log.warning('Failed to remove spinner for tap %s: %s', tap, e)
-            
-            # Add status icon with tooltip on failure
-            icon = Gtk.Image.new_from_icon_name(
-                'object-select-symbolic' if success else 'dialog-warning-symbolic'
-            )
-            if not success and error_msg:
-                self._tap_errors[tap] = error_msg
-                icon.set_tooltip_text(error_msg)
-                box.set_tooltip_text(error_msg)
-                box.add_css_class('error')
-            else:
-                self._tap_errors.pop(tap, None)
-                box.set_tooltip_text(None)
-                box.add_css_class('success')
-            box.append(icon)
-            
-            status = 'success' if success else 'failed'
-            log_msg = f'Tap {tap}: {status} ({elapsed_ms:.1f} ms)'
-            if error_msg:
-                log_msg += f' - {error_msg}'
-                _log.warning(log_msg)
-            else:
-                _log.info(log_msg)
-
-            with self._tap_lock:
-                self._pending_taps = max(0, self._pending_taps - 1)
-                if self._pending_taps == 0:
-                    self._taps_done_event.set()
-                    _log.info('Tap phase complete')
-            
-        # Run brew tap command
-        def run_tap():
-            nonlocal error_message
-            try:
-                result = subprocess.run(
-                    ['brew', 'tap', tap],
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-                success = result.returncode == 0
-                elapsed_ms = (time.perf_counter() - tap_start) * 1000
-                if not success:
-                    error_message = result.stderr.strip() if result.stderr else 'Unknown error'
-                    _log.error('Tap %s failed: %s', tap, error_message)
-                GLib.idle_add(lambda: on_complete(success, elapsed_ms, error_message))
-            except subprocess.TimeoutExpired:
-                error_message = 'Timeout (30 seconds)'
-                _log.error('Tap %s timed out', tap)
-                elapsed_ms = (time.perf_counter() - tap_start) * 1000
-                GLib.idle_add(lambda: on_complete(False, elapsed_ms, error_message))
-            except Exception as e:
-                error_message = str(e)
-                _log.error('Failed to tap %s: %s', tap, error_message)
-                elapsed_ms = (time.perf_counter() - tap_start) * 1000
-                GLib.idle_add(lambda: on_complete(False, elapsed_ms, error_message))
-        
-        import threading
-        thread = threading.Thread(target=run_tap, daemon=True)
-        thread.start()
-
-    def _on_tap_clicked(self, tap):
-        """Show detailed modal error for failed taps when clicked."""
-        error_message = self._tap_errors.get(tap)
-        if not error_message:
-            return
-
-        root = self.get_root()
-        if not root:
-            return
-
-        dialog = Adw.MessageDialog(
-            transient_for=root,
-            heading=f'Tap failed: {tap}',
-            body=error_message,
-        )
-        dialog.add_response('ok', 'OK')
-        dialog.set_default_response('ok')
-        dialog.set_close_response('ok')
-        dialog.present()
-
+        for entry in taps:
+            name = entry['name'] if isinstance(entry, dict) else entry
+            label = Gtk.Label(label=name, margin_start=8, margin_end=8,
+                              margin_top=6, margin_bottom=6)
+            label.set_tooltip_text(_('Declared in Brewfile; not added by opening this file'))
+            self.taps_flow.append(label)
     def _load_packages_thread(self):
         """Load packages with lazy loading: show names immediately, fetch details async."""
         import time
@@ -373,12 +247,7 @@ class TavernBrewfilePage(Adw.Bin):
         flatpak_items = [(app_id, pkg, 'flatpak') for app_id, pkg in zip(flatpaks_names, flatpaks_pkgs)]
 
         all_total = len(formula_items) + len(cask_items) + len(flatpak_items)
-        _log.info('Waiting for taps phase before metadata loading')
-        taps_done = self._taps_done_event.wait(timeout=180)
-        if not taps_done:
-            _log.warning('Tap phase wait timed out; continuing with package metadata loading')
-        else:
-            _log.info('Starting package metadata phases: formula -> cask -> flatpak')
+        _log.info('Starting package metadata phases: formula -> cask -> flatpak')
 
         loaded = 0
         failed = 0
@@ -549,7 +418,7 @@ class TavernBrewfilePage(Adw.Bin):
         
         # Not found - fetch info for this specific package
         _log.info('Package %s not in cache, fetching details', name)
-        installed_set = self.backend._installed_formulae if pkg_type == 'formula' else self.backend._installed_casks
+        installed_set = self.backend.installed_names(pkg_type)
         try:
             pkg_info = self.backend.get_package_info(name, pkg_type)
             
@@ -616,160 +485,77 @@ class TavernBrewfilePage(Adw.Bin):
         if pkg:
             self.emit('install-requested', pkg)
 
-    def _on_install_all_clicked(self, button):
-        """Install all packages from the Brewfile using brew bundle on a filtered file."""
-        if not self.parsed_data:
-            _log.warning('Install-all requested but no Brewfile data is loaded')
+    def _show_source(self, _button):
+        if self._document is not None:
+            show_command(self.get_root(), _('Complete Brewfile'),
+                         _('The tiles do not evaluate Ruby conditions. This is the full source.'),
+                         text=self._document.source)
+
+    def _show_dependencies(self, _button):
+        document = self._document
+        if document is None:
             return
 
-        with self._tap_lock:
-            tap_errors = set(self._tap_errors.keys())
-        with self._flatpak_error_lock:
-            flatpak_errors = set(self._flatpak_errors.keys())
-        with self._cask_error_lock:
-            cask_errors = set(self._cask_errors.keys())
-
-        plan = build_plan(
-            self.parsed_data,
-            tap_errors=tap_errors,
-            cask_errors=cask_errors,
-            flatpak_errors=flatpak_errors,
-        )
-        rendered_brewfile = plan.render()
-        if not rendered_brewfile:
-            _log.warning('Install-all filtered Brewfile is empty; nothing to install')
-            return
-
-        try:
-            temp_file = tempfile.NamedTemporaryFile(
-                mode='w',
-                encoding='utf-8',
-                suffix='.Brewfile',
-                prefix='tavern-bundle-',
-                delete=False,
-            )
-            with temp_file:
-                temp_file.write(rendered_brewfile)
-            filtered_path = temp_file.name
-        except Exception as e:
-            _log.error('Failed to create filtered Brewfile for install-all: %s', e)
-            return
-
-        _log.info(
-            'Install-all via brew bundle using filtered Brewfile: %s (kept taps=%d formulae=%d casks=%d flatpaks=%d; dropped taps=%d casks=%d flatpaks=%d)',
-            filtered_path,
-            len(plan.taps),
-            len(plan.formulae),
-            len(plan.casks),
-            len(plan.flatpaks),
-            len(tap_errors),
-            len(cask_errors),
-            len(flatpak_errors),
-        )
-
-        def run_bundle_install():
-            from .backend import _brew_cmd
-            cmd = _brew_cmd(['bundle', '--file', filtered_path])
+        def preview():
             try:
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                if result.returncode == 0:
-                    _log.info('brew bundle completed successfully for %s', filtered_path)
-                else:
-                    stderr = (result.stderr or '').strip()
-                    stdout = (result.stdout or '').strip()
-                    detail = stderr or stdout or 'Unknown brew bundle error'
-                    _log.error('brew bundle failed (%d): %s', result.returncode, detail)
-            except Exception as e:
-                _log.error('Failed running brew bundle: %s', e)
-            finally:
-                try:
-                    os.unlink(filtered_path)
-                except Exception:
-                    pass
+                document.verify()
+            except (OSError, ValueError) as error:
+                show_command(self.get_root(), _('Brewfile Changed'), str(error), text=str(error))
+                return
+            show_command(self.get_root(), _('Brewfile Dependencies'),
+                         _('Homebrew dependencies only; this is not a complete plan for other package managers.'),
+                         args=document.deps_args, runner=read_dependencies)
 
-        thread = threading.Thread(target=run_bundle_install, daemon=True)
-        thread.start()
+        def read_dependencies(args):
+            from .brew_commands import run_read
+            document.verify()
+            return run_read(args)
+
+        show_command(self.get_root(), _('Trust This Brewfile?'),
+                     _('Homebrew evaluates Brewfiles as Ruby, even when listing dependencies. '
+                       'Only continue if you trust the complete file and any files it loads.'),
+                     text=document.source, confirm=preview, confirm_label=_('Show Dependencies'))
+
+    def _on_install_all_clicked(self, button):
+        document = self._document
+        if document is None or self.task_manager is None:
+            return
+        show_command(self.get_root(), _('Install This Brewfile?'),
+                     _('Homebrew will execute the complete original Ruby file. Only continue if you '
+                       'trust it and any files it loads. All supported entry types and options are '
+                       'preserved, including Cargo, uv, npm and editor extensions. Existing packages '
+                       'are not upgraded. Metadata lookup failures do not remove entries.'),
+                     text=document.source,
+                     confirm=lambda: self.task_manager.submit_command(
+                         document.install_args, _('Install Brewfile'), preflight=document.verify),
+                     confirm_label=_('Install Brewfile'))
 
     def _on_remove_all_clicked(self, button):
-        """Remove all packages from the Brewfile using brew uninstall for efficient bulk removal."""
-        if not self.parsed_data:
-            _log.warning('Remove-all requested but no Brewfile data is loaded')
+        if not self.parsed_data or self.task_manager is None:
             return
-
-        with self._tap_lock:
-            tap_errors = set(self._tap_errors.keys())
-        with self._flatpak_error_lock:
-            flatpak_errors = set(self._flatpak_errors.keys())
-        with self._cask_error_lock:
-            cask_errors = set(self._cask_errors.keys())
-
-        # Filter to error-free packages only
-        plan = build_plan(
-            self.parsed_data,
-            tap_errors=tap_errors,
-            cask_errors=cask_errors,
-            flatpak_errors=flatpak_errors,
-        )
-        formulae, casks, flatpaks = plan.formulae, plan.casks, plan.flatpaks
-
-        if not casks and not formulae and not flatpaks:
-            _log.warning('Remove-all filtered list is empty; nothing to remove')
+        # Bulk removal only covers Homebrew entries. Do not claim that generic
+        # bundle cleanup is the inverse: it removes packages OUTSIDE this file.
+        from .brew_commands import validate_name
+        plan = build_plan(self.parsed_data)
+        formulae, casks = plan.formulae, plan.casks
+        if not formulae and not casks:
             return
+        for name in (*formulae, *casks):
+            validate_name(name)
 
-        _log.info(
-            'Remove-all via uninstall using filtered list (formulae=%d casks=%d flatpaks=%d; dropped casks=%d flatpaks=%d)',
-            len(formulae),
-            len(casks),
-            len(flatpaks),
-            len(cask_errors),
-            len(flatpak_errors),
-        )
-
-        def run_bulk_removal():
-            from .backend import _brew_cmd
-            
-            # Remove formulae
+        def remove():
             if formulae:
-                try:
-                    cmd = _brew_cmd(['uninstall', '--formula'] + list(formulae))
-                    result = subprocess.run(cmd, capture_output=True, text=True)
-                    if result.returncode == 0:
-                        _log.info('brew uninstall --formula completed for %d packages', len(formulae))
-                    else:
-                        stderr = (result.stderr or '').strip()
-                        _log.warning('brew uninstall --formula had non-zero exit (%d): %s', result.returncode, stderr)
-                except Exception as e:
-                    _log.error('Failed running brew uninstall for formulae: %s', e)
-            
-            # Remove casks
+                self.task_manager.submit_command(
+                    ('uninstall', '--formula', *formulae), _('Remove Brewfile Formulae'))
             if casks:
-                try:
-                    cmd = _brew_cmd(['uninstall', '--cask'] + list(casks))
-                    result = subprocess.run(cmd, capture_output=True, text=True)
-                    if result.returncode == 0:
-                        _log.info('brew uninstall --cask completed for %d packages', len(casks))
-                    else:
-                        stderr = (result.stderr or '').strip()
-                        _log.warning('brew uninstall --cask had non-zero exit (%d): %s', result.returncode, stderr)
-                except Exception as e:
-                    _log.error('Failed running brew uninstall for casks: %s', e)
-            
-            # Remove flatpaks
-            if flatpaks:
-                try:
-                    cmd = ['flatpak', 'uninstall', '-y'] + list(flatpaks)
-                    result = subprocess.run(cmd, capture_output=True, text=True)
-                    if result.returncode == 0:
-                        _log.info('flatpak uninstall completed for %d packages', len(flatpaks))
-                    else:
-                        stderr = (result.stderr or '').strip()
-                        _log.warning('flatpak uninstall had non-zero exit (%d): %s', result.returncode, stderr)
-                except Exception as e:
-                    _log.error('Failed running flatpak uninstall: %s', e)
+                self.task_manager.submit_command(
+                    ('uninstall', '--cask', *casks), _('Remove Brewfile Casks'))
 
-        thread = threading.Thread(target=run_bulk_removal, daemon=True)
-        thread.start()
-
+        show_command(self.get_root(), _('Remove Homebrew Packages?'),
+                     _('Only the formulae and casks listed below are removed. '
+                       'Taps, Flatpaks, language tools and editor extensions are left unchanged.'),
+                     text='\n'.join((*formulae, *casks)), confirm=remove,
+                     confirm_label=_('Remove'), destructive=True)
     def _open_flatpak_in_bazaar(self, package):
         """Open a flatpak app id using appstream URI so MIME/xdg routing can launch Bazaar."""
         app_id = package.name

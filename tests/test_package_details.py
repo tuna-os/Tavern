@@ -59,6 +59,8 @@ def test_package_details_workflows(tmp_path, monkeypatch, pixbuf):
     assert details.screenshot_bin.get_visible() is True
     
     details._on_info_loaded(pkg_rg, {'analytics': {'install': {'90d': {'ripgrep': 150000}}}})
+    assert pkg_rg.name == 'ripgrep'
+    assert pkg_rg.description == 'rg'
     assert details.installs_label.get_label() == '150.00K'
     assert details.installs_stack.get_visible_child_name() == 'label'
     

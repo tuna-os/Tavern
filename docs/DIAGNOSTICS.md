@@ -19,3 +19,7 @@ paths and private tap names before you attach them to an issue.
 For a bug report, include the app version, install channel, OS, steps to
 reproduce, expected result, actual result, and relevant logs.
 For a release failure, also include the workflow URL and source commit.
+
+The Doctor page can copy its report and show `brew config`.
+The task panel can show and copy command output.
+See [Homebrew tools](HOMEBREW_FEATURES.md) for security scan coverage and safe previews.
