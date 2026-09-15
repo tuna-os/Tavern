@@ -25,15 +25,38 @@ just dev                  # build + install + run as Flatpak
 
 ## Tests
 
-Running the test suite requires PyGObject and GTK 4/Libadwaita development bindings installed on the host system:
+Use the system Python with its PyGObject bindings. A separate Python install
+such as `actions/setup-python` cannot use the distribution's `python3-gi`.
+On Ubuntu, install the same dependencies as CI:
 
 ```bash
-python3 -m pytest tests/                                       # full suite
-python3 -m pytest tests/test_backend.py -v                     # one file
-python3 -m pytest tests/test_benchmarks.py --benchmark-enable  # benchmarks
+sudo apt-get update
+sudo apt-get install -y python3-gi python3-gi-cairo python3-pip \
+  gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 \
+  libglib2.0-dev-bin libxml2-utils blueprint-compiler xvfb dbus-x11
+/usr/bin/python3 -m pip install --break-system-packages pytest pytest-benchmark
 ```
 
-Tests run headlessly — the autouse fixtures in `tests/conftest.py` mock `Gio.Settings` and dialog `.present()` calls so nothing pops on screen. If you add new dialog types, extend that fixture.
+Build the UI resource at the exact path that `tests/conftest.py` loads:
+
+```bash
+mkdir -p build-ui .flatpak-build/files/share/tavern
+blueprint-compiler batch-compile build-ui src src/*.blp
+cp src/style.css build-ui/
+glib-compile-resources \
+  --target=.flatpak-build/files/share/tavern/tavern.gresource \
+  --sourcedir=build-ui --sourcedir=src src/tavern.gresource.xml
+
+xvfb-run -a dbus-run-session -- /usr/bin/python3 -m pytest tests/ -m "not slow"
+/usr/bin/python3 -m pytest tools/tests/
+```
+
+Use a file path in place of `tests/` to run one file. Add `--benchmark-enable`
+to run benchmarks. The benchmark plugin is required even when benchmarks are off.
+GTK needs a display and session bus; the fixtures alone do not provide these.
+The host job may skip tests that need `Adw.Spinner` (libadwaita 1.6 or later).
+Both the host and GNOME 50 Flatpak test jobs must pass before merge.
+Use `just dev` for the separate Flatpak development path.
 
 ## Working on the UI
 
@@ -72,7 +95,7 @@ verification snapshots, not maintained contributor instructions.
 
 - Keep PRs focused — one change, one PR.
 - Include a screenshot or short clip for any user-visible UI change.
-- Run `python3 -m pytest tests/` locally before opening.
+- Run the test commands above before you open a PR.
 - Reference the issue you're closing (`Closes #123`).
 
 ## Code style

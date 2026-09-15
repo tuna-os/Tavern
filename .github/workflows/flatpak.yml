@@ -1,5 +1,8 @@
 name: Flatpak CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ "main" ]
@@ -24,16 +27,16 @@ jobs:
       options: --privileged
 
     steps:
-    - uses: actions/checkout@v7
+    - uses: actions/checkout@v7.0.1
 
-    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+    - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.8
       with:
         bundle: Tavern-Linux-CI.flatpak
         manifest-path: org.tunaos.tavern.json
         cache-key: flatpak-builder-${{ github.sha }}
 
     - name: Upload Flatpak Artifact
-      uses: actions/upload-artifact@v7
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: Tavern-Linux-CI
         path: Tavern-Linux-CI.flatpak

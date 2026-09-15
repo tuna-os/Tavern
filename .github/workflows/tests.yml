@@ -1,5 +1,8 @@
 name: Tests
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ "main" ]
@@ -11,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       # glib-compile-resources is in libglib2.0-dev-bin, NOT libglib2.0-bin
       # (that one only carries gio/gsettings/glib-compile-schemas), and
@@ -67,7 +70,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: pytest-junit
           path: junit.xml
@@ -83,7 +86,7 @@ jobs:
     # test_task_panel.py, test_tap_page.py) skip there because Adw.Spinner
     # needs >= 1.6; they run for real here. See #88.
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       # ubuntu-latest is a full VM (not a container), so flatpak-builder's
       # internal bubblewrap sandboxing works without the --privileged
@@ -154,7 +157,7 @@ jobs:
 
       - name: Upload test report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: pytest-junit-flatpak
           path: junit-flatpak.xml

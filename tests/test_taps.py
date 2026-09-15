@@ -361,7 +361,7 @@ class TestLoadTapPackages:
         # Reject the candidate roots (and their Library/Taps joins).
         monkeypatch.setattr(
             os.path, 'isdir',
-            lambda p: False if p in roots or p.startswith(roots[0]) else real_isdir(p),
+            lambda p: False if any(str(p).startswith(root) for root in roots) else real_isdir(p),
         )
         assert host._load_tap_packages() is None
         assert idle == []

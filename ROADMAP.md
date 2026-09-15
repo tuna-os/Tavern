@@ -1,6 +1,6 @@
 # Tavern Roadmap
 
-**Last updated**: 2026-08-22
+**Last updated**: 2026-09-15
 
 Part of the [TunaOS](https://tunaos.org) ecosystem.
 
@@ -40,8 +40,23 @@ new tags alone are not evidence of a stable release.
 
 ## Planned
 
+- **Release parity** — finish the artifact and install checks in #104.
+- **Brew Doctor** — start with a read-only report, retry, and copy output (#170).
+- **Backend contracts** — add focused state tests (#153), then separate state
+  ownership (#172) and Brewfile execution (#113). Tap parsing is now separate.
+- **Performance** — measure the proposals in #171 before changing search,
+  list widgets, or cache policy. Keep feature and performance work incremental.
 - **Dynamic Brewfile taps** — auto-tap repos referenced in Brewfiles
 - **Local icon/screenshot cache** — ORAS-based database for faster loads
+
+## Maintenance policy
+
+Tavern stays a standalone Python and GTK application. A Rust rewrite needs a
+measured product benefit and a separate migration proposal. Shared release
+tools can serve multiple languages without an application rewrite.
+Use current stable dependencies and keep development and production manifests
+aligned. Validate updates with both test jobs and the Flatpak build.
+Keep quality checks tied to real behavior; empty scorecard files are not work.
 
 ## Contributing
 

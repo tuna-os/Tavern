@@ -20,7 +20,7 @@ jobs:
     # job container does not have.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       - name: Install Flatpak
         run: |
@@ -51,7 +51,7 @@ jobs:
 
       # Uploaded for review, deliberately NOT committed by CI. An unreviewed
       # auto-commit is how a bad capture publishes itself.
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: screenshots
           path: docs/screenshots/

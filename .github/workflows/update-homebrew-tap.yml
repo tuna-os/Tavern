@@ -2,133 +2,69 @@ name: Update Homebrew Tap
 
 on:
   release:
-    types: [published, created]
+    types: [published]
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release tag to process (e.g., v0.1.3)'
+        description: Published release tag to process (for example v0.2.0)
         required: true
         type: string
 
+permissions:
+  contents: read
+
+concurrency:
+  group: update-homebrew-tap
+  cancel-in-progress: false
+
 jobs:
   update-tap:
-    name: "Update Homebrew Tap Casks"
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
     steps:
-      - name: Checkout tap repository
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
-          repository: hanthor/homebrew-tap
-          token: ${{ secrets.TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          persist-credentials: false
 
-      - name: Download release assets and compute SHA256
-        id: download
+      - name: Require the org tap credential
         env:
-          RELEASE_TAG: ${{ github.event.inputs.release_tag || github.event.release.tag_name }}
+          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
         run: |
-          # Get version from either release event or manual input
-          VERSION="${RELEASE_TAG#v}"  # Remove 'v' prefix
-          if [ -z "$VERSION" ]; then
-            echo "::error::Could not determine release tag"
-            exit 1
-          fi
-          
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          test -n "$TAP_TOKEN" || { echo '::error::TAP_GITHUB_TOKEN must have write access to tuna-os/homebrew-tap'; exit 1; }
 
-          # Download macOS app
-          echo "Downloading Tavern-macOS.zip..."
-          curl --fail --silent --show-error --location -o /tmp/Tavern-macOS.zip "https://github.com/tuna-os/Tavern/releases/download/v${VERSION}/Tavern-macOS.zip"
-          MACOS_SHA256=$(sha256sum /tmp/Tavern-macOS.zip | awk '{print $1}')
-          echo "macos_sha256=${MACOS_SHA256}" >> $GITHUB_OUTPUT
+      - name: Checkout the maintained cask
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: tuna-os/homebrew-tap
+          ref: main
+          path: tap
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
 
-          # Download Linux AppImage
-          echo "Downloading Tavern-Linux.AppImage..."
-          curl --fail --silent --show-error --location -o /tmp/Tavern-Linux.AppImage "https://github.com/tuna-os/Tavern/releases/download/v${VERSION}/Tavern-Linux.AppImage"
-
-          APPIMAGE_SHA256=$(sha256sum /tmp/Tavern-Linux.AppImage | awk '{print $1}')
-          echo "appimage_sha256=${APPIMAGE_SHA256}" >> $GITHUB_OUTPUT
-
-      - name: Update unified cask (macOS + Linux)
-        run: |
-          cat > Casks/tavern.rb << 'EOF'
-          cask "tavern" do
-            version "${{ steps.download.outputs.version }}"
-
-            on_macos do
-              sha256 "${{ steps.download.outputs.macos_sha256 }}"
-              url "https://github.com/tuna-os/Tavern/releases/download/v#{version}/Tavern-macOS.zip"
-
-              app "Tavern.app"
-
-              zap trash: [
-                "~/Library/Application Support/Tavern",
-                "~/Library/Preferences/org.tunaos.tavern.*",
-                "~/Library/Caches/org.tunaos.tavern",
-              ]
-            end
-
-            on_linux do
-              sha256 "${{ steps.download.outputs.appimage_sha256 }}"
-              url "https://github.com/tuna-os/Tavern/releases/download/v#{version}/Tavern-Linux.AppImage"
-
-              # Wrap the AppImage with --appimage-extract-and-run so the cask
-              # works on any glibc-based distro without requiring libfuse2 on
-              # the host. The wrapper is generated in preflight (which runs
-              # before the `binary` stanza creates its symlink).
-              preflight do
-                FileUtils.chmod "+x", staged_path/"Tavern-Linux.AppImage"
-                wrapper = staged_path/"tavern"
-                File.write(wrapper, <<~SH)
-                  #!/bin/sh
-                  exec "#{staged_path}/Tavern-Linux.AppImage" --appimage-extract-and-run "$@"
-                SH
-                FileUtils.chmod "+x", wrapper
-              end
-
-              binary "tavern"
-
-              zap trash: [
-                "~/.config/tavern",
-                "~/.cache/tavern",
-                "~/.local/share/tavern",
-              ]
-            end
-
-            name "Tavern"
-            desc "Modern Homebrew client built with Python and GTK 4"
-            homepage "https://github.com/tuna-os/Tavern"
-
-            livecheck do
-              url "https://github.com/tuna-os/Tavern/releases.atom"
-              strategy :github_latest
-            end
-          end
-          EOF
-
-      - name: Remove deprecated tavern-linux cask
-        run: |
-          git rm --ignore-unmatch Casks/tavern-linux.rb Formula/tavern-linux.rb
-
-      - name: Commit and push updates
+      - name: Download published artifacts
         env:
-          TAP_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git rm --ignore-unmatch Formula/tavern.rb Formula/tavern-linux.rb
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          gh release download "$RELEASE_TAG" --repo tuna-os/Tavern --dir artifacts \
+            --pattern Tavern-macOS.zip --pattern Tavern-Linux.AppImage --pattern SHA256SUMS
+          cd artifacts
+          sha256sum --check --ignore-missing SHA256SUMS
+
+      - name: Update only version and platform checksums
+        run: |
+          python3 tools/update-homebrew-cask.py tap/Casks/tavern.rb \
+            --version "${RELEASE_TAG#v}" \
+            --macos artifacts/Tavern-macOS.zip --linux artifacts/Tavern-Linux.AppImage
+          ruby -c tap/Casks/tavern.rb
+
+      - name: Commit and push cask update
+        working-directory: tap
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add Casks/tavern.rb
-          
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update Tavern cask to v${{ steps.download.outputs.version }}
-
-          - macOS: Tavern.app bundle
-          - Linux: Tavern-Linux.AppImage (extract-and-run wrapper)
-
-          Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
-            AUTH_HEADER="$(printf 'x-access-token:%s' "$TAP_TOKEN" | base64 -w0)"
-            git -c "http.extraheader=AUTHORIZATION: basic ${AUTH_HEADER}" push origin main || echo "::warning::Push to homebrew-tap failed (token may lack write permission)"
+          if ! git diff --cached --quiet; then
+            git commit -m "Update Tavern cask to $RELEASE_TAG"
+            git push origin HEAD:main
           fi

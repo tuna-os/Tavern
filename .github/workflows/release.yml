@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,7 +13,7 @@ jobs:
     name: Validate release contract
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
       - run: python3 tools/validate-release.py --tag "${GITHUB_REF_NAME}"
@@ -26,7 +27,7 @@ jobs:
     needs: validate
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Install dependencies
         run: |
           brew update
@@ -39,7 +40,7 @@ jobs:
         run: |
           find Tavern.app -exec touch -t 198001010000 {} +
           COPYFILE_DISABLE=1 zip -X -r Tavern-macOS.zip Tavern.app
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: release-macos
           path: Tavern-macOS.zip
@@ -50,7 +51,7 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -69,10 +70,7 @@ jobs:
         run: |
           curl --fail --location --retry 3 -o linuxdeploy-x86_64.AppImage \
             https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
-          curl --fail --location --retry 3 -o linuxdeploy.sha256 \
-            https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage.sha256
-          EXPECTED_LINUXDEPLOY_SHA256="$(awk '{print $1}' linuxdeploy.sha256)"
-          echo "${EXPECTED_LINUXDEPLOY_SHA256}  linuxdeploy-x86_64.AppImage" | sha256sum --check
+          echo 'c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d  linuxdeploy-x86_64.AppImage' | sha256sum --check
 
           curl --fail --location --retry 3 -o linuxdeploy-plugin-gtk.sh \
             https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/7a3fbc31a9e5075073ff8790f26effbac5f84453/linuxdeploy-plugin-gtk.sh
@@ -91,7 +89,7 @@ jobs:
             --desktop-file AppDir/usr/share/applications/org.tunaos.tavern.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg \
             --output appimage
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: release-appimage
           path: Tavern-Linux.AppImage
@@ -105,13 +103,13 @@ jobs:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
     steps:
-      - uses: actions/checkout@v7
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+      - uses: actions/checkout@v7.0.1
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.8
         with:
           bundle: Tavern-Linux.flatpak
           manifest-path: org.tunaos.tavern.json
           cache-key: flatpak-builder-${{ github.sha }}
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.1
         with:
           name: release-flatpak
           path: Tavern-Linux.flatpak
@@ -128,14 +126,14 @@ jobs:
       artifact-metadata: write
       actions: write
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.1
         with:
           pattern: release-*
           path: dist
           merge-multiple: true
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.24.2
         with:
           path: .
           format: spdx-json
@@ -145,16 +143,16 @@ jobs:
         working-directory: dist
         run: sha256sum Tavern-Linux.AppImage Tavern-Linux.flatpak Tavern-macOS.zip Tavern.spdx.json > SHA256SUMS
       - name: Generate signed provenance
-        uses: actions/attest@v4
+        uses: actions/attest@v4.2.2
         with:
           subject-checksums: dist/SHA256SUMS
       - name: Generate signed SBOM attestation
-        uses: actions/attest@v4
+        uses: actions/attest@v4.2.2
         with:
           subject-checksums: dist/SHA256SUMS
           sbom-path: dist/Tavern.spdx.json
       - name: Publish one release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v3.0.3
         with:
           files: dist/*
           generate_release_notes: true
