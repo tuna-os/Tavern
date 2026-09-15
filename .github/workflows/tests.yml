@@ -62,6 +62,9 @@ jobs:
       - name: Check translation coverage
         run: python3 tools/check-translations.py
 
+      - name: Test release and maintenance tools
+        run: python3 -m pytest tools/tests/
+
       - name: Check release contract and immutable inputs
         run: |
           VERSION=$(sed -n "s/.*version: '\([^']*\)'.*/\1/p" meson.build | head -1)
