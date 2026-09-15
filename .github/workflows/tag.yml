@@ -1,6 +1,9 @@
 name: Prepare Release Tag
 
 on:
+  workflow_run:
+    workflows: ["Tests"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       version:
@@ -14,27 +17,49 @@ permissions:
 
 jobs:
   tag:
-    name: Validate and tag main
+    name: Validate and tag tested main
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-latest
+    concurrency:
+      group: prepare-release-tag
+      cancel-in-progress: false
     env:
-      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_VERSION: ${{ inputs.version || '' }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'main' }}
           fetch-depth: 0
+
+      - name: Read version from Meson for automatic releases
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: |
+          VERSION=$(sed -n "s/.*version: '\([^']*\)'.*/\1/p" meson.build | head -1)
+          test -n "$VERSION" || { echo '::error::Could not read version from meson.build'; exit 1; }
+          echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Validate release metadata
         run: python3 tools/validate-release.py --version "$RELEASE_VERSION"
 
-      - name: Refuse an existing tag
+      - name: Check whether the release tag is needed
+        id: tag
         run: |
           if git rev-parse "v$RELEASE_VERSION" >/dev/null 2>&1; then
-            echo "::error::v$RELEASE_VERSION already exists"
-            exit 1
+            if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+              echo "::error::v$RELEASE_VERSION already exists"
+              exit 1
+            fi
+            echo "v$RELEASE_VERSION already exists; nothing to release"
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'needed=true' >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create release tag
+        if: steps.tag.outputs.needed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -42,6 +67,7 @@ jobs:
           git push origin "v$RELEASE_VERSION"
 
       - name: Dispatch release for the tag
+        if: steps.tag.outputs.needed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run release.yml --ref "v$RELEASE_VERSION"
