@@ -211,7 +211,7 @@ class TavernTaskRow(Gtk.ListBoxRow):
         from .command_dialog import show_command
         show_command(self.get_root(), self._task.title, _('Command output at the time this view was opened. '
                                                       'Review local paths and account details before sharing.'),
-                     text='\n'.join(self._task._output_lines) or self._task.status_text)
+                     text='\n'.join(self._task._output_lines) or self._task.error_detail or self._task.status_text)
 
     def _start_pulse(self):
         if self._pulse_source is None:

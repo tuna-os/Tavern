@@ -20,6 +20,8 @@ def _run_doctor():
         result = run_read(('doctor',), timeout=60)
         result.stdout = transcript(result)
         result.stderr = ''
+    else:
+        result.doctor_json = True
     return result
 
 

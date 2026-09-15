@@ -116,3 +116,9 @@ def test_structured_report_keeps_stderr_separate_from_json_parsing():
     report = doctor.DoctorService(lambda: result).load()
     assert report.tier == 1
     assert 'Warning on stderr' in report.raw_output
+
+
+def test_json_command_cannot_treat_non_json_success_as_healthy():
+    result = SimpleNamespace(stdout='Unexpected proxy response', stderr='', returncode=0, doctor_json=True)
+    with pytest.raises(doctor.DoctorError, match='Invalid Homebrew diagnostic JSON'):
+        doctor.DoctorService(lambda: result).load()

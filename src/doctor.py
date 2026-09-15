@@ -114,7 +114,8 @@ class DoctorService:
             result = self._runner()
             stderr = getattr(result, 'stderr', '') or ''
             try:
-                report = parse_report(result.stdout or '', result.returncode)
+                parser = parse_json_report if getattr(result, 'doctor_json', False) else parse_report
+                report = parser(result.stdout or '', result.returncode)
             except DoctorError as error:
                 raise DoctorError(str(error) + ('\n' + stderr if stderr else '')) from error
             if stderr:
