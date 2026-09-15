@@ -178,6 +178,14 @@ template $TavernWindow: Adw.ApplicationWindow {
 
                     child: $TavernInstalledPage installed_page {};
                   }
+
+                  Adw.ViewStackPage {
+                    name: "doctor";
+                    title: _("_Doctor");
+                    use-underline: true;
+                    icon-name: "emblem-system-symbolic";
+                    child: $TavernDoctorPage {};
+                  }
                 }
               };
             }

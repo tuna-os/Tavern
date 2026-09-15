@@ -23,6 +23,7 @@ from .browse_page import TavernBrowsePage      # noqa: F401
 from .search_page import TavernSearchPage      # noqa: F401
 from .installed_page import TavernInstalledPage  # noqa: F401
 from .tap_page import TavernTapPage            # noqa: F401
+from .doctor_page import TavernDoctorPage      # noqa: F401
 from .global_progress import TavernGlobalProgress # noqa: F401
 from .brewfile_page import TavernBrewfilePage  # noqa: F401
 from .version_history_dialog import TavernVersionHistoryDialog  # noqa: F401

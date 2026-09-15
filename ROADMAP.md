@@ -16,6 +16,7 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 - ✅ Preferences and Keyboard Shortcuts dialogs; header-bar search (Ctrl+F)
 - ✅ Indexed search off the main thread ([#49](https://github.com/tuna-os/Tavern/issues/49))
 - ✅ Font cask previews ([#39](https://github.com/tuna-os/Tavern/issues/39))
+- ✅ Read-only Brew Doctor report, retry, raw output, and copy (#170 phase 1)
 
 ## Release health
 
@@ -41,7 +42,7 @@ new tags alone are not evidence of a stable release.
 ## Planned
 
 - **Release parity** — finish the artifact and install checks in #104.
-- **Brew Doctor** — start with a read-only report, retry, and copy output (#170).
+- **Brew Doctor** — assess explicit fix actions and report export next (#170).
 - **Backend contracts** — add focused state tests (#153), then separate state
   ownership (#172) and Brewfile execution (#113). Tap parsing is now separate.
 - **Performance** — measure the proposals in #171 before changing search,
@@ -54,6 +55,11 @@ new tags alone are not evidence of a stable release.
 Tavern stays a standalone Python and GTK application. A Rust rewrite needs a
 measured product benefit and a separate migration proposal. Shared release
 tools can serve multiple languages without an application rewrite.
+Small native components are an option for measured CPU bottlenecks. First
+improve the algorithm, then compare a native prototype with the Python path.
+Keep a narrow data interface and equivalent behavior tests. Include Linux,
+macOS, and Flatpak build costs in the decision. Network waits and excess UI
+work need design fixes regardless of language.
 Use current stable dependencies and keep development and production manifests
 aligned. Validate updates with both test jobs and the Flatpak build.
 Keep quality checks tied to real behavior; empty scorecard files are not work.

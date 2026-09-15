@@ -18,6 +18,8 @@ src/search_page.py
 src/stats-dialog.blp
 src/tap-page.blp
 src/tap_page.py
+src/doctor-page.blp
+src/doctor_page.py
 src/task-panel.blp
 src/task_manager.py
 src/task_panel.py

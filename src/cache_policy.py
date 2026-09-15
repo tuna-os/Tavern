@@ -62,9 +62,13 @@ class CacheManager:
         if not target.exists():
             return None, True
         try:
-            stat = target.stat()
-            data = json.loads(target.read_text(encoding='utf-8'))
-            os.utime(target, None)
+            with target.open(encoding='utf-8') as handle:
+                stat = os.fstat(handle.fileno())
+                data = json.load(handle)
+                # LRU reads must not renew the download timestamp used for
+                # TTL. Touch the open inode so a concurrent atomic replacement
+                # cannot receive timestamps from the older file.
+                os.utime(handle.fileno(), ns=(time.time_ns(), stat.st_mtime_ns))
             age = (time.time() if now is None else now) - stat.st_mtime
             return data, age > max_age
         except (OSError, UnicodeError, json.JSONDecodeError):
