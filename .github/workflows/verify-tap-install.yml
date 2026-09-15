@@ -1,5 +1,8 @@
 name: Verify Tap Install
 
+permissions:
+  contents: read
+
 # Runs after the homebrew-tap update workflow completes (post-release) and on
 # manual dispatch. Installs the cask on both macOS and Linux runners, then
 # confirms the resulting binary can launch. The Linux job intentionally does
@@ -27,24 +30,25 @@ jobs:
       - name: Tap and install Tavern cask
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew tap hanthor/homebrew-tap
-          brew install --cask hanthor/homebrew-tap/tavern
+          brew tap tuna-os/homebrew-tap
+          brew install --cask tuna-os/tap/tavern
 
       - name: Confirm tavern binary is on PATH and executable
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          which tavern
-          # AppImage launches a GUI by default; --help / --version should
-          # exit cleanly without an X display.
-          xvfb-run -a tavern --version || tavern --version || true
-          test -x "$(which tavern)"
+          test -x "$(command -v tavern)"
+          # Tavern has no --version CLI option. Check that the GUI stays
+          # alive for the smoke-test window; startup failures must fail CI.
+          status=0
+          timeout 20s xvfb-run -a tavern || status=$?
+          test "$status" -eq 124
 
       - name: Uninstall (clean teardown)
         if: always()
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew uninstall --cask hanthor/homebrew-tap/tavern || true
-          brew untap hanthor/homebrew-tap || true
+          brew uninstall --cask tuna-os/tap/tavern || true
+          brew untap tuna-os/homebrew-tap || true
 
   verify-macos:
     name: "Verify cask on macOS"
@@ -53,8 +57,8 @@ jobs:
     steps:
       - name: Tap and install Tavern cask
         run: |
-          brew tap hanthor/homebrew-tap
-          brew install --cask hanthor/homebrew-tap/tavern
+          brew tap tuna-os/homebrew-tap
+          brew install --cask tuna-os/tap/tavern
 
       - name: Confirm Tavern.app installed
         run: |
@@ -63,5 +67,5 @@ jobs:
       - name: Uninstall (clean teardown)
         if: always()
         run: |
-          brew uninstall --cask hanthor/homebrew-tap/tavern || true
-          brew untap hanthor/homebrew-tap || true
+          brew uninstall --cask tuna-os/tap/tavern || true
+          brew untap tuna-os/homebrew-tap || true

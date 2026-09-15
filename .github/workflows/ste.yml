@@ -1,5 +1,8 @@
 name: Prose
 
+permissions:
+  contents: read
+
 # Simplified Technical English (ASD-STE100) over this repository's Markdown.
 #
 # This repo's README is synced into tuna-os/docs as docs/<slug>/, and the

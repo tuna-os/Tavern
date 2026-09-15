@@ -1,18 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "local>tuna-os/.github",
     "local>tuna-os/.github"
   ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "Bump git tags of modules in the Flatpak manifests",
-      "fileMatch": [
-        "^org\\.tunaos\\.tavern(\\.Devel)?\\.json$"
+      "managerFilePatterns": [
+        "/^org\\.tunaos\\.tavern(\\.Devel)?\\.json$/"
       ],
       "matchStrings": [
-        "\"url\": \"(?<packageName>https://github\\.com/[^\"]+?)(\\.git)?\",\\s*\"tag\": \"(?<currentValue>v?[\\d.]+)\""
+        "\"url\": \"(?<packageName>https://github\\.com/[^\"]+?)(\\.git)?\",\\s*\"tag\": \"(?<currentValue>v?[\\d.]+)\",\\s*\"commit\": \"(?<currentDigest>[a-f0-9]{40})\""
       ],
       "datasourceTemplate": "git-tags"
     }

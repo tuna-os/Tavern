@@ -9,31 +9,16 @@ Human docs: [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md),
 hive's skills should *consume* this repo's docs; this file is about the repo
 itself.
 
-## The release automation writes to the wrong tap
+## Homebrew release ownership
 
-`README.md` says the cask moved to the org-owned
-[`tuna-os/homebrew-tap`](https://github.com/tuna-os/homebrew-tap) (#79, merged
-2026-08-14) and that "no personal-tap fallback is needed". **Two workflows did
-not move with it:**
+`tuna-os/homebrew-tap/Casks/tavern.rb` owns cask structure. The release workflow
+uses `tools/update-homebrew-cask.py` to change only version and two checksums.
+Unknown cask shapes and downgrades fail. Never regenerate the whole cask.
+The tap owns runtime dependencies, AppRun patches, desktop artifacts, icons,
+and cache refresh hooks. Artifact paths must match the released AppImage.
 
-- `update-homebrew-tap.yml` checks out `hanthor/homebrew-tap` and pushes the
-  regenerated cask there.
-- `verify-tap-install.yml` runs `brew tap hanthor/homebrew-tap` and installs
-  from it.
-
-So on every release the org tap — the one users are told to install from — is
-untouched, and the post-release verification installs from a tap nobody is
-directed to. **Do not "fix" this by simply repointing the checkout.** The
-workflow overwrites `Casks/tavern.rb` wholesale with a generated file, and the
-org tap's hand-maintained cask carries things the generated one does not:
-`depends_on formula: "pygobject3"`, the `dev.hanthor.Tavern.*` desktop and
-icon artifacts the *released* AppImage actually ships, the `AppRun` `$0`
-path-resolution patch, the `TAVERN_DATADIR`/`TAVERN_LOCALEDIR` exports, and
-the postflight icon-cache refresh. Repointing as-is would clobber all of it.
-
-The two viable shapes are: rewrite the workflow to edit only `version` and the
-two `sha256` values in the existing cask, or delete the workflow and keep the
-cask hand-maintained. Either is a decision, not a patch.
+The updater requires `TAP_GITHUB_TOKEN` with write access to the org tap.
+Rejected pushes fail the job. Both install verification jobs use the org tap.
 
 ## A green host test job is not full coverage
 
@@ -98,18 +83,7 @@ build.
 
 ## Publishing paths
 
-`publish-flatpak.yml` / `promote-to-prod.yml` cover the Flatpak channel. The
-publisher invokes the vendored `.github/scripts/update-index.py` index writer.
-
-`tuna-os/.github` runs `flatpak-tooling-drift-check.yml` weekly against eight
-application repos, comparing their `.github/scripts/update-index.py` to
-`.github/actions/update-flatpak-index/update-index.py`. **Tavern is not in that
-list**, so the copy here is not checked by anything. On default branches today:
-
-| copy | blob |
-|---|---|
-| `.github/actions/update-flatpak-index/update-index.py` (org canonical) | `6eaa8186` |
-| `Tavern/.github/scripts/update-index.py` | `ec916224` |
-
-Migrating to the composite action would remove the vendored copy, which is what
-that workflow's comment says it is an interim guard for.
+`publish-flatpak.yml` calls the shared `tuna-os/.github` publisher.
+There are no local index writers. Change the shared implementation for index
+fixes. `prod` must remain an ancestor of `main` so promotion can fast-forward.
+Preserve production-only commits by a merge into `main`; never force-push prod.
