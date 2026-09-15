@@ -36,11 +36,12 @@ jobs:
       - name: Confirm tavern binary is on PATH and executable
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          which tavern
-          # AppImage launches a GUI by default; --help / --version should
-          # exit cleanly without an X display.
-          xvfb-run -a tavern --version || tavern --version || true
-          test -x "$(which tavern)"
+          test -x "$(command -v tavern)"
+          # Tavern has no --version CLI option. Check that the GUI stays
+          # alive for the smoke-test window; startup failures must fail CI.
+          status=0
+          timeout 20s xvfb-run -a tavern || status=$?
+          test "$status" -eq 124
 
       - name: Uninstall (clean teardown)
         if: always()
