@@ -54,7 +54,7 @@ def _brew_cmd(args):
         # has --filesystem=home and flatpak-spawn --host (tuna-os/Tavern#89).
         quoted = ' '.join(shlex.quote(str(a)) for a in args)
         return ['flatpak-spawn', '--host', 'bash', '-c',
-                f'export HOMEBREW_NO_AUTO_UPDATE=1 && export HOMEBREW_API_AUTO_UPDATE_SECS=604800 && export HOMEBREW_NO_INSTALL_ASK=1 && '
+                f'export HOMEBREW_NO_AUTO_UPDATE=1 && export HOMEBREW_API_AUTO_UPDATE_SECS=604800 && export HOMEBREW_NO_INSTALL_ASK=1 && export HOMEBREW_NO_COLOR=1 && export LC_ALL=C && '
                 f'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && brew {quoted}']
     else:
         return [BREW_BIN] + args

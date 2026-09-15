@@ -20,6 +20,9 @@ src/tap-page.blp
 src/tap_page.py
 src/doctor-page.blp
 src/doctor_page.py
+src/command_dialog.py
+src/maintenance_page.py
+src/version_history_dialog.py
 src/task-panel.blp
 src/task_manager.py
 src/task_panel.py

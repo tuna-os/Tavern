@@ -49,14 +49,23 @@ def test_refresh_suppresses_duplicate_runs_and_delivers_on_main_loop(monkeypatch
     assert page.run_button.get_sensitive()
 
 
-def test_runner_uses_brew_adapter_and_combines_output(monkeypatch):
-    from tavern import backend
+def test_runner_requests_structured_output_and_preserves_warnings(monkeypatch):
     calls = []
-    monkeypatch.setattr(backend, '_brew_cmd', lambda args: ['host-brew', *args])
-    monkeypatch.setattr(doctor_page.subprocess, 'run', lambda *args, **kwargs: calls.append((args, kwargs)))
-    doctor_page._run_doctor()
-    args, kwargs = calls[0]
-    assert args == (['host-brew', 'doctor'],)
-    assert kwargs['stderr'] == doctor_page.subprocess.STDOUT
-    assert kwargs['timeout'] == 60
-    assert kwargs['env']['LC_ALL'] == 'C'
+    result = SimpleNamespace(stdout='{"findings": [], "tier": 1}', stderr='Extra warning', returncode=0)
+    monkeypatch.setattr(doctor_page, 'run_read', lambda *args, **kwargs: calls.append((args, kwargs)) or result)
+    assert doctor_page._run_doctor() is result
+    assert calls == [((('doctor', '--json'),), {'timeout': 60})]
+
+
+def test_runner_falls_back_only_for_unsupported_json(monkeypatch):
+    calls = []
+    def run(args, **kwargs):
+        calls.append(args)
+        if '--json' in args:
+            return SimpleNamespace(stdout='', stderr='Error: invalid option: --json', returncode=1)
+        return SimpleNamespace(stdout='', stderr='Warning: Unlinked kegs', returncode=1)
+    monkeypatch.setattr(doctor_page, 'run_read', run)
+    result = doctor_page._run_doctor()
+    assert calls == [('doctor', '--json'), ('doctor',)]
+    assert result.stdout == 'Warning: Unlinked kegs'
+    assert result.stderr == ''

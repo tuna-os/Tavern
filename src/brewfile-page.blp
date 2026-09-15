@@ -51,6 +51,24 @@ template $TavernBrewfilePage: Adw.Bin {
               margin-bottom: 40;
 
               /* Taps Section */
+              Label source_notice {
+                label: _("Opening a Brewfile does not add taps or run Ruby. Package tiles are a partial preview; installation uses the complete original file, including options and other package managers.");
+                wrap: true;
+                xalign: 0;
+              }
+              Button source_button {
+                label: _("View Complete Brewfile");
+                halign: start;
+              }
+              Button deps_button {
+                label: _("Review Brewfile Dependencies…");
+                halign: start;
+              }
+              Label extra_entries_label {
+                wrap: true;
+                xalign: 0;
+                selectable: true;
+              }
               Box taps_section {
                 orientation: vertical;
                 spacing: 8;
@@ -156,15 +174,15 @@ template $TavernBrewfilePage: Adw.Bin {
 
       [start]
       Button remove_all_button {
-        label: _("Remove All");
-        tooltip-text: _("Remove all installed packages from this Brewfile");
+        label: _("Remove…");
+        tooltip-text: _("Remove only the Homebrew formulae and casks listed in this Brewfile");
 
         styles ["destructive-action"]
       }
 
       [end]
       Button install_all_button {
-        label: _("Install All");
+        label: _("Install Brewfile…");
         tooltip-text: _("Install all packages from this Brewfile");
 
         styles ["suggested-action"]

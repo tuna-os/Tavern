@@ -2,24 +2,25 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import gettext
-import os
-import subprocess
 import threading
 
 from gi.repository import Adw, GLib, Gtk
 
 from .doctor import DoctorService
+from .brew_commands import run_read, transcript
 
 _ = gettext.gettext
 
 
 def _run_doctor():
-    from .backend import _brew_cmd
-    return subprocess.run(
-        _brew_cmd(['doctor']), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, encoding='utf-8', errors='replace', timeout=60,
-        env={**os.environ, 'HOMEBREW_NO_COLOR': '1', 'LC_ALL': 'C'},
-    )
+    result = run_read(('doctor', '--json'), timeout=60)
+    if result.returncode and any(message in transcript(result).lower() for message in
+                                ('invalid option: --json', 'unknown option: --json')):
+        # Pre-7 Homebrew: warnings are printed to stderr in the text format.
+        result = run_read(('doctor',), timeout=60)
+        result.stdout = transcript(result)
+        result.stderr = ''
+    return result
 
 
 @Gtk.Template(resource_path='/org.tunaos.tavern/doctor-page.ui')
@@ -34,6 +35,7 @@ class TavernDoctorPage(Adw.Bin):
     findings_list = Gtk.Template.Child()
     raw_expander = Gtk.Template.Child()
     raw_view = Gtk.Template.Child()
+    config_button = Gtk.Template.Child()
 
     def __init__(self, service=None, **kwargs):
         super().__init__(**kwargs)
@@ -42,6 +44,7 @@ class TavernDoctorPage(Adw.Bin):
         self._busy = False
         self.run_button.connect('clicked', lambda _button: self.refresh(force=True))
         self.copy_button.connect('clicked', self._copy_output)
+        self.config_button.connect('clicked', self._show_config)
         self.connect('map', lambda _page: self.refresh())
 
     def refresh(self, force=False):
@@ -77,8 +80,12 @@ class TavernDoctorPage(Adw.Bin):
             return False
 
         self._report = report
-        self.error_label.set_visible(False)
+        self.error_label.set_visible(bool(report.warnings))
+        self.error_label.set_label(report.warnings)
         self.status_label.set_label(_('Warnings found') if report.issues else _('No problems found'))
+        if report.tier is not None:
+            self.status_label.set_label(self.status_label.get_label() + ' — ' +
+                                        _('Support tier: {tier}').format(tier=report.tier))
         self.raw_view.get_buffer().set_text(report.raw_output)
         self.raw_expander.set_visible(True)
         self.copy_button.set_sensitive(bool(report.raw_output))
@@ -101,3 +108,9 @@ class TavernDoctorPage(Adw.Bin):
     def _copy_output(self, _button):
         if self._report is not None:
             self.get_clipboard().set(self._report.raw_output)
+
+    def _show_config(self, _button):
+        from .command_dialog import show_command
+        show_command(self.get_root(), _('Homebrew Configuration'),
+                     _('Includes platform and sandbox diagnostics, including Landlock when available. '
+                       'Review local paths and account details before sharing.'), args=('config',))

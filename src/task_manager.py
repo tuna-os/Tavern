@@ -114,18 +114,23 @@ class Task(GObject.Object):
         'finished': (GObject.SignalFlags.RUN_LAST, None, (bool,)),  # success
     }
 
-    def __init__(self, package, operation, packages=None, **kwargs):
+    def __init__(self, package, operation, packages=None, command=None, title=None, **kwargs):
         super().__init__(**kwargs)
         self.package   = package
-        self.packages = list(packages or [package])
+        self.packages = list(packages if packages is not None else [package])
+        self.command = tuple(command) if command is not None else None
+        self._title = title
         self.operation = operation          # TaskOperation.*
         self._process  = None
-        self._output_lines = []            # kept for diagnostics, never shown raw
+        self._output_lines = []            # literal transcript for task diagnostics
         self._cancel_requested = threading.Event()
+        self.preflight = None
 
     # ── Read-only helpers ────────────────────────────────────────
     @property
     def title(self):
+        if self._title is not None:
+            return self._title
         if len(self.packages) > 1:
             return f'{TaskOperation.label(self.operation)} {len(self.packages)} packages'
         return f'{TaskOperation.label(self.operation)} {self.package.display_name or self.package.name}'
@@ -201,6 +206,7 @@ class TaskManager(GObject.Object):
         self._queue = []           # tasks waiting to run
         self._running = False
         self._lock = threading.Lock()
+        self.install_preview = None
 
     # ── Public API ───────────────────────────────────────────────
     @property
@@ -219,6 +225,9 @@ class TaskManager(GObject.Object):
         _log.info('Submitting task: %s %s (%s)',
                   operation, package.name, package.pkg_type)
         task = Task(package, operation)
+        return self._enqueue(task)
+
+    def _enqueue(self, task):
         task.connect('notify', lambda *a: GLib.idle_add(self.emit, 'task-changed', task))
         self._tasks.append(task)
         with self._lock:
@@ -228,6 +237,14 @@ class TaskManager(GObject.Object):
         self.emit('task-added', task)
         self._maybe_start_next()
         return task
+
+    def submit_command(self, args, title, preflight=None):
+        """Queue an explicitly confirmed internal command, never a shell string."""
+        if isinstance(args, str) or not args or not all(isinstance(a, str) for a in args):
+            raise ValueError('Command must be a nonempty argv sequence')
+        task = Task(None, args[0], packages=[], command=args, title=title)
+        task.preflight = preflight
+        return self._enqueue(task)
 
     def submit_many(self, packages, operation):
         """Queue one compatible Homebrew transaction for several packages."""
@@ -248,7 +265,7 @@ class TaskManager(GObject.Object):
 
     # ── Convenience wrappers ─────────────────────────────────────
     def install(self, package):
-        return self.submit(package, TaskOperation.INSTALL)
+        return self.install_qualified(package, None)
 
     def remove(self, package):
         return self.submit(package, TaskOperation.REMOVE)
@@ -318,8 +335,10 @@ class TaskManager(GObject.Object):
 
         GLib.idle_add(task._set_running)
 
-        args = [task.operation]
-        if len(task.packages) > 1:
+        args = list(task.command) if task.command is not None else [task.operation]
+        if task.command is not None:
+            pass
+        elif len(task.packages) > 1:
             args.extend(package.full_name or package.name for package in task.packages)
         elif task.qualified_install_name:
             # Fully-qualified name already encodes the tap; no --cask/--formula needed
@@ -332,11 +351,15 @@ class TaskManager(GObject.Object):
         _log.info('Running brew command: %s', ' '.join(cmd))
 
         try:
+            if task.preflight is not None:
+                task.preflight()
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 start_new_session=(os.name == 'posix'),
             )
             task._process = process
@@ -362,8 +385,8 @@ class TaskManager(GObject.Object):
                 GLib.idle_add(self._apply_task_success, task)
             else:
                 detail = self._extract_error(task._output_lines)
-                conflict = self._detect_multi_tap_conflict(task._output_lines)
-                ambiguous = self._detect_ambiguous_taps(task._output_lines)
+                conflict = self._detect_multi_tap_conflict(task._output_lines) if task.package else None
+                ambiguous = self._detect_ambiguous_taps(task._output_lines) if task.package else None
                 _log.warning('Task failed: %s — %s', task.title, detail[:200])
                 GLib.idle_add(self._apply_task_failure, task, detail, conflict, ambiguous)
 
@@ -473,6 +496,12 @@ class TaskManager(GObject.Object):
 
     def install_qualified(self, package, qualified_name):
         """Install a package using a fully-qualified tap/name, e.g. ublue-os/tap/foo."""
-        task = self.submit(package, TaskOperation.INSTALL)
+        from .brew_commands import package_args
+        task = Task(package, TaskOperation.INSTALL,
+                    command=package_args(TaskOperation.INSTALL, package, qualified_name))
         task.qualified_install_name = qualified_name
+        if self.install_preview is not None:
+            self.install_preview(task, lambda: self._enqueue(task))
+        else:
+            self._enqueue(task)
         return task

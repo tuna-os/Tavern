@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import gi
+import gettext
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GObject, GLib, Pango
 from .task_manager import Task, TaskStatus, TaskOperation, TaskManager
+
+_ = gettext.gettext
 
 
 # ── Operation icon names ─────────────────────────────────────────────────────
@@ -109,6 +112,9 @@ class TavernTaskRow(Gtk.ListBoxRow):
             [Gtk.AccessibleProperty.LABEL], ['Cancel task'])
         self._cancel_button.connect('clicked', self._on_cancel_clicked)
         outer.append(self._cancel_button)
+        output_button = Gtk.Button(icon_name='text-x-generic-symbolic', tooltip_text=_('View task output'))
+        output_button.connect('clicked', self._show_output)
+        outer.append(output_button)
 
         # ── Right indicator (spinner / done / error) ─────────────────────────
         right = Gtk.Box(valign=Gtk.Align.CENTER)
@@ -200,6 +206,12 @@ class TavernTaskRow(Gtk.ListBoxRow):
         manager = getattr(self, '_task_manager', None)
         if manager:
             manager.cancel(self._task)
+
+    def _show_output(self, _button):
+        from .command_dialog import show_command
+        show_command(self.get_root(), self._task.title, _('Command output at the time this view was opened. '
+                                                      'Review local paths and account details before sharing.'),
+                     text='\n'.join(self._task._output_lines) or self._task.status_text)
 
     def _start_pulse(self):
         if self._pulse_source is None:

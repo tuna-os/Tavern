@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import gi
+import gettext
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
@@ -16,6 +17,7 @@ from gi.repository import Adw, Gtk, GObject, GLib, Gdk
 from .logging_util import get_logger
 
 _log = get_logger('version_history')
+_ = gettext.gettext
 
 
 class TavernVersionHistoryDialog(Adw.NavigationPage):
@@ -57,7 +59,8 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
 
         # Header Bar (always visible at the top, provides back button and title)
         header_bar = Adw.HeaderBar()
-        pin_button = Gtk.Button(label='Pin to This Version')
+        pin_button = Gtk.Button(label=_('Pin Installed Version'))
+        pin_button.set_tooltip_text(_('Stop upgrades of the installed version; this does not install the selected historical version.'))
         pin_button.connect('clicked', self._on_pin_clicked)
         header_bar.pack_end(pin_button)
         self._pin_button = pin_button

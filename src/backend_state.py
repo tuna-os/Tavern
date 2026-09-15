@@ -120,6 +120,14 @@ class StateMixin:
             pkg.installed = inst
         self.emit('installed-loaded', [])
 
+    def installed_names(self, pkg_type):
+        """Return a read-only snapshot; UI consumers must not own these sets."""
+        if pkg_type == 'formula':
+            return frozenset(self._installed_formulae)
+        if pkg_type == 'cask':
+            return frozenset(self._installed_casks)
+        return frozenset()
+
     def get_installed_packages(self):
         """Return list of installed Package objects."""
         installed = []

@@ -192,34 +192,29 @@ def test_brewfile_page_workflows(tmp_path, monkeypatch):
     # Check that xdg-open was popped
     assert any('appstream://org.mozilla.firefox' in c for c in subprocess_calls)
     
-    # Test click on failed tap
-    # Manually trigger `_on_tap_clicked` for 'fail-tap'
-    # We first need to mock page.get_root() to return a mock window
+    # Opening a file renders declarations without attempting to add any taps.
+    assert not any('tap' in c for c in subprocess_calls)
     mock_window = Gtk.Window()
     monkeypatch.setattr(page, 'get_root', lambda: mock_window)
-    
-    # Verify warning tooltip is set for failed tap
-    assert page._tap_errors['fail-tap'] == 'Failed to tap'
-    page._on_tap_clicked('fail-tap')
-    
-    # Click on success tap should not show dialog
-    page._on_tap_clicked('homebrew/cask-fonts')
-    
-    # 6. Test Install All
+    confirmations = []
+    queued = []
+    monkeypatch.setattr('tavern.brewfile_page.show_command', lambda *a, **kw: confirmations.append(kw))
+    monkeypatch.setattr(task_manager, 'submit_command', lambda *a, **kw: queued.append((a, kw)))
     page._on_install_all_clicked(None)
-    # Assert that brew bundle command was run. Substring search over the
-    # joined argv, not list membership: _brew_cmd() wraps the call as
-    # ['flatpak-spawn', '--host', 'bash', '-c', 'brew bundle ...'] when
-    # IN_FLATPAK is set (a single combined string, not a bare 'bundle'
-    # element), vs. plain ['brew', 'bundle', ...] otherwise.
-    assert any('bundle' in ' '.join(c) for c in subprocess_calls)
-
-    # 7. Test Remove All
+    assert not queued
+    assert confirmations[-1]['text'] == dummy_brewfile.read_text()
+    confirmations[-1]['confirm']()
+    assert queued[0][0][0] == ('bundle', 'install', '--no-upgrade', '--file', str(dummy_brewfile))
+    assert queued[0][1]['preflight']() is None
+    queued.clear()
     page._on_remove_all_clicked(None)
-    # Assert that uninstall commands were run (same IN_FLATPAK wrapping
-    # caveat as above for the brew-formula/cask uninstall call).
-    assert any('uninstall' in ' '.join(c) for c in subprocess_calls)
-    assert any('flatpak' in c and 'uninstall' in c for c in subprocess_calls)
+    assert not queued
+    confirmations[-1]['confirm']()
+    assert [args[0] for args, kw in queued] == [
+        ('uninstall', '--formula', 'ripgrep', 'wget'),
+        ('uninstall', '--cask', 'firefox', 'iterm2'),
+    ]
+    assert not any('flatpak' in c and 'uninstall' in c for c in subprocess_calls)
 
 def test_brewfile_page_empty_load(tmp_path, monkeypatch):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))

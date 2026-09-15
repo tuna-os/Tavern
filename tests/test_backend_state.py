@@ -39,3 +39,16 @@ def test_get_pinned_returns_a_snapshot():
     snapshot = backend_state.StateMixin.get_pinned(host)
     snapshot.clear()
     assert host._pinned == {'git'}
+
+
+def test_installed_names_is_immutable_snapshot(tmp_path, monkeypatch):
+    from gi.repository import GLib
+    from tavern.backend import BrewBackend
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    backend = BrewBackend()
+    backend._installed_formulae = {'hello'}
+    snapshot = backend.installed_names('formula')
+    assert snapshot == frozenset({'hello'})
+    backend._installed_formulae.add('other')
+    assert 'other' not in snapshot
+    assert backend.installed_names('flatpak') == frozenset()

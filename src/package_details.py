@@ -358,8 +358,7 @@ class TavernPackageDetails(Adw.NavigationPage):
             return
             
         if data:
-            # Re-parse API data into the existing Package object so analytics are updated
-            package._from_api(data, package.pkg_type)
+            package.update_analytics(data.get('analytics'))
         
         # Now update the UI with the fresh installs data (or hide if failed to load)
         if package.installs_90d > 0:

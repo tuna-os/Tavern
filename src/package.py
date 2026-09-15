@@ -133,6 +133,11 @@ class Package(GObject.Object):
         """True for Homebrew font casks (font-* naming convention)."""
         return self.pkg_type == 'cask' and self.name.startswith('font-')
 
+    def update_analytics(self, analytics):
+        """Refresh statistics without replacing identity or installed metadata."""
+        self._raw_analytics = analytics or {}
+        self._installs_30d = self._installs_90d = self._installs_365d = None
+
     @property
     def has_known_vulnerability(self):
         """Whether Homebrew currently reports an open advisory."""
