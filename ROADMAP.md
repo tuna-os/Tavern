@@ -1,6 +1,6 @@
 # Tavern Roadmap
 
-**Last updated**: 2026-09-15
+**Last updated**: 2026-09-17
 
 Part of the [TunaOS](https://tunaos.org) ecosystem.
 
@@ -16,19 +16,18 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 - ✅ Preferences and Keyboard Shortcuts dialogs; header-bar search (Ctrl+F)
 - ✅ Indexed search off the main thread ([#49](https://github.com/tuna-os/Tavern/issues/49))
 - ✅ Font cask previews ([#39](https://github.com/tuna-os/Tavern/issues/39))
-- ✅ Read-only Brew Doctor report, retry, raw output, and copy (#170 phase 1)
-- ✅ Homebrew 7 diagnostics, security scans, install previews, user services, and cleanup previews
+- ✅ Read-only Brew Doctor report, retry, raw output, and copy (#170 phase 1, #176)
+- ✅ Homebrew 7 diagnostics, security scans, install previews, user services, and cleanup previews (#177)
 - ✅ Complete Brewfile source preservation and confirmed tasks; no automatic tap changes on open (#113)
 - ✅ Explicit historical formula installs through `brew version-install`
+- ✅ Released version `v0.1.64` with Homebrew 7 maintenance and repair cache freshness (#178)
 
 ## Release health
 
-Tavern's distribution channels are active, but they do not yet share one
-release contract. Repository tags reached `v0.1.57` on 2026-08-20 while the
-latest GitHub Release remains `v0.1.9` from 2026-06-15. The recommended
-Flatpak is promoted separately from the `prod` branch.
+Tavern's distribution channels are active and aligning under a unified release contract.
+Repository tags reached `v0.1.64` in September 2026 with release preparation and tag tagging (#178).
 
-Before calling a new version stable, complete the release-parity gate tracked
+Before calling a new version stable across all channels, complete the release-parity gate tracked
 in [#104](https://github.com/tuna-os/Tavern/issues/104):
 
 - choose one intentional promotion event and source commit as the canonical
