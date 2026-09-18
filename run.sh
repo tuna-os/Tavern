@@ -51,8 +51,9 @@ if [ "$(uname)" = "Darwin" ]; then
 
     if [ ! -f "$APP_DIR/Contents/Resources/AppIcon.icns" ]; then
         ICON_SRC="data/icons/hicolor/scalable/apps/org.tunaos.tavern.svg"
-        TMP_ICON="/tmp/tavern_icon_$$.png"
-        TMP_ICONSET="/tmp/Tavern_$$.iconset"
+        TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/tavern_icon.XXXXXX")"
+        TMP_ICON="$TMP_DIR/tavern_icon.png"
+        TMP_ICONSET="$TMP_DIR/Tavern.iconset"
         
         sips -s format png "$ICON_SRC" --out "$TMP_ICON" > /dev/null
         mkdir -p "$TMP_ICONSET"
@@ -68,7 +69,7 @@ if [ "$(uname)" = "Darwin" ]; then
         sips -z 1024 1024 "$TMP_ICON" --out "$TMP_ICONSET/icon_512x512@2x.png" > /dev/null
         
         iconutil -c icns "$TMP_ICONSET" -o "$APP_DIR/Contents/Resources/AppIcon.icns"
-        rm -rf "$TMP_ICON" "$TMP_ICONSET"
+        rm -rf "$TMP_DIR"
     fi
 
     echo '<?xml version="1.0" encoding="UTF-8"?>
