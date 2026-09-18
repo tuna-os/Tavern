@@ -1,6 +1,6 @@
 # Tavern Roadmap
 
-**Last updated**: 2026-09-15
+**Last updated**: 2026-09-18
 
 Part of the [TunaOS](https://tunaos.org) ecosystem.
 
@@ -24,7 +24,7 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 ## Release health
 
 Tavern's distribution channels are active, but they do not yet share one
-release contract. Repository tags reached `v0.1.57` on 2026-08-20 while the
+release contract. Repository tags reached `v0.1.64` on 2026-09-18 while the
 latest GitHub Release remains `v0.1.9` from 2026-06-15. The recommended
 Flatpak is promoted separately from the `prod` branch.
 
