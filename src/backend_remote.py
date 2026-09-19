@@ -7,9 +7,7 @@
 # CacheMixin — this class expects the usual BrewBackend instance state
 # (`self._formulae`, `self._casks`, the cache methods, and
 # `_update_status`/`_update_progress`) to exist on whatever it's mixed into,
-# exactly as the original methods did as part of BrewBackend. `urlopen` and
-# `_brew_cmd` resolve through the backend module so test monkeypatches of
-# tavern.backend.* keep working (see taps.py).
+# exactly as the original methods did as part of BrewBackend.
 
 import gettext
 import gzip
@@ -17,12 +15,13 @@ import io
 import json
 import subprocess
 import threading
-from urllib.request import Request
+from urllib.request import Request, urlopen
 from urllib.error import URLError
 
 from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
+from .brew_env import build_command as _brew_cmd
 
 _ = gettext.gettext
 
@@ -38,20 +37,6 @@ ANALYTICS_ON_REQUEST_API = 'https://formulae.brew.sh/api/analytics/install-on-re
 FLATHUB_APPSTREAM_API = 'https://flathub.org/api/v2/appstream/{}'
 CURATION_API = 'https://raw.githubusercontent.com/tuna-os/Tavern/main/data/curation.json'
 VERSION_HISTORY_TTL = 24 * 60 * 60
-
-
-def urlopen(req, timeout=None):
-    """Resolve through the backend module so test monkeypatches of
-    tavern.backend.urlopen keep working for remote fetches."""
-    from . import backend
-    return backend.urlopen(req, timeout=timeout)
-
-
-def _brew_cmd(args):
-    """Resolve through the backend module so test monkeypatches of
-    tavern.backend._brew_cmd keep working (see taps.py)."""
-    from . import backend
-    return backend._brew_cmd(args)
 
 
 class RemoteMixin:

@@ -282,7 +282,7 @@ class TestTaskManager:
                 pass
 
         monkeypatch.setattr("subprocess.Popen", MockProcess)
-        monkeypatch.setattr("tavern.backend._brew_cmd", lambda args: ["brew"] + args)
+        monkeypatch.setattr("tavern.brew_env.build_command", lambda args: ["brew"] + args)
         
         task = mgr.submit(pkg, TaskOperation.INSTALL)
         
@@ -314,7 +314,7 @@ class TestTaskManager:
                 pass
 
         monkeypatch.setattr("subprocess.Popen", MockProcess)
-        monkeypatch.setattr("tavern.backend._brew_cmd", lambda args: ["brew"] + args)
+        monkeypatch.setattr("tavern.brew_env.build_command", lambda args: ["brew"] + args)
 
         task = mgr.submit(pkg, TaskOperation.INSTALL)
 

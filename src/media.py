@@ -4,7 +4,7 @@
 import os
 import re
 import threading
-from urllib.request import Request
+from urllib.request import Request, urlopen
 
 import gi
 gi.require_version('GdkPixbuf', '2.0')
@@ -49,13 +49,6 @@ def _read_capped(resp):
     if len(data) > MAX_IMAGE_BYTES:
         raise MemoryError('image exceeds size cap')
     return bytes(data)
-
-
-def urlopen(req, timeout=None):
-    """Resolve through the backend module so test monkeypatches of
-    tavern.backend.urlopen keep working for media fetches."""
-    from . import backend
-    return backend.urlopen(req, timeout=timeout)
 
 
 class MediaMixin:
