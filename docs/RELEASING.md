@@ -1,10 +1,10 @@
 # Releasing Tavern
 
 Tavern releases have one version source and one trigger. The version in
-`meson.build` is authoritative; the newest AppStream release entry must match
-it. After the `Tests` workflow passes on `main`, **Prepare Release Tag** reads
+`meson.build` is authoritative. The newest release entry in AppStream must
+match it. After the `Tests` workflow passes on `main`, **Prepare Release Tag** reads
 that version, validates it, tags the tested commit, and dispatches the release
-workflow. Merging to `main` never invents or increments a version.
+workflow. A merge to `main` never invents or increments a version.
 
 ## Release checklist
 
@@ -14,13 +14,13 @@ workflow. Merging to `main` never invents or increments a version.
    the Flatpak build.
 3. Merge the release-preparation PR to `main` and wait for `Tests` to pass.
 4. Prepare Release Tag runs automatically after that successful test workflow.
-5. Prepare Release Tag explicitly dispatches Release at that tag. A tag push
+5. Then **Prepare Release Tag** starts the Release workflow at that tag. A tag push
    made with `GITHUB_TOKEN` alone does not start another workflow.
-   Release validates the tag/metadata contract,
-   builds all three formats, creates one GitHub release, and publishes SHA-256
-   checksums, an SPDX SBOM, and signed GitHub attestations.
+   Release validates the tag/metadata contract, builds all three formats, and
+   creates one GitHub release. It publishes SHA-256 checksums, an SPDX SBOM, and
+   signed GitHub attestations.
 6. Verify an artifact with `gh attestation verify ARTIFACT --repo tuna-os/Tavern`
-   and compare it with `SHA256SUMS` before updating downstream packaging.
+   and compare it with `SHA256SUMS`. Do this before you update downstream packages.
 
 The org tap owns `Casks/tavern.rb`. Tavern changes only its version and two
 checksums. The updater needs `TAP_GITHUB_TOKEN` with write access to that tap.
@@ -30,8 +30,9 @@ a release with `org.tunaos.tavern` paths needs a matching tap change.
 The updater preserves these paths; it does not infer a migration.
 
 The recommended Flatpak also follows tested `main` commits through `prod`.
-This rolling channel can contain changes beyond the latest numbered release.
-Record channel versions and install results in #104 before claiming parity.
+This channel moves continuously and can contain changes after the latest
+numbered release. Record channel versions and install results in #104 before
+you claim parity.
 Tags without a GitHub Release are historical source markers, not published
 releases. Do not delete or repoint them.
 

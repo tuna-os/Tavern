@@ -1,6 +1,6 @@
 # Contributing to Tavern
 
-Thanks for wanting to help! Tavern is a GTK 4 / Libadwaita Homebrew client written in Python with Blueprint UI definitions.
+Thanks for your help! Tavern is a Homebrew client for GTK 4 and Libadwaita. It uses Python, and Blueprint defines its UI.
 
 ## Dev setup
 
@@ -17,7 +17,7 @@ Build, install to `~/.local`, and launch:
 TAVERN_LOG=debug ./run.sh # with verbose logging
 ```
 
-For a sandboxed Flatpak build (requires [`just`](https://github.com/casey/just)):
+For a sandboxed Flatpak build (needs [`just`](https://github.com/casey/just)):
 
 ```bash
 just dev                  # build + install + run as Flatpak
@@ -52,28 +52,29 @@ xvfb-run -a dbus-run-session -- /usr/bin/python3 -m pytest tests/ -m "not slow"
 ```
 
 Use a file path in place of `tests/` to run one file. Add `--benchmark-enable`
-to run benchmarks. The benchmark plugin is required even when benchmarks are off.
+to run benchmarks. You need the benchmark plugin even when benchmarks are off.
+
 GTK needs a display and session bus; the fixtures alone do not provide these.
 The host job may skip tests that need `Adw.Spinner` (libadwaita 1.6 or later).
 Both the host and GNOME 50 Flatpak test jobs must pass before merge.
-Use `just dev` for the separate Flatpak development path.
+For a separate Flatpak build to develop in, use `just dev`.
 
 ## Working on the UI
 
-Blueprint files (`.blp`) compile to `.ui` XML at build time via `blueprint-compiler`. Always rebuild after editing a `.blp`:
+Blueprint files (`.blp`) compile to `.ui` XML at build time via `blueprint-compiler`. Always rebuild after you edit a `.blp`:
 
 ```bash
 ./run.sh                  # re-runs blueprint-compiler
 ```
 
-When adding a new page, keep Blueprint, Python, window wiring, gresource registration, and meson sources in sync — the repo layout in [README.md](README.md) and `src/` shows where each piece lands.
+When you add a new page, keep these parts in sync: Blueprint, Python, window wiring, gresource registration, and meson sources. The repo layout in [README.md](README.md) and `src/` shows where each piece lands.
 
 ### Localization
 
 Wrap every user-visible Blueprint value in `_()`, for example
 `label: _("Install");`, and add new Blueprint/Python sources to
 `po/POTFILES.in`. Python UI strings should use `gettext.gettext` (`_`) or
-`ngettext` for plurals. Before opening a PR, run:
+`ngettext` for plurals. Before you open a PR, run:
 
 ```bash
 python3 tools/check-translations.py
@@ -82,25 +83,25 @@ meson compile -C build tavern-pot
 ```
 
 Add a locale code to `po/LINGUAS` only when its `.po` catalog is ready to
-ship. Translation-only PRs are welcome and do not require changes to Python.
+ship. Translation-only PRs are welcome and do not need changes to Python.
 
-Additional maintainer guides cover the [cache lifecycle](docs/CACHE.md),
+More guides for maintainers cover the [cache lifecycle](docs/CACHE.md),
 [curation feed](docs/CURATION.md), [accessibility release pass](docs/ACCESSIBILITY.md),
 and [release process](docs/RELEASING.md).
 
-The files under [`docs/reports/`](docs/reports/README.md) are dated historical
-verification snapshots, not maintained contributor instructions.
+The files under [`docs/reports/`](docs/reports/README.md) record past checks,
+each at its date. They are not current instructions for contributors.
 
 ## Pull requests
 
 - Keep PRs focused — one change, one PR.
 - Include a screenshot or short clip for any user-visible UI change.
 - Run the test commands above before you open a PR.
-- Reference the issue you're closing (`Closes #123`).
+- Reference the issue that the PR closes (`Closes #123`).
 
 ## Code style
 
-- Match the surrounding style — Tavern is a small codebase, consistency matters more than any specific rule.
+- Match the style of the code around your change. Tavern is a small codebase, so consistency matters more than any specific rule.
 - Logging is off by default. New code should use `_log = get_logger('module_name')` from `logging_util`, not bare `print`.
 - Backend I/O goes on a thread and reports back via `GLib.idle_add` — don't block the UI thread.
 
