@@ -57,6 +57,7 @@ tavern_sources = [
   'application.py',
   'logging_util.py',
   'window.py',
+  'tap_conflict_coordinator.py',
   'backend.py',
   'backend_cache.py',
   'backend_remote.py',
