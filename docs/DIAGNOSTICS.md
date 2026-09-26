@@ -23,4 +23,4 @@ For a release failure, also include the workflow URL and source commit.
 The Doctor page can copy its report and show `brew config`.
 The task panel can show and copy command output.
 See [Homebrew tools](HOMEBREW_FEATURES.md) for security scan coverage and safe previews,
-and the [Brew Doctor proposal](BREW_DOCTOR_PROPOSAL.md) for diagnostic architecture and fix planning.
+and the [Brew Doctor proposal](BREW_DOCTOR_PROPOSAL.md) for the design and the plan for fixes.
