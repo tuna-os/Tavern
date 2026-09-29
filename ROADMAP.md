@@ -44,7 +44,7 @@ new tags alone are not evidence of a stable release.
 ## Planned
 
 - **Release parity** — finish the artifact and install checks in #104.
-- **Brew Doctor** — assess explicit fix actions and report export next (#170).
+- **Brew Doctor** — assess explicit fix actions and report export per the [implementation proposal](docs/BREW_DOCTOR_PROPOSAL.md) (#170).
 - **Backend contracts** — add focused state tests (#153), then separate state
   ownership (#172). Tap parsing and Brewfile execution now have separate boundaries.
 - **Performance** — measure the proposals in #171 before changing search,
