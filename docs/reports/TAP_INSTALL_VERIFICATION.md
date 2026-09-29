@@ -1,3 +1,4 @@
+<!-- ste-disable-file: dated historical verification report; its commands and results stay as recorded -->
 # Homebrew Tap Install Verification Report
 
 > [!WARNING]

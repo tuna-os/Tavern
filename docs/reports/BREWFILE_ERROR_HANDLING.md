@@ -1,3 +1,4 @@
+<!-- ste-disable-file: dated historical verification report; its commands and results stay as recorded -->
 # Brewfile Loading Error Handling - Verification Report
 
 > [!WARNING]
