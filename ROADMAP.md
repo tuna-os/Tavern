@@ -1,6 +1,6 @@
 # Tavern Roadmap
 
-**Last updated**: 2026-09-18
+**Last updated**: 2026-09-30
 
 Part of the [TunaOS](https://tunaos.org) ecosystem.
 
@@ -16,19 +16,29 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 - ✅ Preferences and Keyboard Shortcuts dialogs; header-bar search (Ctrl+F)
 - ✅ Indexed search off the main thread ([#49](https://github.com/tuna-os/Tavern/issues/49))
 - ✅ Font cask previews ([#39](https://github.com/tuna-os/Tavern/issues/39))
-- ✅ Read-only Brew Doctor report, retry, raw output, and copy (#170 phase 1)
-- ✅ Homebrew 7 diagnostics, security scans, install previews, user services, and cleanup previews
+- ✅ Read-only Brew Doctor report, retry, raw output, and copy (#170 phase 1, #176)
+- ✅ Homebrew 7 diagnostics, security scans, install previews, user services, and cleanup previews (#177)
 - ✅ Complete Brewfile source preservation and confirmed tasks; no automatic tap changes on open (#113)
 - ✅ Explicit historical formula installs through `brew version-install`
+- ✅ Released version `v0.1.64` with Homebrew 7 maintenance and repair cache freshness (#178)
 
 ## Release health
 
-Tavern's distribution channels are active, but they do not yet share one
-release contract. Repository tags reached `v0.1.64` on 2026-09-18 while the
-latest GitHub Release remains `v0.1.9` from 2026-06-15. The recommended
-Flatpak is promoted separately from the `prod` branch.
+Tavern's distribution channels are active and partly reconciled, but they do
+not yet share one release contract. The tag-versus-Release gap is closed:
+`v0.1.64` is both the newest tag and the latest GitHub Release, published
+2026-09-15 with `SHA256SUMS`, the Linux AppImage and Flatpak, the macOS zip,
+and an SPDX SBOM.
 
-Before calling a new version stable, complete the release-parity gate tracked
+The divergence has moved downstream rather than disappeared. The
+`tuna-os/homebrew-tap` cask still pins `version "0.1.9"`, so the Homebrew
+install path resolves to a June 2026 build while every other channel offers
+v0.1.64 — and the cask's asset URLs are version-interpolated against a
+release that does carry those assets, so the bump is mechanical. A user who
+installs through Homebrew today gets a different application than a user who
+downloads the release.
+
+Before calling a new version stable across all channels, complete the release-parity gate tracked
 in [#104](https://github.com/tuna-os/Tavern/issues/104):
 
 - choose one intentional promotion event and source commit as the canonical
@@ -45,7 +55,7 @@ new tags alone are not evidence of a stable release.
 ## Planned
 
 - **Release parity** — finish the artifact and install checks in #104.
-- **Brew Doctor** — assess explicit fix actions and report export next (#170).
+- **Brew Doctor** — assess explicit fix actions and report export per the [implementation proposal](docs/BREW_DOCTOR_PROPOSAL.md) (#170).
 - **Backend contracts** — add focused state tests (#153), then separate state
   ownership (#172). Tap parsing and Brewfile execution now have separate boundaries.
 - **Performance** — measure the proposals in #171 before changing search,
