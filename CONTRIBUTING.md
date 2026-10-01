@@ -98,6 +98,26 @@ verification snapshots, not maintained contributor instructions.
 - Run the test commands above before you open a PR.
 - Reference the issue you're closing (`Closes #123`).
 
+## Debugging
+
+When troubleshooting, enable debug logging and profiling with environment variables:
+
+```bash
+# Enable debug logging to see detailed activity
+TAVERN_LOG=debug ./run.sh
+
+# Enable performance profiling to measure key operations
+TAVERN_PROFILE=1 ./run.sh
+
+# Write logs to a file for inspection
+TAVERN_LOG_FILE=/tmp/tavern.log TAVERN_LOG=debug ./run.sh
+
+# Combine logging and profiling
+TAVERN_LOG=debug TAVERN_PROFILE=1 ./run.sh
+```
+
+Logging is off by default; these variables are the only way to enable it. The log level can be `info` or `debug`; `debug` is more verbose.
+
 ## Code style
 
 - Match the surrounding style — Tavern is a small codebase, consistency matters more than any specific rule.
