@@ -18,6 +18,15 @@ from .backend import Package, BrewBackend
 from .task_manager import Task, TaskStatus, TaskOperation
 from .logging_util import get_logger
 from .screenshot_lightbox import TavernScreenshotLightbox
+from .package_details_helpers import (
+    FONT_PANGRAM,
+    format_install_count,
+    extract_readme_preview,
+    compute_readme_base_uri,
+    build_readme_html,
+    get_font_family_name,
+    get_font_preview_samples,
+)
 
 
 _log = get_logger('package_details')
@@ -197,7 +206,7 @@ class TavernPackageDetails(Adw.NavigationPage):
             self._backend.get_package_info_async(package, self._on_info_loaded)
             GLib.idle_add(self._load_related_packages)
 
-    _FONT_PANGRAM = 'The quick brown fox jumps over the lazy dog.'
+    _FONT_PANGRAM = FONT_PANGRAM
 
     def _build_font_preview(self, package):
         """Render pangram samples in the cask's font family (issue #39).
@@ -208,18 +217,11 @@ class TavernPackageDetails(Adw.NavigationPage):
         while child := self.font_preview_box.get_first_child():
             self.font_preview_box.remove(child)
 
-        family = (package.display_name or
-                  package.name.removeprefix('font-').replace('-', ' ').title())
+        family = get_font_family_name(package)
 
         if package.installed:
             esc_family = GLib.markup_escape_text(family)
-            samples = [
-                (family, 32),
-                ('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 15),
-                ('abcdefghijklmnopqrstuvwxyz 0123456789', 15),
-                (self._FONT_PANGRAM, 22),
-                (self._FONT_PANGRAM, 13),
-            ]
+            samples = get_font_preview_samples(family)
             for text, size_pt in samples:
                 label = Gtk.Label(xalign=0.0, wrap=True, selectable=True)
                 label.set_markup(
@@ -361,14 +363,8 @@ class TavernPackageDetails(Adw.NavigationPage):
             package.update_analytics(data.get('analytics'))
         
         # Now update the UI with the fresh installs data (or hide if failed to load)
-        if package.installs_90d > 0:
-            count = package.installs_90d
-            if count >= 1_000_000:
-                formatted = f"{count / 1_000_000:.2f}M"
-            elif count >= 1000:
-                formatted = f"{count / 1000:.2f}K"
-            else:
-                formatted = f"{count:,}"
+        formatted = format_install_count(package.installs_90d)
+        if formatted:
             self.installs_label.set_label(formatted)
             self.installs_stack.set_visible_child_name('label')
             self.installs_row.set_sensitive(True)
@@ -412,20 +408,7 @@ class TavernPackageDetails(Adw.NavigationPage):
             self.readme_bin.set_visible(True)
             return
 
-        # Build a plain-text preview from the first ~6 lines, skipping headings/blanks
-        preview_lines = []
-        for line in text.splitlines():
-            stripped = line.strip()
-            # Skip markdown headings, blank lines, images, badges, horizontal rules
-            if not stripped or stripped.startswith('#') or stripped.startswith('!') or stripped.startswith('---') or stripped.startswith('==='):
-                continue
-            # Strip inline markdown formatting for preview
-            clean = stripped.lstrip('*_>`-').strip()
-            if clean:
-                preview_lines.append(clean)
-            if len(preview_lines) >= 6:
-                break
-        preview_text = '\n'.join(preview_lines) if preview_lines else text[:300]
+        preview_text = extract_readme_preview(text)
         self.readme_preview_label.set_label(preview_text)
         self.readme_preview_box.set_visible(True)
         self.readme_fade_overlay.set_visible(True)
@@ -433,19 +416,9 @@ class TavernPackageDetails(Adw.NavigationPage):
 
     def _readme_base_uri(self):
         """Return a base URI for resolving relative README assets."""
-        if not self._package or not self._package.source_url:
+        if not self._package:
             return None
-
-        # Typical source_url: https://github.com/<owner>/<repo>
-        src = self._package.source_url.rstrip('/')
-        if not src.startswith('https://github.com/'):
-            return None
-
-        parts = src.split('/')
-        if len(parts) < 5:
-            return None
-        owner, repo = parts[3], parts[4]
-        return f'https://raw.githubusercontent.com/{owner}/{repo}/HEAD/'
+        return compute_readme_base_uri(self._package.source_url)
 
     def _render_readme_webview(self, text):
         if WebKit is None:
@@ -476,55 +449,10 @@ class TavernPackageDetails(Adw.NavigationPage):
                 self.readme_preview_box.remove(self.readme_preview_label)
                 self.readme_preview_box.append(self._readme_webview)
 
-            try:
-                import markdown as md
-                html_body = md.markdown(
-                    text,
-                    extensions=['fenced_code', 'tables', 'nl2br'],
-                    output_format='html5',
-                )
-            except Exception:
-                # Fallback if python-markdown is missing or errors.
-                escaped = GLib.markup_escape_text(text)
-                html_body = f'<pre>{escaped}</pre>'
-
-            # Check system dark mode for default colors
             style_manager = Adw.StyleManager.get_default()
-            is_dark = style_manager.get_dark()
-            default_color = '#e4e4e4' if is_dark else '#1c1c1c'
-            default_link = '#78aeed' if is_dark else '#1a5fb4'
+            is_dark = style_manager.get_dark() if style_manager else False
+            html = build_readme_html(text, is_dark=is_dark)
 
-            html = f"""
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <style>
-      html, body {{
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        color: {default_color};
-        background: transparent !important;
-        background-color: transparent !important;
-      }}
-      a {{ color: {default_link}; }}
-      img, video {{ max-width: 100%; height: auto; border-radius: 8px; }}
-      pre, code {{ white-space: pre-wrap; word-break: break-word; }}
-
-      @media (prefers-color-scheme: dark) {{
-        body {{ color: #e4e4e4; }}
-        a {{ color: #78aeed; }}
-      }}
-      @media (prefers-color-scheme: light) {{
-        body {{ color: #1c1c1c; }}
-        a {{ color: #1a5fb4; }}
-      }}
-    </style>
-  </head>
-  <body>{html_body}</body>
-</html>
-"""
             self._readme_webview.load_html(html, self._readme_base_uri())
             self.readme_fade_overlay.set_visible(False)
             return True
