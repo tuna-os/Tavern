@@ -100,23 +100,23 @@ verification snapshots, not maintained contributor instructions.
 
 ## Debugging
 
-When troubleshooting, enable debug logging and profiling with environment variables:
+Use environment variables to turn on debug logging and check performance:
 
 ```bash
-# Enable debug logging to see detailed activity
+# Turn on debug logging to see what is happening
 TAVERN_LOG=debug ./run.sh
 
-# Enable performance profiling to measure key operations
+# Check how fast the app runs
 TAVERN_PROFILE=1 ./run.sh
 
-# Write logs to a file for inspection
+# Save logs to a file to read later
 TAVERN_LOG_FILE=/tmp/tavern.log TAVERN_LOG=debug ./run.sh
 
-# Combine logging and profiling
+# Use logging and speed checks at the same time
 TAVERN_LOG=debug TAVERN_PROFILE=1 ./run.sh
 ```
 
-Logging is off by default; these variables are the only way to enable it. The log level can be `info` or `debug`; `debug` is more verbose.
+Logging is off by default. Use the variables above to turn it on. You can set `TAVERN_LOG` to `info` or `debug`. Use `debug` to see more.
 
 ## Code style
 
