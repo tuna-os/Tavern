@@ -98,6 +98,26 @@ verification snapshots, not maintained contributor instructions.
 - Run the test commands above before you open a PR.
 - Reference the issue you're closing (`Closes #123`).
 
+## Debugging
+
+Use environment variables to turn on debug logging and check performance:
+
+```bash
+# Turn on debug logging to see what is happening
+TAVERN_LOG=debug ./run.sh
+
+# Check how fast the app runs
+TAVERN_PROFILE=1 ./run.sh
+
+# Save logs to a file to read later
+TAVERN_LOG_FILE=/tmp/tavern.log TAVERN_LOG=debug ./run.sh
+
+# Use logging and speed checks at the same time
+TAVERN_LOG=debug TAVERN_PROFILE=1 ./run.sh
+```
+
+Logging is off by default. Use the variables above to turn it on. You can set `TAVERN_LOG` to `info` or `debug`. Use `debug` to see more.
+
 ## Code style
 
 - Match the surrounding style — Tavern is a small codebase, consistency matters more than any specific rule.
