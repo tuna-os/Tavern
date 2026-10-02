@@ -1,6 +1,6 @@
 # Tavern Roadmap
 
-**Last updated**: 2026-09-17
+**Last updated**: 2026-09-30
 
 Part of the [TunaOS](https://tunaos.org) ecosystem.
 
@@ -24,8 +24,19 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 
 ## Release health
 
-Tavern's distribution channels are active and aligning under a unified release contract.
-Repository tags reached `v0.1.64` in September 2026 with release preparation and tag tagging (#178).
+Tavern's distribution channels are active and partly reconciled, but they do
+not yet share one release contract. The tag-versus-Release gap is closed:
+`v0.1.64` is both the newest tag and the latest GitHub Release, published
+2026-09-15 with `SHA256SUMS`, the Linux AppImage and Flatpak, the macOS zip,
+and an SPDX SBOM.
+
+The divergence has moved downstream rather than disappeared. The
+`tuna-os/homebrew-tap` cask still pins `version "0.1.9"`, so the Homebrew
+install path resolves to a June 2026 build while every other channel offers
+v0.1.64 — and the cask's asset URLs are version-interpolated against a
+release that does carry those assets, so the bump is mechanical. A user who
+installs through Homebrew today gets a different application than a user who
+downloads the release.
 
 Before calling a new version stable across all channels, complete the release-parity gate tracked
 in [#104](https://github.com/tuna-os/Tavern/issues/104):
