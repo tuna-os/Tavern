@@ -133,7 +133,7 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@v0.24.2
+        uses: anchore/sbom-action@v0.24.3
         with:
           path: .
           format: spdx-json
