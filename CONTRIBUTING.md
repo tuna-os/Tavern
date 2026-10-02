@@ -17,10 +17,22 @@ Build, install to `~/.local`, and launch:
 TAVERN_LOG=debug ./run.sh # with verbose logging
 ```
 
+### Development profile (side-by-side installs)
+
+Build with the development profile to run both development and release versions simultaneously:
+
+```bash
+meson setup builddir -Dprofile=development
+meson compile -C builddir
+meson install -C builddir
+```
+
+The development profile changes the application ID to `org.tunaos.tavern.Devel`, so it appears separately in your system's application launcher and settings, allowing you to test a release build while developing against `main`.
+
 For a sandboxed Flatpak build (requires [`just`](https://github.com/casey/just)):
 
 ```bash
-just dev                  # build + install + run as Flatpak
+just dev                  # build + install + run as Flatpak (development profile)
 ```
 
 ## Tests
