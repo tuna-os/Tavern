@@ -331,7 +331,7 @@ class TaskManager(GObject.Object):
         thread.start()
 
     def _run_task(self, task):
-        from .backend import _brew_cmd
+        from .brew_env import build_command
 
         GLib.idle_add(task._set_running)
 
@@ -347,7 +347,7 @@ class TaskManager(GObject.Object):
             if task.package.pkg_type == 'cask':
                 args.append('--cask')
             args.append(task.package.name)
-        cmd = _brew_cmd(args)
+        cmd = build_command(args)
         _log.info('Running brew command: %s', ' '.join(cmd))
 
         try:

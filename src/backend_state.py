@@ -7,8 +7,7 @@
 # usual BrewBackend instance state (`self._outdated_formulae`,
 # `self._outdated_casks`, `self._pinned`, and the lock attributes) to exist on
 # whatever it's mixed into, exactly as the original methods did as part of
-# BrewBackend. `_brew_cmd` resolves through the backend module so test
-# monkeypatches of tavern.backend._brew_cmd keep working (see taps.py).
+# BrewBackend.
 
 import json
 import subprocess
@@ -17,14 +16,9 @@ import threading
 from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
+from .brew_env import build_command as _brew_cmd
 
 _log = get_logger('backend_state')
-
-
-def _brew_cmd(args):
-    """Resolve through the backend module (see taps.py)."""
-    from . import backend
-    return backend._brew_cmd(args)
 
 
 class StateMixin:

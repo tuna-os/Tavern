@@ -7,11 +7,15 @@ import re
 import subprocess
 
 
+def _build_command(args):
+    from .brew_env import build_command
+    return build_command(args)
+
+
 def run_read(args, timeout=120):
     """Capture streams separately: Homebrew can warn beside valid JSON."""
-    from .backend import _brew_cmd
     return subprocess.run(
-        _brew_cmd(list(args)), capture_output=True, text=True, encoding='utf-8',
+        _build_command(list(args)), capture_output=True, text=True, encoding='utf-8',
         errors='replace', timeout=timeout,
         env={**os.environ, 'HOMEBREW_NO_COLOR': '1', 'LC_ALL': 'C',
              'HOMEBREW_NO_AUTO_UPDATE': '1'},

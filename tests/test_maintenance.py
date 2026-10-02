@@ -98,7 +98,7 @@ def test_security_ui_never_hides_incomplete_coverage():
 
 def test_read_runner_preserves_streams_and_uses_host_adapter(monkeypatch):
     calls = []
-    monkeypatch.setattr('tavern.backend._brew_cmd', lambda args: ['host-brew', *args])
+    monkeypatch.setattr(brew_commands, '_build_command', lambda args: ['host-brew', *args])
     monkeypatch.setattr(brew_commands.subprocess, 'run', lambda *a, **kw: calls.append((a, kw)))
     brew_commands.run_read(('vulns', '--json'))
     args, options = calls[0]
