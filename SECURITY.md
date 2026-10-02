@@ -1,56 +1,43 @@
 # Security Policy
 
-Tavern is a Homebrew client for Linux. We take security reports seriously.
+Report security issues privately.
 
-## Reporting a vulnerability
+## How to report
 
-**Do not open a public issue for security vulnerabilities.** Use GitHub's private vulnerability reporting:
+Do not open a public issue. Use GitHub's private security report:
 
-1. Go to [Tavern security advisories](https://github.com/tuna-os/Tavern/security/advisories/new).
+1. Go to [security advisories](https://github.com/tuna-os/Tavern/security/advisories/new).
 2. Click **Report a vulnerability**.
-3. Include:
-   - Affected component
-   - Steps to reproduce
-   - Impact and severity
-   - Suggested fix, if known
+3. Include steps to reproduce and the impact.
 
-## In scope
+## What to report
 
 - Privilege escalation
-- Package source spoofing
-- Dependency vulnerabilities
 - Credential leaks
-- Unsafe command execution
-- UI vulnerabilities (injection, XSS)
-- Supply chain issues
+- Unsafe package handling
+- Code injection
 
-## Out of scope
+## What not to report
 
-- Homebrew upstream — report to [Homebrew Security](https://github.com/Homebrew/brew/security/advisories)
-- Third-party packages — report to the package maintainer
-- System libraries (GTK, Python, kernel) — report upstream
-- Homebrew taps — report to the tap maintainer
+- Homebrew issues — report to Homebrew
+- Third-party packages — report to the maintainer
+- System libraries — report upstream
 
 ## Timeline
 
 - Acknowledge: 5 business days
-- Triage: 10 days
-- Fix and release: 30 days
-- Prefer coordinated disclosure (30 days before public details)
+- Fix: 30 days
 
-## After a fix
+## After we fix it
 
-- Publish GitHub Security Advisory
-- Update CHANGELOG
-- Notify users via release notes
-- Credit reporter if requested
+- We publish an advisory
+- We update the changelog
+- We notify users
 
-## Shared responsibility
+## Credit
 
-- Tavern: UI and package caching
-- Homebrew: package signing and installation
-- Your system: file permissions and sudo
+Tell us if you want to be credited.
 
 ## Questions
 
-Open a [public issue](https://github.com/tuna-os/Tavern/issues) or contact the maintainers.
+Open a [public issue](https://github.com/tuna-os/Tavern/issues).
