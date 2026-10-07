@@ -127,7 +127,7 @@ jobs:
       actions: write
     steps:
       - uses: actions/checkout@v7.0.1
-      - uses: actions/download-artifact@v8.0.1
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: release-*
           path: dist
