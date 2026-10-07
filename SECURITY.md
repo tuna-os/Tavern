@@ -14,7 +14,7 @@ Do not open a public issue. Use GitHub's private security report:
 
 - Privilege escalation
 - Credential leaks
-- Unsafe package handling
+- Unsafe package operations
 - Code injection
 
 ## What not to report
@@ -36,7 +36,7 @@ Do not open a public issue. Use GitHub's private security report:
 
 ## Credit
 
-Tell us if you want to be credited.
+Tell us if you want credit.
 
 ## Questions
 
