@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import os
+import shlex
 import subprocess
 
 from .logging_util import get_logger
@@ -56,3 +57,21 @@ def _find_brew():
 
 IN_FLATPAK = _is_flatpak()
 BREW_BIN = _find_brew()
+
+
+def build_command(args, *, in_flatpak=None, brew_bin=None):
+    """Build a Homebrew command without depending on the backend facade."""
+    in_flatpak = IN_FLATPAK if in_flatpak is None else in_flatpak
+    brew_bin = BREW_BIN if brew_bin is None else brew_bin
+    if in_flatpak:
+        quoted = ' '.join(shlex.quote(str(arg)) for arg in args)
+        return [
+            'flatpak-spawn', '--host', 'bash', '-c',
+            'export HOMEBREW_NO_AUTO_UPDATE=1 && '
+            'export HOMEBREW_API_AUTO_UPDATE_SECS=604800 && '
+            'export HOMEBREW_NO_INSTALL_ASK=1 && '
+            'export HOMEBREW_NO_COLOR=1 && export LC_ALL=C && '
+            'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)" && '
+            f'brew {quoted}',
+        ]
+    return [brew_bin, *args]

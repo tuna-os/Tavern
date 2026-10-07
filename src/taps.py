@@ -6,13 +6,14 @@ import os
 import subprocess
 import sys
 import threading
-from urllib.request import Request
+from urllib.request import Request, urlopen
 
 from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
 from .package import Package
 from .tap_metadata import parse_cask_file, parse_formula_file
+from .brew_env import build_command as _brew_cmd
 
 _log = get_logger('taps')
 
@@ -24,19 +25,6 @@ GITHUB_TAP_SEARCH_URL = (
 # Core taps served by the public API — never need to appear in the "Add" list
 _CORE_TAPS = frozenset({'homebrew/core', 'homebrew/cask'})
 
-
-
-def _brew_cmd(args):
-    """Resolve through the backend module so test monkeypatches of
-    tavern.backend._brew_cmd keep working for tap operations."""
-    from . import backend
-    return backend._brew_cmd(args)
-
-
-def urlopen(req, timeout=None):
-    """Resolve through the backend module (see _brew_cmd)."""
-    from . import backend
-    return backend.urlopen(req, timeout=timeout)
 
 
 class TapsMixin:
