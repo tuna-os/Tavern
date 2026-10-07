@@ -27,7 +27,7 @@ meson compile -C builddir
 meson install -C builddir
 ```
 
-The development profile changes the application ID to `org.tunaos.tavern.Devel`, so it appears separately in your system's application launcher and settings, allowing you to test a release build while developing against `main`.
+The development profile changes the application ID to `org.tunaos.tavern.Devel`. The app then appears as a separate entry in the launcher and in settings. You can test a release build and develop against `main` at the same time.
 
 For a sandboxed Flatpak build (requires [`just`](https://github.com/casey/just)):
 
