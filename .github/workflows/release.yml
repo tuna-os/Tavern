@@ -40,7 +40,7 @@ jobs:
         run: |
           find Tavern.app -exec touch -t 198001010000 {} +
           COPYFILE_DISABLE=1 zip -X -r Tavern-macOS.zip Tavern.app
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-macos
           path: Tavern-macOS.zip
@@ -89,7 +89,7 @@ jobs:
             --desktop-file AppDir/usr/share/applications/org.tunaos.tavern.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg \
             --output appimage
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-appimage
           path: Tavern-Linux.AppImage
@@ -109,7 +109,7 @@ jobs:
           bundle: Tavern-Linux.flatpak
           manifest-path: org.tunaos.tavern.json
           cache-key: flatpak-builder-${{ github.sha }}
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-flatpak
           path: Tavern-Linux.flatpak
