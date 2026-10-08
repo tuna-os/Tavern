@@ -18,6 +18,7 @@ from .backend import Package, BrewBackend
 from .task_manager import Task, TaskStatus, TaskOperation
 from .logging_util import get_logger
 from .screenshot_lightbox import TavernScreenshotLightbox
+from .asset_loader import AssetLoaderController
 
 
 _log = get_logger('package_details')
@@ -81,6 +82,9 @@ class TavernPackageDetails(Adw.NavigationPage):
         self._hover_link = None
         self._readme_text = None
         self._readme_webview = None
+        self._asset_loader = AssetLoaderController(backend=self._backend)
+        self._asset_loader.connect('icon-loaded', self._on_controller_icon_loaded)
+        self._asset_loader.connect('screenshot-loaded', self._on_controller_screenshot_loaded)
 
         self.install_button.connect('clicked', self._on_install_clicked)
         self.remove_button.connect('clicked', self._on_remove_clicked)
@@ -376,11 +380,28 @@ class TavernPackageDetails(Adw.NavigationPage):
             self.installs_row.set_visible(False)
             self.installs_row.set_sensitive(False)
 
+    def _on_controller_icon_loaded(self, loader, package, texture):
+        if texture and package == self._package:
+            try:
+                self.detail_icon.set_from_paintable(texture)
+            except Exception:
+                pass
+
+    def _on_controller_screenshot_loaded(self, loader, package, texture):
+        if texture and package == self._package:
+            try:
+                self.screenshot_picture.set_paintable(texture)
+                self.screenshot_bin.set_visible(True)
+                self._current_screenshot = texture
+            except Exception:
+                pass
+
     def _on_icon_fetched(self, package, pixbuf):
         if pixbuf and package == self._package:
             try:
                 from gi.repository import Gdk
                 texture = Gdk.Texture.new_for_pixbuf(pixbuf)
+                self._asset_loader.cache_icon_texture(package.name, texture)
                 self.detail_icon.set_from_paintable(texture)
             except Exception:
                 pass
@@ -390,6 +411,7 @@ class TavernPackageDetails(Adw.NavigationPage):
             try:
                 from gi.repository import Gdk
                 texture = Gdk.Texture.new_for_pixbuf(pixbuf)
+                self._asset_loader.cache_screenshot_texture(package.name, texture)
                 self.screenshot_picture.set_paintable(texture)
                 self.screenshot_bin.set_visible(True)
                 self._current_screenshot = texture

@@ -77,6 +77,7 @@ tavern_sources = [
   'git_forge.py',
   'package_tile.py',
   'package_details.py',
+  'asset_loader.py',
   'search_page.py',
   'browse_page.py',
   'installed_page.py',
