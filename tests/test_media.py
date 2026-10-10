@@ -11,7 +11,10 @@ import json
 import os
 import threading
 from types import SimpleNamespace
+import socket
+from urllib.request import Request
 import pytest
+import tavern.url_security as us
 
 import tavern.media as media_mod
 from tavern.media import MediaMixin
@@ -545,3 +548,215 @@ class TestReadCapped:
 
     def test_empty_response(self):
         assert media_mod._read_capped(SimpleNamespace(read=lambda n: b'')) == b''
+
+
+# ─── SSRF-safe media URL validator ────────────────────────────────────────────
+
+class TestIsSafeMediaUrl:
+    """is_safe_media_url enforces https-only, no userinfo, default port, and
+    public-DNS resolution. DNS is monkeypatched so every case runs offline."""
+
+    @pytest.fixture
+    def dns(self, monkeypatch):
+        """Map hostnames to resolved IPs. Public hosts resolve to real public
+        ranges; every private/loopback/link-local/multicast host is blocked by
+        the validator via the ipaddress properties."""
+        mapping = {
+            'public.example': ['93.184.216.34'],            # example.com (public v4)
+            'v6public.example': ['2001:4860:4860::8888'],   # public v6
+            'loopback.example': ['127.0.0.1'],
+            'v6loopback.example': ['::1'],
+            'private-a.example': ['10.0.0.1'],
+            'private-b.example': ['192.168.1.1'],
+            'private-c.example': ['172.16.5.4'],
+            'linklocal.example': ['169.254.10.10'],
+            'unspecified.example': ['0.0.0.0'],
+            'multicast.example': ['224.0.0.1'],
+            'v6fe80.example': ['fe80::1'],
+            'v6unique.example': ['fc00::1'],
+            'v6multicast.example': ['ff02::1'],
+            'unresolvable.example': [],
+        }
+
+        def fake_getaddrinfo(host, port, proto):
+            return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,
+                     '', (ip, 0)) for ip in mapping.get(host, [])]
+
+        monkeypatch.setattr(us.socket, 'getaddrinfo', fake_getaddrinfo)
+        return mapping
+
+    # ── curated hosts bypass DNS entirely ──
+    def test_curated_hosts_allowed_without_dns(self):
+        for host in ('github.com', 'raw.githubusercontent.com',
+                     'avatars.githubusercontent.com', 'www.google.com',
+                     'icons.duckduckgo.com', 'flathub.org'):
+            assert us.is_safe_media_url(f'https://{host}/x.png')
+
+    # ── scheme / userinfo / port ──
+    def test_http_rejected(self):
+        assert not us.is_safe_media_url('http://example.com/a.png')
+
+    def test_ftp_rejected(self):
+        assert not us.is_safe_media_url('ftp://example.com/a.png')
+
+    def test_userinfo_rejected(self):
+        assert not us.is_safe_media_url('https://user@example.com/a.png')
+        assert not us.is_safe_media_url('https://u:p@example.com/a.png')
+
+    def test_non_default_port_rejected(self):
+        assert not us.is_safe_media_url('https://example.com:8443/a.png')
+
+    def test_default_https_port_allowed(self):
+        assert us.is_safe_media_url('https://example.com:443/a.png')
+
+    # ── malformed / empty ──
+    def test_empty_rejected(self):
+        assert not us.is_safe_media_url('')
+
+    def test_non_url_rejected(self):
+        assert not us.is_safe_media_url('not a url')
+
+    def test_no_host_rejected(self):
+        assert not us.is_safe_media_url('https://')
+
+    # ── DNS resolution ──
+    def test_public_ipv4_allowed(self, dns):
+        assert us.is_safe_media_url('https://public.example/a.png')
+
+    def test_public_ipv6_allowed(self, dns):
+        assert us.is_safe_media_url('https://v6public.example/a.png')
+
+    def test_unresolvable_blocked(self, dns):
+        assert not us.is_safe_media_url('https://unresolvable.example/a.png')
+
+    # ── IPv4 blocked ranges ──
+    @pytest.mark.parametrize('host', [
+        'loopback.example', 'private-a.example', 'private-b.example',
+        'private-c.example', 'linklocal.example', 'unspecified.example',
+        'multicast.example',
+    ])
+    def test_ipv4_blocked_ranges(self, dns, host):
+        assert not us.is_safe_media_url(f'https://{host}/a.png')
+
+    # ── IPv6 blocked ranges ──
+    @pytest.mark.parametrize('host', [
+        'v6loopback.example', 'v6fe80.example', 'v6unique.example', 'v6multicast.example',
+    ])
+    def test_ipv6_blocked_ranges(self, dns, host):
+        assert not us.is_safe_media_url(f'https://{host}/a.png')
+
+    def test_ipv4_broadcast_blocked(self, monkeypatch):
+        # 255.255.255.255 is reserved/broadcast → blocked.
+        monkeypatch.setattr(us.socket, 'getaddrinfo',
+            lambda host, port, proto: [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,
+                         '', ('255.255.255.255', 0))])
+        assert not us.is_safe_media_url('https://broadcast.example/a.png')
+
+
+class TestMediaRedirectHandler:
+    """The redirect handler re-validates every 3xx Location before reconnecting,
+    closing the "public HTTPS site 3xx-drops to 127.0.0.1" SSRF hop."""
+
+    def _handler(self):
+        return us._SSRFRedirectHandler()
+
+    def test_redirect_to_loopback_blocked(self):
+        h = self._handler()
+        req = Request('https://public.example/a')
+        with pytest.raises(ValueError):
+            h.redirect_request(req, None, 302, '', {}, 'http://127.0.0.1/secret')
+
+    def test_redirect_to_private_blocked(self):
+        h = self._handler()
+        req = Request('https://public.example/a')
+        with pytest.raises(ValueError):
+            h.redirect_request(req, None, 302, '', {}, 'http://10.0.0.5/secret')
+
+    def test_redirect_to_v6_loopback_blocked(self):
+        h = self._handler()
+        req = Request('https://public.example/a')
+        with pytest.raises(ValueError):
+            h.redirect_request(req, None, 302, '', {}, 'http://[::1]/secret')
+
+    def test_redirect_to_curated_delegates(self, monkeypatch):
+        # A safe (curated) target must be handed to the standard handler, not
+        # blocked. Patch the parent to record the delegation.
+        from urllib.request import HTTPRedirectHandler
+        h = self._handler()
+        req = Request('https://public.example/a')
+        captured = {}
+
+        def fake_super(self, r, fp, code, msg, headers, newurl):
+            captured['newurl'] = newurl
+            return Request(newurl)
+
+        monkeypatch.setattr(HTTPRedirectHandler, 'redirect_request', fake_super)
+        result = h.redirect_request(req, None, 302, '', {},
+                                   'https://raw.githubusercontent.com/o/r/HEAD/x.png')
+        assert captured['newurl'] == 'https://raw.githubusercontent.com/o/r/HEAD/x.png'
+        assert result is not None
+
+
+class TestMediaUrlopenValidation:
+    """urlopen validates the URL before any connection is made."""
+
+    def test_rejects_unsafe_before_connect(self, monkeypatch):
+        called = []
+
+        def fake_open(req, timeout=None):
+            called.append(req)
+            return _FakeResp(b'x' * 300)
+
+        monkeypatch.setattr(media_mod._MEDIA_OPENER, 'open', fake_open)
+        with pytest.raises(ValueError):
+            media_mod.urlopen(Request('http://127.0.0.1/secret'))
+        assert called == []  # never reached the network
+
+    def test_allows_safe_and_connects(self, monkeypatch):
+        called = []
+
+        def fake_open(req, timeout=None):
+            called.append(req.full_url)
+            return _FakeResp(b'x' * 300)
+
+        monkeypatch.setattr(media_mod._MEDIA_OPENER, 'open', fake_open)
+        media_mod.urlopen(Request('https://raw.githubusercontent.com/o/r/HEAD/x.png'))
+        assert called == ['https://raw.githubusercontent.com/o/r/HEAD/x.png']
+
+
+class TestMediaUrlopenRedirectEndToEnd:
+    """A real local server 302-redirects; the module opener must block the
+    redirect to a loopback target before connecting to it."""
+
+    def test_opener_blocks_redirect_to_loopback(self):
+        import http.server
+        import socketserver
+        import threading
+
+        class _H(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                if self.path == '/go':
+                    loc = self.headers['X-Redirect']
+                    self.send_response(302)
+                    self.send_header('Location', loc)
+                    self.end_headers()
+                else:
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(b'secret')
+
+            def log_message(self, *a):
+                pass
+
+        httpd = socketserver.TCPServer(('127.0.0.1', 0), _H)
+        port = httpd.server_address[1]
+        t = threading.Thread(target=httpd.serve_forever, daemon=True)
+        t.start()
+        try:
+            req = Request(f'http://127.0.0.1:{port}/go',
+                          headers={'X-Redirect': f'http://127.0.0.1:{port}/secret'})
+            with pytest.raises(ValueError):
+                media_mod._MEDIA_OPENER.open(req, timeout=5)
+        finally:
+            httpd.shutdown()
+            t.join(timeout=5)
