@@ -65,6 +65,8 @@ from .backend_cache import CacheMixin
 from .backend_remote import RemoteMixin
 from .backend_state import StateMixin
 from .backend_ui import UiMixin
+from .catalog_store import CatalogStore
+
 from .cache_policy import CacheManager
 
 
@@ -89,17 +91,11 @@ class BrewBackend(TapsMixin, MediaMixin, CacheMixin, RemoteMixin, StateMixin, Ui
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._formulae = []
-        self._casks = []
-        self._installed_formulae = set()
-        self._installed_casks = set()
-        self._tap_packages = {}  # tap_name -> [Package, ...]
-        self._tap_list = []  # [{name, path}, ...] for non-core taps
-        self._outdated_formulae = {}  # {name: {installed, latest}}
-        self._outdated_casks = {}  # {name: {installed, latest}}
-        self._outdated_lock = threading.Lock()
-        self._pinned = set()  # formula names pinned via `brew pin`
-        self._pinned_lock = threading.Lock()
+        # Stage 1 of tuna-os/Tavern#172: the catalog and package state below are
+        # owned by a single thread-safe CatalogStore. The properties defined on the
+        # class delegate reads/writes to it; mixins keep accessing self._formulae,
+        # self._pinned, etc., now transparently store-backed.
+        self._store = CatalogStore()
         self._search_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='tavern-search')
         self._search_generation = 0
         self._icon_executor = ThreadPoolExecutor(max_workers=6, thread_name_prefix='tavern-icon')
@@ -124,3 +120,88 @@ class BrewBackend(TapsMixin, MediaMixin, CacheMixin, RemoteMixin, StateMixin, Ui
 
     def get_packages_for_tap(self, tap_name):
         return self._tap_packages.get(tap_name, [])
+
+    # -- store-backed catalog + state (stage 1 of tuna-os/Tavern#172) --------
+    # These delegate to the single CatalogStore so it is the genuine owner. The
+    # mixin methods read/write self._formulae, self._pinned, etc. unchanged; they
+    # now flow through these properties into the store.
+
+    @property
+    def _formulae(self):
+        return self._store.get_formulae()
+
+    @_formulae.setter
+    def _formulae(self, value):
+        self._store.set_formulae(value)
+
+    @property
+    def _casks(self):
+        return self._store.get_casks()
+
+    @_casks.setter
+    def _casks(self, value):
+        self._store.set_casks(value)
+
+    @property
+    def _installed_formulae(self):
+        return self._store.get_installed_formulae()
+
+    @_installed_formulae.setter
+    def _installed_formulae(self, value):
+        self._store.set_installed(value, self._store.get_installed_casks())
+
+    @property
+    def _installed_casks(self):
+        return self._store.get_installed_casks()
+
+    @_installed_casks.setter
+    def _installed_casks(self, value):
+        self._store.set_installed(self._store.get_installed_formulae(), value)
+
+    @property
+    def _pinned(self):
+        return self._store.get_pinned()
+
+    @_pinned.setter
+    def _pinned(self, value):
+        self._store.set_pinned(value)
+
+    @property
+    def _outdated_formulae(self):
+        return self._store.get_outdated_formulae()
+
+    @_outdated_formulae.setter
+    def _outdated_formulae(self, value):
+        self._store.set_outdated(value, self._store.get_outdated_casks())
+
+    @property
+    def _outdated_casks(self):
+        return self._store.get_outdated_casks()
+
+    @_outdated_casks.setter
+    def _outdated_casks(self, value):
+        self._store.set_outdated(self._store.get_outdated_formulae(), value)
+
+    @property
+    def _tap_packages(self):
+        return self._store.get_tap_packages()
+
+    @_tap_packages.setter
+    def _tap_packages(self, value):
+        self._store.set_tap_packages(value)
+
+    @property
+    def _tap_list(self):
+        return self._store.get_tap_list()
+
+    @_tap_list.setter
+    def _tap_list(self, value):
+        self._store.set_tap_list(value)
+
+    @property
+    def _pinned_lock(self):
+        return self._store.pinned_lock
+
+    @property
+    def _outdated_lock(self):
+        return self._store.outdated_lock
