@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   publish:
-    uses: tuna-os/.github/.github/workflows/publish-flatpak.yml@main
+    uses: tuna-os/.github/.github/workflows/publish-flatpak.yml@60eec34d43721216fb22d9a7c9b82092b6fa82df
     with:
       app-id: org.tunaos.tavern
       manifest-path: org.tunaos.tavern.json
