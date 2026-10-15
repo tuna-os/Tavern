@@ -4,12 +4,12 @@ How the engineering skills should consume this repo's domain documentation when 
 
 ## Before exploring, read these
 
-- **`AGENTS.md`** at the repo root — how the repo itself is organized, its test gates, and its release ownership.
+- **`AGENTS.md`** at the repo root — the layout of the repo, its test gates, and its release ownership.
 - **`README.md`** at the repo root — the domain overview (a Homebrew client for formulae, casks, and taps).
-- **`docs/adr/`** — read the ADRs that touch the area you're about to work in. The repo currently has [`0001-homebrew-6-floor.md`](../adr/0001-homebrew-6-floor.md).
+- **`docs/adr/`** — read the ADRs that touch the area of your work.
 - **The domain deep-dive**, when the work touches it: [`docs/CACHE.md`](../CACHE.md), [`docs/CURATION.md`](../CURATION.md), [`docs/RELEASING.md`](../RELEASING.md), [`docs/ACCESSIBILITY.md`](../ACCESSIBILITY.md), [`docs/HOMEBREW_FEATURES.md`](../HOMEBREW_FEATURES.md).
 
-Tavern keeps its domain context in these standing files rather than a single generated glossary, so read the relevant one instead of assuming a `CONTEXT.md` at the repo root — it does not exist here.
+Tavern keeps its domain context in these files. It has no `CONTEXT.md` glossary at the repo root.
 
 ## File structure
 
