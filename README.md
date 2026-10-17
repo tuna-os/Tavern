@@ -61,8 +61,8 @@ On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage an
 - **🛠 Maintenance**: Installed security scans, install previews, user services, cleanup previews, and a tool for historical formulae. See [Homebrew features](docs/HOMEBREW_FEATURES.md).
 - **🌗 Native Design**: Libadwaita interface following the GNOME HIG — dark mode, adaptive layouts, keyboard shortcuts, and a preferences dialog.
 - **🐧 Linux First**: Smart filtering to hide macOS-only casks on Linux systems.
-- **🍺 Missing Homebrew Support**: Automatically detects when Homebrew is missing and offers an interactive terminal installer, one-click command copy, documentation, and live detection retry.
-- **⚡ System-First PATH Policy**: Adopts Bluefin parity to ensure system binaries (`/usr/local/bin`, `/usr/bin`, `/bin`) always take precedence over Homebrew binaries in PATH.
+- **🍺 Missing Homebrew Support**: Detects missing Homebrew and offers a terminal installer, command copy, documentation, and live detection retry.
+- **⚡ System-First PATH Policy**: Adopts Bluefin parity so system binaries always take precedence over Homebrew binaries in PATH.
 ## 🚀 Getting Started
 
 ### Quick Installation via Homebrew
