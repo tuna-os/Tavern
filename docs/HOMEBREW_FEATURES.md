@@ -69,5 +69,21 @@ history. Extracted formulae receive no automatic security fixes; you own their
 maintenance. Prefer a maintained versioned formula when one exists.
 This action does not pin the installed version or install casks.
 
+## First-run and environment
+
+Tavern checks for Homebrew on startup. If no Homebrew installation is found,
+a persistent banner offers to launch the official installer interactively in a
+host terminal emulator (`xdg-terminal-exec`, `ptyxis`, `gnome-terminal`, etc.),
+supporting required `sudo` password prompts. The dialog also provides a
+one-click copy option for the official install command, a link to `brew.sh`
+documentation, and a live detection retry that refreshes backend status
+without restarting Tavern.
+
+To prevent Homebrew packages from shadowing critical system tools (such as
+system Python or compiler toolchains), Tavern adopts **Bluefin parity**:
+system binary directories (`/usr/local/bin`, `/usr/bin`, `/bin`, `/usr/sbin`,
+`/sbin`) always take precedence over Homebrew's `bin` and `sbin` directories in
+`PATH`. This ordering is enforced across native subprocess calls, Flatpak host
+spawning wrappers, and development runners (`run.sh`).
 Command and report contracts follow [Homebrew 7.0.0](https://github.com/Homebrew/brew/tree/7.0.0/Library/Homebrew).
 See also the [Homebrew manual](https://docs.brew.sh/Manpage).

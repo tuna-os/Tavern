@@ -173,7 +173,7 @@ state. `_icon_lock` protects the map of icon downloads in progress.
 | `catalog_policy.py` | policy | Catalog validation and search rank. |
 | `cache_policy.py` | policy | Atomic JSON cache files, TTLs, and eviction. |
 | `brew_commands.py` | policy | Read-only `brew` subcommands. |
-| `brew_env.py` | platform | Flatpak and `brew` detection, and the `brew` command line. |
+| `brew_env.py` | platform | Flatpak and `brew` detection, PATH ordering policy (Bluefin parity), missing-Homebrew install commands, and `brew` subprocess construction. |
 | `search_provider.py` | integration | GNOME Shell search through D-Bus, from the cached `linux_packages.json`. |
 | `git_forge.py` | backend | Finds GitHub, GitLab, or Codeberg from a source URL for the version history. |
 

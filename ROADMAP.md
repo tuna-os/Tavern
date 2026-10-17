@@ -1,6 +1,6 @@
 # Tavern Roadmap
 
-**Last updated**: 2026-09-17
+**Last updated**: 2026-10-17
 
 Part of the [TunaOS](https://tunaos.org) ecosystem.
 
@@ -21,11 +21,14 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 - ✅ Complete Brewfile source preservation and confirmed tasks; no automatic tap changes on open (#113)
 - ✅ Explicit historical formula installs through `brew version-install`
 - ✅ Released version `v0.1.64` with Homebrew 7 maintenance and repair cache freshness (#178)
+- ✅ Prioritize system bins over Homebrew in PATH (Bluefin parity) (#281)
+- ✅ Missing Homebrew detection, interactive terminal install offer, and live detection retry (#281)
+- ✅ Released version `v0.1.65` with system-first PATH ordering and missing-brew onboard dialog
 
 ## Release health
 
 Tavern's distribution channels are active and aligning under a unified release contract.
-Repository tags reached `v0.1.64` in September 2026 with release preparation and tag tagging (#178).
+Repository tags reached `v0.1.65` in October 2026 with release preparation and tag tagging.
 
 Before calling a new version stable across all channels, complete the release-parity gate tracked
 in [#104](https://github.com/tuna-os/Tavern/issues/104):
