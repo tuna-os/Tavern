@@ -82,13 +82,23 @@ class TavernTapPage(Adw.Bin):
     def _on_taps_loaded(self, backend, tap_packages):
         _log.info('Taps loaded: %d taps with packages', len(tap_packages))
         self._tap_data = dict(tap_packages)
+        if self._backend and hasattr(self._backend, 'taps'):
+            for tap_info in self._backend.taps:
+                name = tap_info.get('name')
+                if name and name not in self._tap_data:
+                    self._tap_data[name] = []
         self._populate_tap_list()
 
     # ── Sidebar ──────────────────────────────────────────────────────────────
 
     def _populate_tap_list(self):
-        while child := self.tap_list.get_first_child():
-            self.tap_list.remove(child)
+        prev_selected = self._selected_tap
+        self._populating = True
+        try:
+            while child := self.tap_list.get_first_child():
+                self.tap_list.remove(child)
+        finally:
+            self._populating = False
 
         if not self._tap_data:
             self.tap_page_stack.set_visible_child_name('no-taps')
@@ -99,7 +109,6 @@ class TavernTapPage(Adw.Bin):
 
         self.tap_page_stack.set_visible_child_name('content')
 
-        prev_selected = self._selected_tap
         for tap_name in sorted(self._tap_data.keys()):
             row = self._make_tap_row(tap_name, self._tap_data[tap_name])
             self.tap_list.append(row)
@@ -111,13 +120,14 @@ class TavernTapPage(Adw.Bin):
             row = self.tap_list.get_row_at_index(idx)
             if row:
                 self.tap_list.select_row(row)
+                self._on_tap_row_selected(self.tap_list, row)
                 restored = True
 
         if not restored:
             first = self.tap_list.get_row_at_index(0)
             if first:
                 self.tap_list.select_row(first)
-
+                self._on_tap_row_selected(self.tap_list, first)
     def _make_tap_row(self, tap_name, packages):
         n_formula = sum(1 for p in packages if p.pkg_type == 'formula')
         n_cask    = sum(1 for p in packages if p.pkg_type == 'cask')
@@ -201,6 +211,8 @@ class TavernTapPage(Adw.Bin):
     # ── Content area ─────────────────────────────────────────────────────────
 
     def _on_tap_row_selected(self, listbox, row):
+        if getattr(self, '_populating', False):
+            return
         if not row:
             self._selected_tap = None
             self.remove_tap_button.set_sensitive(False)

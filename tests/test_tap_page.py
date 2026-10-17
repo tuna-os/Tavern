@@ -155,3 +155,64 @@ def test_tap_page_workflows(tmp_path, monkeypatch):
     # Trigger failed cb
     cb(False, 'Untap failed\nerror')
     assert 'Failed to remove tap: Untap failed' in page._last_op
+
+@requires_adw_spinner
+def test_tap_removal_while_open_retains_custom_taps_screen(tmp_path, monkeypatch):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    monkeypatch.setattr(Adw.AlertDialog, 'present', lambda *args: None)
+
+    backend = BrewBackend()
+    page = TavernTapPage()
+    page.set_backend(backend)
+
+    pkg1 = Package({'name': 'pkg1', 'desc': 'p1'}, 'formula')
+    pkg2 = Package({'name': 'pkg2', 'desc': 'p2'}, 'formula')
+    taps_data = {
+        'user1/open_tap': [pkg1],
+        'user2/stay_tap': [pkg2],
+    }
+    backend.emit('taps-loaded', taps_data)
+    assert page.tap_page_stack.get_visible_child_name() == 'content'
+
+    # Select the first tap (make it open)
+    row0 = page.tap_list.get_row_at_index(0)
+    page._on_tap_row_selected(page.tap_list, row0)
+    assert page._selected_tap == 'user1/open_tap'
+
+    # Simulate tap removal: user1/open_tap removed, user2/stay_tap still present
+    remaining_taps = {
+        'user2/stay_tap': [pkg2],
+    }
+    backend.emit('taps-loaded', remaining_taps)
+
+    # Must stay on content stack, NOT go to no-taps!
+    assert page.tap_page_stack.get_visible_child_name() == 'content'
+    assert page._selected_tap == 'user2/stay_tap'
+    assert page.remove_tap_button.get_sensitive() is True
+
+    # Now remove the remaining tap so no custom taps remain
+    backend.emit('taps-loaded', {})
+    assert page.tap_page_stack.get_visible_child_name() == 'no-taps'
+    assert page._selected_tap is None
+    assert page.remove_tap_button.get_sensitive() is False
+
+
+@requires_adw_spinner
+def test_tap_with_empty_packages_shown_when_in_backend_taps(tmp_path, monkeypatch):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    monkeypatch.setattr(Adw.AlertDialog, 'present', lambda *args: None)
+
+    backend = BrewBackend()
+    backend._tap_list = [{'name': 'user/empty-tap', 'path': '/fake/path'}]
+    page = TavernTapPage()
+    page.set_backend(backend)
+
+    # taps-loaded emitted with empty dict (no packages in tap)
+    backend.emit('taps-loaded', {})
+
+    # Despite having no packages, the installed tap is present, so show content
+    assert page.tap_page_stack.get_visible_child_name() == 'content'
+    assert 'user/empty-tap' in page._tap_data
+    row = page.tap_list.get_first_child()
+    assert row is not None
+    assert getattr(row, '_tap_name', None) == 'user/empty-tap'

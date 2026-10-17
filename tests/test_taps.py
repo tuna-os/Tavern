@@ -349,6 +349,48 @@ class TestLoadTapPackages:
         tap_packages, *_ = self._last_scan(idle, host)
         assert sorted(p.name for p in tap_packages['user1/foo']) == ['maconly']
 
+    def test_rescan_after_tap_removal_retains_remaining_taps(self, host, idle, fake_taps_root, canned_parsers):
+        self._make_tap(fake_taps_root, 'user1', 'foo', formulae=['alpha'])
+        self._make_tap(fake_taps_root, 'user2', 'bar', formulae=['beta'])
+
+        host._formulae = [Package({'name': 'corepkg', 'full_name': 'corepkg'}, 'formula')]
+
+        # First scan: both taps loaded
+        self._last_scan(idle, host)
+        assert set(host._tap_packages) == {'user1/foo', 'user2/bar'}
+        assert sorted(p.name for p in host._formulae) == ['alpha', 'beta', 'corepkg']
+
+        # Untap user1/foo: directory removed
+        import shutil
+        shutil.rmtree(fake_taps_root / 'user1' / 'homebrew-foo')
+
+        # Rescan: user2/bar must remain in tap_packages and user1/foo must be pruned
+        idle.clear()
+        tap_packages, non_core, new_formulae, _, f_changed, _ = self._last_scan(idle, host)
+
+        assert set(tap_packages) == {'user2/bar'}
+        assert sorted(p.name for p in tap_packages['user2/bar']) == ['beta']
+        assert [t['name'] for t in non_core] == ['user2/bar']
+        assert sorted(p.name for p in new_formulae) == ['beta', 'corepkg']
+        assert f_changed is True
+
+    def test_rescan_after_removing_all_taps(self, host, idle, fake_taps_root, canned_parsers):
+        self._make_tap(fake_taps_root, 'user1', 'foo', formulae=['alpha'])
+        host._formulae = [Package({'name': 'corepkg', 'full_name': 'corepkg'}, 'formula')]
+
+        self._last_scan(idle, host)
+        assert set(host._tap_packages) == {'user1/foo'}
+
+        import shutil
+        shutil.rmtree(fake_taps_root / 'user1' / 'homebrew-foo')
+
+        idle.clear()
+        tap_packages, non_core, new_formulae, _, f_changed, _ = self._last_scan(idle, host)
+
+        assert tap_packages == {}
+        assert non_core == []
+        assert sorted(p.name for p in new_formulae) == ['corepkg']
+        assert f_changed is True
     def test_no_taps_dir_returns_silently(self, host, idle, fake_taps_root, monkeypatch):
         # Make every hardcoded candidate root a miss so the scan bails early.
         real_isdir = os.path.isdir

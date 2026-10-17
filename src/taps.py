@@ -73,12 +73,28 @@ class TapsMixin:
         # Core tap is already handled by the API — skip it
         CORE_TAPS = {'homebrew/core', 'homebrew/cask'}
 
-        new_formulae = list(self._formulae)
-        new_casks = list(self._casks)
-        existing_formula_names = {p.name for p in self._formulae}
-        existing_cask_names = {p.name for p in self._casks}
-        formulae_changed = False
-        casks_changed = False
+        prev_tap_pkgs = {
+            id(p) for pkgs in getattr(self, '_tap_packages', {}).values() for p in pkgs
+        }
+
+        def _is_custom_tap_pkg(p):
+            if id(p) in prev_tap_pkgs:
+                return True
+            tap = getattr(p, 'tap', '') or ''
+            if tap and tap not in CORE_TAPS:
+                return True
+            fn = getattr(p, 'full_name', '') or ''
+            if fn.startswith(('homebrew/core/', 'homebrew/cask/')):
+                return False
+            return '/' in fn
+
+        base_formulae = [p for p in self._formulae if not _is_custom_tap_pkg(p)]
+        base_casks = [p for p in self._casks if not _is_custom_tap_pkg(p)]
+
+        new_formulae = list(base_formulae)
+        new_casks = list(base_casks)
+        existing_formula_names = {p.name for p in base_formulae}
+        existing_cask_names = {p.name for p in base_casks}
         tap_packages = {}  # tap_name -> [Package]
         non_core_taps = []
 
@@ -107,11 +123,11 @@ class TapsMixin:
                         os.path.join(formula_dir, fname), tap_name, pkg_name
                     )
                     if data:
+                        data.setdefault('tap', tap_name)
                         pkg = Package(data, 'formula', self._installed_formulae)
                         new_formulae.append(pkg)
                         existing_formula_names.add(pkg_name)
                         tap_pkgs.append(pkg)
-                        formulae_changed = True
 
             # ── Casks ─────────────────────────────────────────────────────────
             for cask_dir_name in ('Casks', 'cask'):
@@ -129,14 +145,17 @@ class TapsMixin:
                         if data:
                             if is_linux and 'macos' in data.get('depends_on', {}):
                                 continue
+                            data.setdefault('tap', tap_name)
                             pkg = Package(data, 'cask', self._installed_casks)
                             new_casks.append(pkg)
                             existing_cask_names.add(pkg_name)
                             tap_pkgs.append(pkg)
-                            casks_changed = True
 
             if tap_pkgs:
                 tap_packages[tap_name] = tap_pkgs
+
+        formulae_changed = (new_formulae != list(self._formulae))
+        casks_changed = (new_casks != list(self._casks))
 
         GLib.idle_add(
             self._apply_tap_scan_results,
@@ -147,7 +166,6 @@ class TapsMixin:
             formulae_changed,
             casks_changed
         )
-
     def _apply_tap_scan_results(self, tap_packages, non_core_taps, new_formulae, new_casks, formulae_changed, casks_changed):
         self._tap_packages = tap_packages
         self._tap_list = non_core_taps
