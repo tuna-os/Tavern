@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   publish:
-    uses: tuna-os/.github/.github/workflows/publish-flatpak.yml@24984d28cf41862359fe392dc1f10e19c3b85806 # main
+    uses: tuna-os/.github/.github/workflows/publish-flatpak.yml@e40806e92d94ddb2a5e9198945fd849e3b929eca # main
     with:
       app-id: org.tunaos.tavern
       manifest-path: org.tunaos.tavern.json
