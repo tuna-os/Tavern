@@ -42,7 +42,7 @@
             "name": "python3-markdown",
             "buildsystem": "simple",
             "build-commands": [
-                "pip3 install --no-index --find-links=. --prefix=/app markdown==3.10.3"
+                "pip3 install --no-index --find-links=. --prefix=/app --ignore-installed markdown==3.10.3"
             ],
             "sources": [
                 {
