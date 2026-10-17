@@ -2,7 +2,9 @@
 from types import SimpleNamespace
 
 from tavern import doctor_page
-from tavern.doctor import parse_report, DoctorReport, DoctorIssue
+from tavern.doctor import (
+    parse_report, DoctorReport, DoctorIssue, DoctorBlock, DoctorFixStep, DoctorLink
+)
 
 
 def test_report_error_and_recovery(monkeypatch):
@@ -163,3 +165,27 @@ def test_issue_title_is_not_parsed_as_markup():
     row = page.findings_list.get_first_child()
     assert row.get_title() == '<markup>'
     assert row.get_use_markup() is False
+
+
+def test_detail_renders_structured_blocks(monkeypatch):
+    page = doctor_page.TavernDoctorPage()
+    copied = []
+    monkeypatch.setattr(page, 'get_clipboard', lambda: SimpleNamespace(set=copied.append))
+
+    blocks = (
+        DoctorBlock(type='prose', value=('Some explanation',), caption='Caption:'),
+        DoctorBlock(type='command', value=(DoctorFixStep('brew cleanup', ('cleanup',), needs_admin=False),)),
+        DoctorBlock(type='command', value=(DoctorFixStep('sudo chown -R me /opt', None, needs_admin=True),)),
+        DoctorBlock(type='data', value=('/path/one', '/path/two')),
+        DoctorBlock(type='link', value=(DoctorLink('https://example.com', 'action'),)),
+    )
+    issue = DoctorIssue('Issue with blocks', 'raw body', 'warning', blocks=blocks)
+    page._complete(_report(issue), None)
+
+    assert page.detail_content.get_visible() is True
+    assert page.detail_body.get_visible() is False
+    assert page.detail_body.get_label() == 'raw body'
+    assert page.detail_blocks.get_first_child() is not None
+
+    page._copy_text('test-copy')
+    assert copied == ['test-copy']

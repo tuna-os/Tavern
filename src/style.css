@@ -304,3 +304,14 @@ button.destructive-action.pill {
   border-radius: 999px;
   background-color: @accent_color;
 }
+
+/* ===== Doctor Tab Styles ===== */
+.doctor-badge-warning {
+  background-color: alpha(@warning_color, 0.18);
+  color: @warning_color;
+}
+
+.doctor-badge-error {
+  background-color: alpha(@error_color, 0.18);
+  color: @error_color;
+}

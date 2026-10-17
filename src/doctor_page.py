@@ -44,9 +44,12 @@ class TavernDoctorPage(Adw.Bin):
     detail_title = Gtk.Template.Child()
     detail_severity = Gtk.Template.Child()
     detail_body = Gtk.Template.Child()
+    detail_blocks = Gtk.Template.Child()
     raw_expander = Gtk.Template.Child()
     raw_view = Gtk.Template.Child()
     config_button = Gtk.Template.Child()
+    sidebar_box = Gtk.Template.Child()
+    sidebar_separator = Gtk.Template.Child()
 
     def __init__(self, service=None, **kwargs):
         super().__init__(**kwargs)
@@ -123,14 +126,29 @@ class TavernDoctorPage(Adw.Bin):
 
         severities = {'warning': _('Warning'), 'error': _('Error'),
                       'unsupported': _('Unsupported configuration')}
+        prefix_icons = {
+            'warning': 'dialog-warning-symbolic',
+            'error': 'dialog-error-symbolic',
+            'unsupported': 'dialog-error-symbolic',
+        }
         for _key, group in severity_groups(report.issues):
             for issue in group:
-                # The body renders in the detail pane; the list row only names the issue.
-                row = Adw.ActionRow(title=issue.title, subtitle=severities[issue.severity],
+                row = Adw.ActionRow(title=issue.title,
+                                    subtitle=severities.get(issue.severity, issue.severity),
                                     use_markup=False)
+                icon = Gtk.Image.new_from_icon_name(prefix_icons.get(issue.severity, 'dialog-warning-symbolic'))
+                if issue.severity in ('error', 'unsupported'):
+                    icon.add_css_class('error')
+                else:
+                    icon.add_css_class('warning')
+                row.add_prefix(icon)
                 self.findings_list.append(row)
                 self._rows[row] = issue
-        self.findings_list.set_visible(bool(report.issues))
+
+        has_issues = bool(report.issues)
+        self.findings_list.set_visible(has_issues)
+        self.sidebar_box.set_visible(has_issues)
+        self.sidebar_separator.set_visible(has_issues)
 
         desired = select_after_reload(previous_content_id, report.issues)
         selected_row = None
@@ -142,6 +160,7 @@ class TavernDoctorPage(Adw.Bin):
         self.findings_list.unselect_all()
         if selected_row is not None:
             self.findings_list.select_row(selected_row)
+            self._render_detail(self._rows.get(selected_row))
         if report.issues:
             self.findings_list.grab_focus()
         else:
@@ -150,22 +169,160 @@ class TavernDoctorPage(Adw.Bin):
     def _on_row_selected(self, _list_box, row):
         self._render_detail(self._rows.get(row) if row is not None else None)
 
+    def _clear_detail_blocks(self):
+        while child := self.detail_blocks.get_first_child():
+            self.detail_blocks.remove(child)
+
+    def _copy_text(self, text):
+        clipboard = self.get_clipboard()
+        if clipboard is not None:
+            clipboard.set(text)
+
+    def _render_blocks(self, blocks):
+        for block in blocks:
+            if block.caption:
+                caption_lbl = Gtk.Label(label=block.caption, xalign=0.0, wrap=True)
+                caption_lbl.add_css_class('heading')
+                caption_lbl.set_margin_top(6)
+                self.detail_blocks.append(caption_lbl)
+
+            if block.type == 'prose':
+                text = '\n'.join(block.value)
+                if text.strip():
+                    lbl = Gtk.Label(label=text, xalign=0.0, wrap=True, selectable=True)
+                    lbl.add_css_class('body')
+                    self.detail_blocks.append(lbl)
+
+            elif block.type == 'command':
+                for step in block.value:
+                    card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+                    card.add_css_class('card')
+                    card.set_margin_top(4)
+                    card.set_margin_bottom(4)
+
+                    inner = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+                    inner.set_margin_start(14)
+                    inner.set_margin_end(10)
+                    inner.set_margin_top(10)
+                    inner.set_margin_bottom(10)
+
+                    term_icon = Gtk.Image.new_from_icon_name('utilities-terminal-symbolic')
+                    term_icon.set_valign(Gtk.Align.CENTER)
+                    term_icon.add_css_class('dim-label')
+                    inner.append(term_icon)
+
+                    cmd_lbl = Gtk.Label(label=step.display_command, xalign=0.0, wrap=True, selectable=True)
+                    cmd_lbl.set_hexpand(True)
+                    cmd_lbl.add_css_class('monospace')
+                    inner.append(cmd_lbl)
+
+                    copy_btn = Gtk.Button.new_from_icon_name('edit-copy-symbolic')
+                    copy_btn.set_valign(Gtk.Align.CENTER)
+                    copy_btn.set_tooltip_text(_('Copy Command'))
+                    copy_btn.add_css_class('flat')
+                    copy_btn.connect('clicked', lambda _btn, cmd=step.display_command: self._copy_text(cmd))
+                    inner.append(copy_btn)
+
+                    card.append(inner)
+
+                    if step.needs_admin:
+                        admin_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+                        admin_box.set_margin_start(14)
+                        admin_box.set_margin_bottom(8)
+                        admin_icon = Gtk.Image.new_from_icon_name('dialog-warning-symbolic')
+                        admin_icon.add_css_class('warning')
+                        admin_box.append(admin_icon)
+                        admin_lbl = Gtk.Label(
+                            label=_('Requires administrator privileges — run in Terminal'),
+                            xalign=0.0,
+                        )
+                        admin_lbl.add_css_class('caption')
+                        admin_lbl.add_css_class('warning')
+                        admin_box.append(admin_lbl)
+                        card.append(admin_box)
+
+                    self.detail_blocks.append(card)
+
+            elif block.type == 'data':
+                if block.value:
+                    data_list = Gtk.ListBox()
+                    data_list.add_css_class('boxed-list')
+                    data_list.set_selection_mode(Gtk.SelectionMode.NONE)
+
+                    for item in block.value:
+                        row = Adw.ActionRow(title=item, selectable=True, use_markup=False)
+                        copy_btn = Gtk.Button.new_from_icon_name('edit-copy-symbolic')
+                        copy_btn.set_valign(Gtk.Align.CENTER)
+                        copy_btn.set_tooltip_text(_('Copy Item'))
+                        copy_btn.add_css_class('flat')
+                        copy_btn.connect('clicked', lambda _btn, text=item: self._copy_text(text))
+                        row.add_suffix(copy_btn)
+                        data_list.append(row)
+
+                    self.detail_blocks.append(data_list)
+
+            elif block.type == 'link':
+                if block.value:
+                    link_list = Gtk.ListBox()
+                    link_list.add_css_class('boxed-list')
+                    link_list.set_selection_mode(Gtk.SelectionMode.NONE)
+
+                    for link in block.value:
+                        row = Adw.ActionRow(
+                            title=link.url,
+                            subtitle=_('Action required') if link.role == 'action' else _('Reference documentation'),
+                            use_markup=False,
+                        )
+                        link_btn = Gtk.LinkButton.new_with_label(link.url, _('Open'))
+                        link_btn.set_valign(Gtk.Align.CENTER)
+                        row.add_suffix(link_btn)
+                        link_list.append(row)
+
+                    self.detail_blocks.append(link_list)
+
     def _render_detail(self, issue):
         if issue is None:
+            if self._report and not self._report.issues:
+                self.detail_placeholder.set_label(_('Your system is ready to brew.\nNo problems found.'))
+            elif self._report and self._report.issues:
+                self.detail_placeholder.set_label(_('Select an issue to see its details'))
+            else:
+                self.detail_placeholder.set_label(_('Ready to check'))
             self.detail_placeholder.set_visible(True)
             self.detail_content.set_visible(False)
+            self._clear_detail_blocks()
             return
+
         self.detail_placeholder.set_visible(False)
         self.detail_content.set_visible(True)
         self.detail_title.set_label(issue.title)
-        self.detail_severity.set_label(
-            {'warning': _('Warning'), 'error': _('Error'),
-             'unsupported': _('Unsupported configuration')}[issue.severity])
+        severities = {
+            'warning': _('Warning'),
+            'error': _('Error'),
+            'unsupported': _('Unsupported configuration'),
+        }
+        self.detail_severity.set_label(severities.get(issue.severity, issue.severity))
+        self.detail_severity.remove_css_class('font-badge')
+        self.detail_severity.remove_css_class('error')
+        self.detail_severity.remove_css_class('warning')
+        self.detail_severity.remove_css_class('doctor-badge-warning')
+        self.detail_severity.remove_css_class('doctor-badge-error')
+        if issue.severity == 'warning':
+            self.detail_severity.add_css_class('doctor-badge-warning')
+        else:
+            self.detail_severity.add_css_class('doctor-badge-error')
+
         self.detail_body.set_label(issue.body)
+        self._clear_detail_blocks()
+        if issue.blocks:
+            self.detail_body.set_visible(False)
+            self._render_blocks(issue.blocks)
+        else:
+            self.detail_body.set_visible(True)
 
     def _copy_output(self, _button):
         if self._report is not None:
-            self.get_clipboard().set(self._report.raw_output)
+            self._copy_text(self._report.raw_output)
 
     def _show_config(self, _button):
         from .command_dialog import show_command
