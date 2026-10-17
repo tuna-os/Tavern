@@ -13,6 +13,10 @@ _ = gettext.gettext
 
 
 def _run_doctor():
+    from .brew_env import is_brew_available
+    if not is_brew_available():
+        from .doctor import DoctorError
+        raise DoctorError(_('Homebrew is not installed.'))
     result = run_read(('doctor', '--json'), timeout=60)
     if result.returncode and any(message in transcript(result).lower() for message in
                                 ('invalid option: --json', 'unknown option: --json')):

@@ -26,6 +26,18 @@ else
 fi
 
 eval "$("$BREW_PREFIX/bin/brew" shellenv)"
+# Reorder PATH so system bins always win over Homebrew (Bluefin parity)
+__sys=""; __brew=""
+IFS=: read -ra __parts <<<"$PATH"
+for __p in "${__parts[@]}"; do
+    case "$__p" in
+        *linuxbrew*|*homebrew*) __brew="${__brew:+$__brew:}$__p" ;;
+        *) __sys="${__sys:+$__sys:}$__p" ;;
+    esac
+done
+PATH="${__sys}${__brew:+:$__brew}"
+unset __sys __brew __parts __p
+export PATH
 
 if [ ! -d "$BUILDDIR" ] || [ ! -f "$BUILDDIR/build.ninja" ]; then
     echo "==> Setting up meson build..."

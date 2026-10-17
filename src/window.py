@@ -45,6 +45,7 @@ class TavernWindow(Adw.ApplicationWindow):
     navigation_view = Gtk.Template.Child()
     loading_label = Gtk.Template.Child()
     loading_progress_bar = Gtk.Template.Child()
+    brew_missing_banner = Gtk.Template.Child()
 
     def __init__(self, package_to_open=None, **kwargs):
         import time
@@ -88,6 +89,11 @@ class TavernWindow(Adw.ApplicationWindow):
 
         # Task button in header bar
         self.task_button.connect('clicked', self._on_task_button_clicked)
+
+        # Missing Homebrew banner
+        if hasattr(self, 'brew_missing_banner') and self.brew_missing_banner is not None:
+            self.brew_missing_banner.connect('button-clicked', self._on_install_homebrew_clicked)
+            self._update_brew_missing_banner()
 
         self._outdated_count = 0  # Track current outdated package count
         self._toasted_outdated_count = None  # Last count announced via toast
@@ -292,6 +298,7 @@ class TavernWindow(Adw.ApplicationWindow):
 
     def _on_installed_loaded(self, backend, _):
         _log.debug('Installed-loaded signal received')
+        self._update_brew_missing_banner()
 
     def _on_outdated_count_changed(self, page, count):
         """Update the Installed tab badge when the outdated count changes."""
@@ -320,7 +327,7 @@ class TavernWindow(Adw.ApplicationWindow):
             self._initial_load_done = True
             # Transition to main content smoothly
             self.content_stack.set_visible_child_name("main")
-
+            self._update_brew_missing_banner()
         if self._package_to_open:
             self.open_package_by_name(self._package_to_open, show_not_found=True)
             self._package_to_open = None
@@ -659,3 +666,104 @@ class TavernWindow(Adw.ApplicationWindow):
         self._settings.set_int('window-width', w)
         self._settings.set_int('window-height', h)
         self._settings.set_boolean('window-maximized', self.is_maximized())
+
+    def _update_brew_missing_banner(self):
+        from .brew_env import should_offer_homebrew_install
+        missing = should_offer_homebrew_install()
+        if hasattr(self, 'brew_missing_banner') and self.brew_missing_banner is not None:
+            self.brew_missing_banner.set_revealed(missing)
+        return missing
+
+    def _on_install_homebrew_clicked(self, _banner):
+        self.show_install_homebrew_dialog()
+
+    def show_install_homebrew_dialog(self):
+        import subprocess
+        from .brew_env import (
+            HOMEBREW_INSTALL_URL, HOMEBREW_DOC_URL,
+            build_homebrew_install_command,
+            build_terminal_install_argv, find_terminal_emulator,
+        )
+
+        cmd = build_homebrew_install_command()
+        cmd_str = (
+            '/bin/bash -c "$(/usr/bin/curl -fsSL '
+            f'{HOMEBREW_INSTALL_URL} | /bin/bash)"'
+        )
+
+        terminal = find_terminal_emulator()
+
+        dialog = Adw.AlertDialog(
+            heading=_('Install Homebrew'),
+            body=_(
+                'Homebrew is required to install and manage packages.\n\n'
+                'The official installer command is:\n{cmd}\n\n'
+                'Installation requires administrator (sudo) privileges and must '
+                'be run interactively.'
+            ).format(cmd=cmd_str),
+        )
+
+        dialog.add_response('cancel', _('Close'))
+        dialog.set_close_response('cancel')
+        dialog.set_default_response('cancel')
+
+        dialog.add_response('open_site', _('Learn More'))
+        dialog.add_response('copy', _('Copy Command'))
+        dialog.add_response('retry', _('Check Again'))
+
+        if terminal:
+            dialog.add_response('install', _('Install in Terminal'))
+            dialog.set_response_appearance('install', Adw.ResponseAppearance.SUGGESTED)
+            dialog.set_default_response('install')
+
+        def _on_response(_d, response_id):
+            if response_id == 'install' and terminal:
+                term_argv = build_terminal_install_argv(terminal, cmd)
+                try:
+                    subprocess.Popen(term_argv)
+                    self.toast_overlay.add_toast(
+                        Adw.Toast.new(_('Launched installer in terminal'))
+                    )
+                except Exception as e:
+                    _log.error('Failed to launch terminal: %s', e)
+                    self.toast_overlay.add_toast(
+                        Adw.Toast.new(_('Failed to launch terminal'))
+                    )
+            elif response_id == 'copy':
+                self.get_clipboard().set(cmd_str)
+                self.toast_overlay.add_toast(
+                    Adw.Toast.new(_('Install command copied to clipboard'))
+                )
+            elif response_id == 'open_site':
+                try:
+                    from gi.repository import Gtk
+                    launcher = getattr(Gtk, 'UriLauncher', None)
+                    if launcher is not None and hasattr(launcher, 'new'):
+                        launcher.new(HOMEBREW_DOC_URL).launch(self, None, None, None)
+                    else:
+                        subprocess.Popen(['xdg-open', HOMEBREW_DOC_URL])
+                except Exception as e:
+                    _log.error('Failed to open URL: %s', e)
+            elif response_id == 'retry':
+                self.retry_homebrew_detection()
+
+        dialog.connect('response', _on_response)
+        dialog.present(self)
+        return dialog
+
+    def retry_homebrew_detection(self):
+        from .brew_env import refresh_brew_bin, is_brew_available
+        new_bin = refresh_brew_bin()
+        available = is_brew_available(new_bin)
+        self._update_brew_missing_banner()
+        if available:
+            self.toast_overlay.add_toast(
+                Adw.Toast.new(_('Homebrew detected successfully'))
+            )
+            self.backend.refresh_installed_async()
+            self.installed_page.refresh(self.backend)
+        else:
+            self.toast_overlay.add_toast(
+                Adw.Toast.new(_('Homebrew not found yet'))
+            )
+        return available

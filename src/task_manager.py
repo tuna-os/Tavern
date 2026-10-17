@@ -354,6 +354,7 @@ class TaskManager(GObject.Object):
         try:
             if task.preflight is not None:
                 task.preflight()
+            from .brew_env import command_env
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -362,6 +363,7 @@ class TaskManager(GObject.Object):
                 encoding='utf-8',
                 errors='replace',
                 start_new_session=(os.name == 'posix'),
+                env=command_env(),
             )
             task._process = process
             _log.debug('Subprocess PID: %d', process.pid)

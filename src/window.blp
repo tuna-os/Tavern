@@ -140,6 +140,12 @@ template $TavernWindow: Adw.ApplicationWindow {
               child: Box {
                 orientation: vertical;
 
+                Adw.Banner brew_missing_banner {
+                  title: _("Homebrew is not installed. Tavern requires Homebrew to install and manage packages.");
+                  button-label: _("Install Homebrew…");
+                  revealed: false;
+                }
+
                 Adw.ViewStack main_stack {
                   vexpand: true;
 

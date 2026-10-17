@@ -32,12 +32,12 @@ class TavernInstalledPage(Adw.Bin):
     installed_toolbar = Gtk.Template.Child()
     search_entry = Gtk.Template.Child()
     no_results_label = Gtk.Template.Child()
+    empty_status_page = Gtk.Template.Child()
     installed_flow = Gtk.Template.Child()
     updates_section = Gtk.Template.Child()
     updates_flow = Gtk.Template.Child()
     updates_count_label = Gtk.Template.Child()
     update_all_button = Gtk.Template.Child()
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._backend = None
@@ -130,6 +130,14 @@ class TavernInstalledPage(Adw.Bin):
         clear_flow(self.installed_flow)
 
         if not installed:
+            from .brew_env import is_brew_available
+            if hasattr(self, 'empty_status_page') and self.empty_status_page is not None:
+                if not is_brew_available():
+                    self.empty_status_page.set_title(_("Homebrew Not Found"))
+                    self.empty_status_page.set_description(_("Homebrew is required to install and manage packages."))
+                else:
+                    self.empty_status_page.set_title(_("Nothing Installed"))
+                    self.empty_status_page.set_description(_("Packages you install will appear here"))
             self.installed_stack.set_visible_child_name('empty')
             return
 

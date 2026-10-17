@@ -49,6 +49,11 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.1.65" date="2026-10-17">
+      <description>
+        <p>Prioritize system bins over Homebrew in PATH (Bluefin parity), and offer interactive Homebrew installation when missing.</p>
+      </description>
+    </release>
     <release version="0.1.64" date="2026-09-15">
       <description>
         <p>Improves Homebrew maintenance, diagnostics, cache freshness, and release automation.</p>
