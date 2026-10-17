@@ -111,15 +111,19 @@ brew install gtk4 libadwaita meson ninja pygobject3 gettext desktop-file-utils b
 ### Building with Meson
 
 ```bash
-meson setup builddir
+meson setup builddir --prefix="$HOME/.local"
 meson compile -C builddir
 ```
 
 ### Running
 
 ```bash
-meson compile -C builddir run
+./run.sh
 ```
+
+`./run.sh` rebuilds the configured build directory, installs Tavern under
+`$HOME/.local`, and launches it. If `builddir` was configured with another
+prefix, reconfigure it with the prefix above before running the script.
 
 ## 📦 Flatpak
 
