@@ -18,12 +18,13 @@
 import ipaddress
 import socket
 from urllib.parse import urlparse
-from urllib.request import build_opener, HTTPRedirectHandler
+from urllib.request import build_opener, HTTPRedirectHandler, HTTPSHandler
+import http.client
 
 # Always-safe, fixed hosts the media path fetches from by construction. The
 # host is pinned literally in media.py (e.g. ``https://github.com/<owner>.png``),
 # so an attacker's metadata can never repoint the app at a different host for
-# these — DNS resolution is skipped for them, which also avoids offline/DNS
+# these — live DNS pinning is skipped for them, which also avoids offline/DNS
 # failures for the endpoints we always want to reach.
 CURATED_NETLOCKS = frozenset({
     'github.com',
@@ -69,6 +70,50 @@ def _resolve_host(host):
     return ips
 
 
+def validate_media_url_and_ip(url):
+    """Validate that ``url`` is safe to fetch and return (is_safe, pinned_ip).
+
+    For curated hosts, returns (True, None).
+    For non-curated hosts, resolves the hostname once:
+    - If all resolved IP addresses are safe (public), returns (True, str(first_ip)).
+    - If any resolved IP is blocked or unresolvable, returns (False, None).
+    """
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False, None
+
+    scheme = (parsed.scheme or '').lower()
+    if scheme != 'https':
+        return False, None
+    if parsed.username is not None or parsed.password is not None:
+        return False, None
+
+    try:
+        port = parsed.port
+    except ValueError:
+        return False, None
+    if port is not None and port != _DEFAULT_PORTS[scheme]:
+        return False, None
+
+    host = (parsed.hostname or '').lower()
+    if not host:
+        return False, None
+
+    if host in CURATED_NETLOCKS:
+        return True, None
+
+    ips = _resolve_host(host)
+    if not ips:
+        return False, None
+    if any(_ip_is_blocked(ip) for ip in ips):
+        return False, None
+
+    # Return string representation of the first verified public IP
+    first_ip = next(iter(ips))
+    return True, str(first_ip)
+
+
 def is_safe_media_url(url):
     """Return True if ``url`` may be fetched as media.
 
@@ -77,58 +122,76 @@ def is_safe_media_url(url):
     multicast / unspecified / reserved. Returns False and never raises, so
     callers can simply skip unsafe candidates.
     """
-    try:
-        parsed = urlparse(url)
-    except ValueError:
-        return False
-
-    scheme = (parsed.scheme or '').lower()
-    if scheme != 'https':
-        return False
-    # userinfo in a metadata URL is a red flag and unnecessary for these fetches.
-    if parsed.username is not None or parsed.password is not None:
-        return False
-
-    try:
-        port = parsed.port
-    except ValueError:
-        return False  # malformed port
-    if port is not None and port != _DEFAULT_PORTS[scheme]:
-        return False
-
-    host = (parsed.hostname or '').lower()
-    if not host:
-        return False
-
-    if host in CURATED_NETLOCKS:
-        return True
-
-    ips = _resolve_host(host)
-    if not ips:
-        return False  # unresolved -> cannot prove public
-    return not any(_ip_is_blocked(ip) for ip in ips)
+    safe, _ = validate_media_url_and_ip(url)
+    return safe
 
 
 def assert_safe_media_url(url):
-    """Raise ``ValueError`` if ``url`` is unsafe to fetch; no-op if safe."""
-    if not is_safe_media_url(url):
+    """Raise ``ValueError`` if ``url`` is unsafe to fetch; return pinned IP if safe."""
+    safe, pinned_ip = validate_media_url_and_ip(url)
+    if not safe:
         raise ValueError(f'blocked unsafe media URL: {url!r}')
+    return pinned_ip
+
+
+class PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPSConnection that connects directly to a pre-validated IP address
+    while retaining the original hostname for SNI and HTTP Host header.
+    """
+
+    def __init__(self, host, port=None, **kwargs):
+        self._pinned_ip = kwargs.pop('pinned_ip', None)
+        super().__init__(host, port, **kwargs)
+
+    def connect(self):
+        dest_host = self._pinned_ip if self._pinned_ip else self.host
+        self.sock = self._create_connection(
+            (dest_host, self.port), self.timeout, self.source_address
+        )
+        try:
+            self.sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        except OSError:
+            pass
+
+        if self._tunnel_host:
+            self._tunnel()
+
+        server_hostname = self._tunnel_host if self._tunnel_host else self.host
+        self.sock = self._context.wrap_socket(self.sock, server_hostname=server_hostname)
+
+
+class PinnedHTTPSHandler(HTTPSHandler):
+    """HTTPSHandler that passes the request's approved pinned IP to PinnedHTTPSConnection."""
+
+    def https_open(self, req):
+        pinned_ip = getattr(req, '_pinned_ip', None)
+        return self.do_open(
+            lambda host, **kwargs: PinnedHTTPSConnection(host, pinned_ip=pinned_ip, **kwargs),
+            req,
+            context=self._context,
+            check_hostname=self._check_hostname,
+        )
 
 
 class _SSRFRedirectHandler(HTTPRedirectHandler):
-    """Follow a redirect only when its target passes ``is_safe_media_url``.
+    """Follow a redirect only when its target passes ``validate_media_url_and_ip``.
 
     urllib's default opener follows 3xx redirects blindly, so a public HTTPS
     site can hand off the client to ``http://127.0.0.1``. Re-validating the
     Location before reconnecting closes that SSRF hop.
+    Binds the validated IP address to the redirect request to prevent DNS rebinding.
     """
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
-        if not is_safe_media_url(newurl):
+        safe, pinned_ip = validate_media_url_and_ip(newurl)
+        if not safe:
             raise ValueError(f'blocked unsafe redirect to {newurl!r}')
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
+        new_req = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new_req is not None:
+            new_req._pinned_ip = pinned_ip
+        return new_req
 
 
 def build_safe_opener():
-    """Build a urllib opener that refuses redirect-based SSRF."""
-    return build_opener(_SSRFRedirectHandler())
+    """Build a urllib opener that refuses redirect-based SSRF and binds validated DNS."""
+    return build_opener(PinnedHTTPSHandler(), _SSRFRedirectHandler())

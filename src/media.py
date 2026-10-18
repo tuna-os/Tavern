@@ -64,13 +64,19 @@ def urlopen(req, timeout=None):
 
     The URL is rejected before any connection when it is not https, carries
     userinfo, uses a non-default port, or resolves to a loopback / private /
-    link-local / multicast / reserved address. Redirects are re-validated by
-    _MEDIA_OPENER, so a public HTTPS site cannot 3xx-drop to a local address.
+    link-local / multicast / reserved address. The approved resolved IP is
+    bound to the socket connection, and redirects are re-validated by
+    _MEDIA_OPENER, so a public HTTPS site cannot rebind DNS or 3xx-drop to a
+    local address.
     Fetch callers wrap this in try/except and skip the failed source, so an
     unsafe metadata URL is simply never fetched.
     """
     url = req.full_url if hasattr(req, 'full_url') else str(req)
-    assert_safe_media_url(url)
+    pinned_ip = assert_safe_media_url(url)
+    if isinstance(req, str):
+        req = Request(req)
+    if hasattr(req, '_pinned_ip') or isinstance(req, Request):
+        req._pinned_ip = pinned_ip
     return _MEDIA_OPENER.open(req, timeout=timeout)
 
 class MediaMixin:
