@@ -1,6 +1,6 @@
 # Domain Docs
 
-How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+How the engineering skills should consume this repo's domain documentation when they explore the codebase.
 
 ## Before exploring, read these
 
@@ -34,12 +34,14 @@ Single-context repo:
 
 ## Use the project's vocabulary
 
-When your output names a domain concept (in an issue title, a refactor proposal, a hypothesis, a test name), use the term as it appears in `README.md`, `AGENTS.md`, and the domain docs above. Tavern's domain is small (formulae, casks, taps, caches, Brewfiles) — don't drift to synonyms the existing docs don't use.
+When your output names a domain concept (in an issue title, proposal, hypothesis, or test name), use the terms defined in the domain docs above.
+Tavern's domain is small (formulae, casks, taps, caches, Brewfiles) — do not drift to synonyms the existing docs do not use.
 
-If you find yourself needing a term the docs don't define, that's a signal: either the concept maps to something already named (use that name) or there's a real gap (add it to the relevant doc, or note it for a maintainer).
+If you need a term that the docs do not define, that is a signal.
+Either the concept maps to something already named, or there is a real gap to document or note for a maintainer.
 
 ## Flag ADR conflicts
 
-If your output contradicts an existing ADR, surface it explicitly rather than silently overriding:
+If your output contradicts an existing ADR, surface it explicitly instead of a silent override:
 
-> _Contradicts ADR-0001 (Homebrew ≥ 6.0.0) — but worth reopening because…_
+> _Contradicts ADR-0001 (Homebrew ≥ 6.0.0) — but worth a reopen because…_
