@@ -42,7 +42,7 @@ jobs:
           flatpak install --user -y tuna-os org.tunaos.tavern
           flatpak info --user org.tunaos.tavern
 
-      - uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@41f52ed34c946c7e581db5ad8d90e31eb2058f5d # main
+      - uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@f7b706c80f253a52fb5d86311725afd656d0e3b3 # main
         with:
           # --socket=x11 so the sandbox can see the Xvfb the action started.
           # Homebrew is absent on the runner, so this shows whatever Tavern
