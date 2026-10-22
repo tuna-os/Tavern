@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](https://github.com/tuna-os/Tavern/blob/main/LICENSE)
 
-Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **Python**, **GTK 4**, and **Libadwaita**. It provides a premium "App Store" experience for managing your Homebrew formulae and casks.
+Tavern is a modern, fast, and beautiful Homebrew client for Linux, built with **Python**, **GTK 4**, and **Libadwaita**. It provides a premium "App Store" experience that manages your Homebrew formulae and casks.
 
 ### Quick Install
 
@@ -23,12 +23,12 @@ On macOS this installs `Tavern.app`; on Linux it installs a prebuilt AppImage an
 > [`tuna-os/homebrew-tap`](https://github.com/tuna-os/homebrew-tap)
 > (moved from the maintainer's personal tap, tuna-os/Tavern#79 —
 > [tuna-os/homebrew-tap#3](https://github.com/tuna-os/homebrew-tap/pull/3),
-> merged 2026-08-14). No personal-tap fallback is needed. The Flatpak
-> above remains the org-published, recommended channel either way.
+> merged 2026-08-14). You do not need a personal-tap fallback. Either way,
+> the Flatpak above is the recommended, org-published channel.
 
 > [!IMPORTANT]
 > **⚠️ Attribution & Disclaimer**
-> Tavern is a **completely AI-generated** project and limited in it's use to just Homebrew. The UI design is a heavy "tribute" (read: shameless ripoff) of [Bazaar](https://github.com/kolunmi/bazaar), which is the best App Store for Linux. If you like this design, you should definitely check out the original project, made by humans and consider supporting the fine folks that make it.
+> Tavern is a **completely AI-generated** project and limited in its use to Homebrew. The UI design is a heavy "tribute" (read: shameless ripoff) of [Bazaar](https://github.com/kolunmi/bazaar), which is the best App Store for Linux. If you like this design, you should definitely check out the original project, made by humans, and support the fine folks who make it.
 
 ![Tavern Screenshot](https://raw.githubusercontent.com/tuna-os/Tavern/main/data/screenshots/main-window.png)
 
@@ -63,17 +63,17 @@ Never post account credentials or API keys in issues or pull requests.
 ## ✨ Features
 
 - **🏠 Curated Browse**: Popular formulae and casks ranked by real install analytics, plus a daily Discover rotation.
-- **🔍 Fast Search**: Instant, off-main-thread searching across tens of thousands of formulae and casks (Ctrl+F), plus GNOME Shell search integration.
+- **🔍 Fast Search**: Instant, off-main-thread search across tens of thousands of formulae and casks (Ctrl+F), plus integration with GNOME Shell.
 - **📦 Package Details**: Rich information including descriptions, versions, dependencies, READMEs, screenshots, and install statistics.
 - **🔤 Font Previews**: Font casks render live pangram previews right on the details page.
-- **📌 Version Pinning**: Pin formulae and casks to their installed version; pinned packages stay out of update prompts.
+- **📌 Version Pin**: Pin formulae and casks to their installed version; pinned packages stay out of update prompts.
 - **📄 Brewfile Support**: View complete Brewfiles and install all Homebrew-supported entry types without loss of options. Remove formulae and casks as a group.
 - **⚡ Task Management**: Queued installs, removals, and upgrades with per-package progress and a task panel.
 - **🫖 Tap Manager**: Add, remove, update, and trust Homebrew taps; browse tap contents.
 - **🩺 Brew Doctor**: Check Homebrew health, inspect warnings, retry, and copy diagnostic output.
 - **🛠 Maintenance**: Installed security scans, install previews, user services, cleanup previews, and a tool for historical formulae. See [Homebrew features](docs/HOMEBREW_FEATURES.md).
 - **🌗 Native Design**: Libadwaita interface following the GNOME HIG — dark mode, adaptive layouts, keyboard shortcuts, and a preferences dialog.
-- **🐧 Linux First**: Smart filtering to hide macOS-only casks on Linux systems.
+- **🐧 Linux First**: Filters out macOS-only casks on Linux systems.
 - **🍺 Missing Homebrew Support**: Detects missing Homebrew and offers a terminal installer, command copy, documentation, and live detection retry.
 - **⚡ System-First PATH Policy**: Adopts Bluefin parity so system binaries always take precedence over Homebrew binaries in PATH.
 ## 🚀 Getting Started
@@ -136,8 +136,8 @@ meson compile -C builddir
 ```
 
 `./run.sh` rebuilds the configured build directory, installs Tavern under
-`$HOME/.local`, and launches it. If `builddir` was configured with another
-prefix, reconfigure it with the prefix above before running the script.
+`$HOME/.local`, and launches it. If you configured `builddir` with another
+prefix, reconfigure it with the prefix above before you run the script.
 
 ## 📦 Flatpak
 
@@ -161,12 +161,12 @@ flatpak install --user --reinstall Tavern-Linux-CI.flatpak
 
 ## 🤝 Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, tests, and PR guidelines.
+Contributions are welcome! See [the contributor guide](CONTRIBUTING.md) for dev setup, tests, and PR guidelines.
 
 ## 📄 License
 
-Tavern is released under the **GPL-3.0-or-later** license. See `LICENSE` for details.
+Tavern ships under the **GPL-3.0-or-later** license. See `LICENSE` for details.
 
 ---
 
-Part of the [TunaOS](https://tunaos.org) ecosystem. [Docs](https://tunaos.org) · [Contributing](CONTRIBUTING.md)
+Part of the [TunaOS](https://tunaos.org) ecosystem. [Docs](https://tunaos.org) · [Contribute](CONTRIBUTING.md)
