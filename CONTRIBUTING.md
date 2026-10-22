@@ -1,6 +1,6 @@
 # Contributing to Tavern
 
-Thanks for wanting to help! Tavern is a GTK 4 / Libadwaita Homebrew client written in Python with Blueprint UI definitions.
+Thanks for your help! Tavern is a Homebrew client for GTK 4 and Libadwaita, written in Python with Blueprint UI definitions.
 
 <!-- hive-contribute-plea: donated-compute appeal, keep in sync across repos -->
 ## Contribute compute — no code needed
@@ -42,7 +42,7 @@ meson install -C builddir
 
 The development profile changes the application ID to `org.tunaos.tavern.Devel`. The app then appears as a separate entry in the launcher and in settings. You can test a release build and develop against `main` at the same time.
 
-For a sandboxed Flatpak build (requires [`just`](https://github.com/casey/just)):
+For a sandboxed Flatpak build (needs [`just`](https://github.com/casey/just)):
 
 ```bash
 just dev                  # build + install + run as Flatpak (development profile)
@@ -80,25 +80,26 @@ Use a file path in place of `tests/` to run one file. Add `--benchmark-enable`
 to run benchmarks. The benchmark plugin is required even when benchmarks are off.
 GTK needs a display and session bus; the fixtures alone do not provide these.
 The host job may skip tests that need `Adw.Spinner` (libadwaita 1.6 or later).
+
 Both the host and GNOME 50 Flatpak test jobs must pass before merge.
-Use `just dev` for the separate Flatpak development path.
+Use `just dev` for Flatpak development in a separate path.
 
 ## Working on the UI
 
-Blueprint files (`.blp`) compile to `.ui` XML at build time via `blueprint-compiler`. Always rebuild after editing a `.blp`:
+Blueprint files (`.blp`) compile to `.ui` XML at build time via `blueprint-compiler`. Always rebuild after edits to a `.blp`:
 
 ```bash
 ./run.sh                  # re-runs blueprint-compiler
 ```
 
-When adding a new page, keep Blueprint, Python, window wiring, gresource registration, and meson sources in sync — the repo layout in [README.md](README.md) and `src/` shows where each piece lands.
+When you add a page, keep Blueprint, Python, window wiring, gresource entries, and meson sources in sync. The repo layout in [README.md](README.md) and `src/` shows where each piece lands.
 
 ### Localization
 
 Wrap every user-visible Blueprint value in `_()`, for example
 `label: _("Install");`, and add new Blueprint/Python sources to
 `po/POTFILES.in`. Python UI strings should use `gettext.gettext` (`_`) or
-`ngettext` for plurals. Before opening a PR, run:
+`ngettext` for plurals. Before you open a PR, run:
 
 ```bash
 python3 tools/check-translations.py
@@ -107,21 +108,21 @@ meson compile -C build tavern-pot
 ```
 
 Add a locale code to `po/LINGUAS` only when its `.po` catalog is ready to
-ship. Translation-only PRs are welcome and do not require changes to Python.
+ship. Translation-only PRs are welcome and do not need changes to Python.
 
-Additional maintainer guides cover the [cache lifecycle](docs/CACHE.md),
+Other guides for maintainers cover the [cache lifecycle](docs/CACHE.md),
 [curation feed](docs/CURATION.md), [accessibility release pass](docs/ACCESSIBILITY.md),
 [release process](docs/RELEASING.md), and [architecture overview](docs/ARCHITECTURE.md).
 
-The files under [`docs/reports/`](docs/reports/README.md) are dated historical
-verification snapshots, not maintained contributor instructions.
+The files under [`docs/reports/`](docs/reports/README.md) provide dated snapshots
+of historical verification, not maintained contributor instructions.
 
 ## Pull requests
 
 - Keep PRs focused — one change, one PR.
 - Include a screenshot or short clip for any user-visible UI change.
 - Run the test commands above before you open a PR.
-- Reference the issue you're closing (`Closes #123`).
+- Reference the issue you close (`Closes #123`).
 
 ## Debugging
 
@@ -145,7 +146,7 @@ Logging is off by default. Use the variables above to turn it on. You can set `T
 
 ## Code style
 
-- Match the surrounding style — Tavern is a small codebase, consistency matters more than any specific rule.
+- Match the adjacent code style — Tavern is a small codebase, consistency matters more than any specific rule.
 - Logging is off by default. New code should use `_log = get_logger('module_name')` from `logging_util`, not bare `print`.
 - Backend I/O goes on a thread and reports back via `GLib.idle_add` — don't block the UI thread.
 
