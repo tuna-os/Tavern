@@ -96,6 +96,53 @@ brew install --cask tuna-os/tap/tavern
 
 The cask handles both platforms: `Tavern.app` on macOS and a prebuilt AppImage on Linux, so you don't need Tavern's build dependencies on your machine. If you'd prefer a sandboxed install on Linux, use the Flatpak instead (see below).
 
+### Command-line and links
+
+Launch Tavern directly into a package, tap, or Brewfile view. Pass the target to
+Tavern's executable (for example, `tavern` on Linux) or **after the application
+ID** in `flatpak run org.tunaos.tavern`. These launch targets open the GUI; they
+are not headless install commands.
+
+| Target | Supported arguments |
+| --- | --- |
+| Formula or cask by name | `--package NAME`, `-p NAME`, `--package=NAME` |
+| Local Brewfile | `--brewfile PATH`, `-b PATH`, `--brewfile=PATH` |
+| Formula link | `brew://formula/NAME` (also `brew://formulae/NAME`) |
+| Cask link | `brew://cask/NAME` (also `brew://casks/NAME`) |
+| Package-name shorthand | `brew://NAME` |
+| Tap link | `brew://tap/OWNER/REPO` |
+| Homebrew web link | `https://formulae.brew.sh/formula/NAME`, `https://formulae.brew.sh/cask/NAME` |
+
+For example, with the Linux executable on your PATH:
+
+```bash
+tavern --package ripgrep
+tavern 'brew://cask/firefox'
+tavern 'brew://tap/tuna-os/homebrew-tap'
+tavern --brewfile "$HOME/Brewfile"
+```
+
+With the recommended Flatpak install:
+
+```bash
+flatpak run org.tunaos.tavern -p ripgrep
+flatpak run org.tunaos.tavern 'https://formulae.brew.sh/formula/ripgrep'
+flatpak run org.tunaos.tavern 'brew://tap/tuna-os/homebrew-tap'
+flatpak run org.tunaos.tavern --brewfile="$HOME/Brewfile"
+```
+
+Quote paths containing spaces and use a Brewfile path accessible to Tavern
+(inside the sandbox for Flatpak). On macOS, pass arguments to the installed app
+with, for example, `open -a Tavern --args --package ripgrep`. For development,
+`./run.sh --package ripgrep` forwards arguments after building and installing.
+
+For desktop shortcuts or scripts, pass the link to Tavern as shown above. An
+installed desktop `brew://` handler can also route links to Tavern, depending on
+your desktop's default-app settings. Ordinary HTTPS links usually open in a web
+browser unless explicitly passed to Tavern. The supported URI schemes here are
+`brew://` and the specific `https://formulae.brew.sh/` forms above; do not assume
+`homebrew://` links work.
+
 ### Prerequisites
 
 - [Homebrew](https://brew.sh) (Tavern will offer to install it interactively if not already present).
