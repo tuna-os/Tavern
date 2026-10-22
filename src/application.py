@@ -32,7 +32,7 @@ class TavernApplication(Adw.Application):
         self._package_to_open = None
         self._tap_to_open = None
         self._brewfile_to_open = None
-        
+        self._backend = None
 
         self.create_action('quit', lambda *_: self.quit(), ['<primary>q'])
         self.create_action('about', self._on_about_action)
@@ -51,6 +51,9 @@ class TavernApplication(Adw.Application):
     def do_startup(self):
         """Initialize the background service worker once on startup."""
         Adw.Application.do_startup(self)
+        if self._backend is None:
+            from .backend import BrewBackend
+            self._backend = BrewBackend()
         self.start_background_refresher()
 
     def start_background_refresher(self):
@@ -87,9 +90,10 @@ class TavernApplication(Adw.Application):
         if needs_refresh:
             _log.info('Cache is stale, performing background refresh of Homebrew metadata...')
             try:
-                from .backend import BrewBackend
-                backend = BrewBackend()
-                backend.refresh_cache_files()
+                if self._backend is None:
+                    from .backend import BrewBackend
+                    self._backend = BrewBackend()
+                self._backend.refresh_cache_files()
                 _log.info('Background cache refresh completed successfully!')
             except Exception as e:
                 _log.error('Background cache refresh failed: %s', e)
@@ -197,7 +201,8 @@ class TavernApplication(Adw.Application):
             _log.debug('Creating new TavernWindow')
             win = TavernWindow(
                 application=self,
-                package_to_open=self._package_to_open
+                package_to_open=self._package_to_open,
+                backend=self._backend
             )
             # Apply devel styling (striped titlebar) when running as the
             # development build — mirrors the GNOME convention used by

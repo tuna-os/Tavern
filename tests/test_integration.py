@@ -111,6 +111,7 @@ def test_application_activate_and_open(monkeypatch, tmp_path):
             kwargs.pop('package_to_open', None)
             kwargs.pop('tap_to_open', None)
             kwargs.pop('brewfile_to_open', None)
+            kwargs.pop('backend', None)
             super().__init__(*args, **kwargs)
             self.presented = False
             self.opened_brewfile = None

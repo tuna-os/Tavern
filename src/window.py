@@ -47,7 +47,7 @@ class TavernWindow(Adw.ApplicationWindow):
     loading_progress_bar = Gtk.Template.Child()
     brew_missing_banner = Gtk.Template.Child()
 
-    def __init__(self, package_to_open=None, **kwargs):
+    def __init__(self, package_to_open=None, backend=None, **kwargs):
         import time
         init_start = time.perf_counter()
         
@@ -70,7 +70,7 @@ class TavernWindow(Adw.ApplicationWindow):
 
         # Shared backend
         backend_start = time.perf_counter()
-        self.backend = BrewBackend()
+        self.backend = backend if backend is not None else BrewBackend()
         self.backend.bind_property('loading_status', self.loading_label, 'label', GObject.BindingFlags.DEFAULT)
         self.backend.bind_property('loading_progress', self.loading_progress_bar, 'fraction', GObject.BindingFlags.DEFAULT)
         backend_time = (time.perf_counter() - backend_start) * 1000

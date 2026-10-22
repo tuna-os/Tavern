@@ -71,3 +71,53 @@ def test_application_command_line(tmp_path, monkeypatch):
     assert app._brewfile_to_open == "my.Brewfile"
     assert app._tap_to_open == "hanthor/tap"
     assert len(activated) == 1
+
+
+def test_application_shared_backend(tmp_path, monkeypatch):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestSharedBackend")
+    assert app._backend is None
+
+    # Mock BrewBackend and refresh_cache_files
+    mock_backend = None
+    refreshed = []
+
+    class MockBrewBackend:
+        def __init__(self):
+            nonlocal mock_backend
+            mock_backend = self
+        def refresh_cache_files(self):
+            refreshed.append(self)
+
+    import tavern.application as app_mod
+    monkeypatch.setattr(app_mod, 'BrewBackend', MockBrewBackend, raising=False)
+    import tavern.backend as backend_mod
+    monkeypatch.setattr(backend_mod, 'BrewBackend', MockBrewBackend, raising=False)
+
+    # Calling do_startup initializes shared _backend
+    app.do_startup()
+    assert app._backend is not None
+    assert app._backend is mock_backend
+
+    # _refresh_cache_thread uses the shared backend instance
+    app._refresh_cache_thread()
+    assert len(refreshed) == 1
+    assert refreshed[0] is app._backend
+
+    # Mock TavernWindow to verify backend injection
+    created_windows = []
+    class MockWindow:
+        def __init__(self, *args, **kwargs):
+            self.backend = kwargs.get('backend')
+            created_windows.append(self)
+        def present(self):
+            pass
+        def get_display(self):
+            return None
+
+    monkeypatch.setattr(app_mod, 'TavernWindow', MockWindow)
+    app.do_activate()
+    assert len(created_windows) == 1
+    assert created_windows[0].backend is app._backend
+
