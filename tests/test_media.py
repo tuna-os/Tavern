@@ -655,7 +655,8 @@ class TestIsSafeMediaUrl:
 
 class TestMediaRedirectHandler:
     """The redirect handler re-validates every 3xx Location before reconnecting,
-    closing the "public HTTPS site 3xx-drops to 127.0.0.1" SSRF hop."""
+    closing the "public HTTPS site 3xx-drops to 127.0.0.1" SSRF hop, and binds
+    the approved IP address to the redirect request."""
 
     def _handler(self):
         return us._SSRFRedirectHandler()
@@ -695,6 +696,24 @@ class TestMediaRedirectHandler:
                                    'https://raw.githubusercontent.com/o/r/HEAD/x.png')
         assert captured['newurl'] == 'https://raw.githubusercontent.com/o/r/HEAD/x.png'
         assert result is not None
+        assert getattr(result, '_pinned_ip', None) is None
+
+    def test_redirect_to_public_pins_ip(self, monkeypatch):
+        from urllib.request import HTTPRedirectHandler
+        h = self._handler()
+        req = Request('https://public.example/a')
+
+        monkeypatch.setattr(us.socket, 'getaddrinfo',
+            lambda host, port, proto: [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,
+                                         '', ('93.184.216.34', 0))])
+        def fake_super(self, r, fp, code, msg, headers, newurl):
+            return Request(newurl)
+
+        monkeypatch.setattr(HTTPRedirectHandler, 'redirect_request', fake_super)
+        result = h.redirect_request(req, None, 302, '', {},
+                                   'https://otherpublic.example/x.png')
+        assert result is not None
+        assert getattr(result, '_pinned_ip', None) == '93.184.216.34'
 
 
 class TestMediaUrlopenValidation:
@@ -722,6 +741,74 @@ class TestMediaUrlopenValidation:
         monkeypatch.setattr(media_mod._MEDIA_OPENER, 'open', fake_open)
         media_mod.urlopen(Request('https://raw.githubusercontent.com/o/r/HEAD/x.png'))
         assert called == ['https://raw.githubusercontent.com/o/r/HEAD/x.png']
+
+    def test_pins_resolved_ip_on_request(self, monkeypatch):
+        monkeypatch.setattr(us.socket, 'getaddrinfo',
+            lambda host, port, proto: [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,
+                                         '', ('93.184.216.34', 0))])
+        captured_req = []
+
+        def fake_open(req, timeout=None):
+            captured_req.append(req)
+            return _FakeResp(b'x' * 300)
+
+        monkeypatch.setattr(media_mod._MEDIA_OPENER, 'open', fake_open)
+        media_mod.urlopen('https://public.example/a.png')
+        assert len(captured_req) == 1
+        assert captured_req[0]._pinned_ip == '93.184.216.34'
+
+
+class TestDnsRebindingDefense:
+    """Validate that DNS rebinding between validation and connection cannot reach private IP."""
+
+    def test_dns_rebinding_cannot_reach_private_ip(self, monkeypatch):
+        # 1st call (validation): returns public IP '93.184.216.34'
+        # 2nd call (rebinding attempt): returns loopback IP '127.0.0.1'
+        dns_history = []
+
+        def fluctuating_getaddrinfo(host, port, proto=0, *args, **kwargs):
+            dns_history.append(host)
+            if len(dns_history) == 1:
+                return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,
+                         '', ('93.184.216.34', 0))]
+            return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,
+                     '', ('127.0.0.1', 0))]
+
+        monkeypatch.setattr(us.socket, 'getaddrinfo', fluctuating_getaddrinfo)
+
+        # Record destination address passed to socket creation
+        connected_addrs = []
+
+        def mock_create_connection(address, timeout=None, source_address=None):
+            connected_addrs.append(address)
+            class FakeSock:
+                def setsockopt(self, *a): pass
+            return FakeSock()
+
+        wrapped_hosts = []
+
+        class FakeContext:
+            def wrap_socket(self, sock, server_hostname):
+                wrapped_hosts.append(server_hostname)
+                return sock
+
+        # Validate URL and obtain approved IP
+        url = 'https://rebinding.example/icon.png'
+        pinned_ip = us.assert_safe_media_url(url)
+        assert pinned_ip == '93.184.216.34'
+
+        # Now simulate socket connection via PinnedHTTPSConnection
+        conn = us.PinnedHTTPSConnection('rebinding.example', 443, pinned_ip=pinned_ip)
+        conn._create_connection = mock_create_connection
+        conn._context = FakeContext()
+        conn.connect()
+
+        # Destination must be the validated public IP, never the rebound loopback
+        assert connected_addrs == [('93.184.216.34', 443)]
+        assert ('127.0.0.1', 443) not in connected_addrs
+        # SNI and Host must be preserved
+        assert wrapped_hosts == ['rebinding.example']
+        assert conn.host == 'rebinding.example'
 
 
 class TestMediaUrlopenRedirectEndToEnd:
