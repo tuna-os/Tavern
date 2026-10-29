@@ -34,7 +34,7 @@ test_module = {
         "test-args": ["--socket=x11"],
     },
     "build-commands": [
-        "python3 -m pip install --prefix=/app pytest pytest-benchmark",
+        "python3 -m pip install --prefix=/app -r requirements-test.txt",
     ],
     "sources": [
         {"type": "dir", "path": "."},

@@ -40,7 +40,7 @@ jobs:
       - name: Install pytest
         # pytest-benchmark is required, not optional: pyproject's addopts
         # carries --benchmark-disable, and pytest exits on an unknown arg.
-        run: pip install --break-system-packages pytest pytest-benchmark
+        run: pip install --break-system-packages -r requirements-test.txt
 
       - name: Compile Blueprint UI and the gresource bundle
         # tests/conftest.py registers a compiled gresource if it finds one at
@@ -147,7 +147,7 @@ jobs:
         # nothing here ships in the built .flatpak.
         run: |
           flatpak-builder --run build-dir org.tunaos.tavern.json \
-            python3 -m pip install --break-system-packages pytest pytest-benchmark
+            python3 -m pip install --break-system-packages -r requirements-test.txt
 
       - name: Run test suite inside the Flatpak sandbox
         # x11/session-bus sockets forwarded in so Gtk/Adw widget construction

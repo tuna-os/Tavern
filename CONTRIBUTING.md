@@ -59,8 +59,13 @@ sudo apt-get update
 sudo apt-get install -y python3-gi python3-gi-cairo python3-pip \
   gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 \
   libglib2.0-dev-bin libxml2-utils blueprint-compiler xvfb dbus-x11
-/usr/bin/python3 -m pip install --break-system-packages pytest pytest-benchmark
+/usr/bin/python3 -m pip install --break-system-packages -r requirements-test.txt
 ```
+
+`requirements-test.txt` pins the same compatible pytest and pytest-benchmark
+versions for the host, CI sandbox, and local Flatpak test script. Update them
+together: pytest-benchmark 5.3.0 supports pytest 9.1.1, but its fixture uses
+`Node._nodeid`, which pytest 9.2 removed.
 
 Build the UI resource at the exact path that `tests/conftest.py` loads:
 
