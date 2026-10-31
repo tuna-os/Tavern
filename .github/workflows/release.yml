@@ -161,11 +161,10 @@ jobs:
           files: dist/*
           generate_release_notes: true
           fail_on_unmatched_files: true
-      - name: Dispatch downstream publishing from this tag
+      - name: Dispatch Homebrew publishing from this tag
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh workflow run publish-flatpak.yml --ref "$GITHUB_REF_NAME"
           gh workflow run update-homebrew-tap.yml --ref main -f release_tag="$GITHUB_REF_NAME"
 
   parity:
