@@ -11,6 +11,8 @@ import os
 
 import pytest
 
+from tavern import backend_transport
+
 import tavern.taps as taps_mod
 from tavern.taps import TapsMixin
 from tavern.package import Package
@@ -64,10 +66,8 @@ def host():
 
 @pytest.fixture(autouse=True)
 def no_backend_import(monkeypatch):
-    """Every taps test avoids importing the full backend: _brew_cmd() lazily
-    imports tavern.backend (which pulls in the whole GI stack).  Stub it out
-    so only the command list matters."""
-    monkeypatch.setattr(taps_mod, '_brew_cmd', lambda args: ['brew'] + args)
+    """Keep command construction deterministic without importing the facade."""
+    monkeypatch.setattr(backend_transport, '_brew_cmd', lambda args: ['brew'] + args)
 
 
 @pytest.fixture
@@ -481,7 +481,7 @@ class TestFetchPopularTaps:
             {'full_name': 'user3/not-a-tap', 'description': 'ignored'},
             {'full_name': 'homebrew/homebrew-core', 'description': 'core'},
         ]}
-        monkeypatch.setattr(taps_mod, 'urlopen', self._mocked_urlopen(payload))
+        monkeypatch.setattr(backend_transport, 'urlopen', self._mocked_urlopen(payload))
         results = []
         host._fetch_popular_taps_thread(results.append)
 
@@ -496,7 +496,7 @@ class TestFetchPopularTaps:
     def test_cache_hit_skips_network(self, host, idle, monkeypatch):
         host._save_cache('popular_taps', [{'name': 'u/t', 'gh_user': 'u', 'desc': 'd'}])
         calls = []
-        monkeypatch.setattr(taps_mod, 'urlopen', lambda *a, **k: calls.append(1))
+        monkeypatch.setattr(backend_transport, 'urlopen', lambda *a, **k: calls.append(1))
         results = []
         host._fetch_popular_taps_thread(results.append)
 
@@ -511,7 +511,7 @@ class TestFetchPopularTaps:
         def boom(*a, **k):
             raise OSError('network down')
 
-        monkeypatch.setattr(taps_mod, 'urlopen', boom)
+        monkeypatch.setattr(backend_transport, 'urlopen', boom)
         results = []
         host._fetch_popular_taps_thread(results.append)
 
@@ -519,7 +519,7 @@ class TestFetchPopularTaps:
         assert args[0] == [{'name': 'stale/tap', 'gh_user': 'stale', 'desc': ''}]
 
     def test_no_results_and_no_cache_yields_empty(self, host, idle, monkeypatch):
-        monkeypatch.setattr(taps_mod, 'urlopen', self._mocked_urlopen({'items': []}))
+        monkeypatch.setattr(backend_transport, 'urlopen', self._mocked_urlopen({'items': []}))
         results = []
         host._fetch_popular_taps_thread(results.append)
         fn, args, _ = idle[-1]
@@ -530,8 +530,8 @@ class TestFetchPopularTaps:
 
 @pytest.fixture
 def brew_cmd(monkeypatch):
-    monkeypatch.setattr(taps_mod, '_brew_cmd', lambda args: ['brew'] + args)
-    return taps_mod._brew_cmd
+    monkeypatch.setattr(backend_transport, '_brew_cmd', lambda args: ['brew'] + args)
+    return backend_transport._brew_cmd
 
 
 class TestTapTrust:

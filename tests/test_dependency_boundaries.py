@@ -5,6 +5,9 @@ from pathlib import Path
 
 
 BACKEND_LEAVES = (
+    'backend_transport.py',
+    'brew_env.py',
+    'url_security.py',
     'backend_cache.py',
     'backend_remote.py',
     'backend_state.py',
@@ -22,7 +25,7 @@ def test_backend_leaves_do_not_import_composition_root():
         tree = ast.parse((source_dir / filename).read_text(encoding='utf-8'))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and (
-                node.module == 'backend'
+                node.module in {'backend', 'tavern.backend'}
                 or (node.level and any(alias.name == 'backend' for alias in node.names))
             ):
                 violations.append(f'{filename}:{node.lineno}')

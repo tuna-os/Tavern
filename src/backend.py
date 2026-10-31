@@ -18,7 +18,7 @@ import struct
 import subprocess
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from urllib.request import urlopen, Request
+from urllib.request import Request
 from urllib.error import URLError
 
 import gi
@@ -36,11 +36,7 @@ from .backend_icons import ico_to_png as _ico_to_png  # noqa: F401  (re-exported
 from .brew_env import (  # noqa: F401  (re-exported for compat)
     IN_FLATPAK, BREW_BIN, _is_flatpak, _find_brew, build_command,
 )
-
-
-def _brew_cmd(args):
-    """Compatibility wrapper; command construction is owned by brew_env."""
-    return build_command(args, in_flatpak=IN_FLATPAK, brew_bin=BREW_BIN)
+from .backend_transport import _brew_cmd, urlopen  # noqa: F401 (compatibility re-exports)
 from .package import Package  # noqa: F401  (re-exported)
 from .taps import TapsMixin
 from .media import MediaMixin

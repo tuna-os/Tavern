@@ -15,13 +15,13 @@ import io
 import json
 import subprocess
 import threading
-from urllib.request import Request, urlopen
+from urllib.request import Request
 from urllib.error import URLError
 
 from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
-from .brew_env import build_command as _brew_cmd
+from . import backend_transport
 
 _ = gettext.gettext
 
@@ -141,7 +141,7 @@ class RemoteMixin:
         })
         try:
             with log_timing(f'fetch_json {url}', 'backend'):
-                with urlopen(req, timeout=120) as resp:
+                with backend_transport.urlopen(req, timeout=120) as resp:
                     content_length = None
                     if hasattr(resp, 'info'):
                         headers = resp.info()
@@ -382,7 +382,7 @@ class RemoteMixin:
             _log.info('Using brew info for %s', name)
             cmd_type = '--formula' if pkg_type == 'formula' else '--cask'
             result = subprocess.run(
-                _brew_cmd(['info', '--json=v2', cmd_type, name]),
+                backend_transport._brew_cmd(['info', '--json=v2', cmd_type, name]),
                 capture_output=True,
                 text=True,
                 timeout=10

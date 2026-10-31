@@ -14,6 +14,8 @@ from types import SimpleNamespace
 import socket
 from urllib.request import Request
 import pytest
+
+from tavern import backend_transport
 import tavern.url_security as us
 
 import tavern.media as media_mod
@@ -100,7 +102,7 @@ def fake_github_readme(monkeypatch):
         '![travis](https://travis-ci.org/BurntSushi/ripgrep.svg?branch=master)\n'
         '![svg](https://raw.githubusercontent.com/BurntSushi/ripgrep/master/icon.svg)\n'
     )
-    monkeypatch.setattr(media_mod, 'urlopen',
+    monkeypatch.setattr(backend_transport, 'media_urlopen',
                         _urlopen([('raw.githubusercontent.com', _FakeResp(readme.encode()))]))
     return readme
 
@@ -192,7 +194,7 @@ class TestFetchReadmeImages:
 
     def test_no_github_url_returns_empty(self, host, monkeypatch):
         calls = []
-        monkeypatch.setattr(media_mod, 'urlopen', lambda *a, **k: calls.append(1) or _FakeResp(b''))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', lambda *a, **k: calls.append(1) or _FakeResp(b''))
         pkg = _pkg(homepage='https://example.com/not-github')
         assert host._fetch_readme_images(pkg) == []
         assert calls == []
@@ -201,7 +203,7 @@ class TestFetchReadmeImages:
         def boom(*a, **k):
             raise OSError('network down')
 
-        monkeypatch.setattr(media_mod, 'urlopen', boom)
+        monkeypatch.setattr(backend_transport, 'media_urlopen', boom)
         pkg = _pkg(homepage='https://github.com/user/repo')
         assert host._fetch_readme_images(pkg) == []
         assert pkg._readme_images == []  # marked attempted
@@ -212,7 +214,7 @@ class TestFetchReadmeImages:
 
     def test_markdown_img_without_alt(self, host, monkeypatch):
         readme = '![x](https://example.com/a.png)\n![alt text with spaces](https://example.com/b.png)\n'
-        monkeypatch.setattr(media_mod, 'urlopen',
+        monkeypatch.setattr(backend_transport, 'media_urlopen',
                             _urlopen([('raw.githubusercontent.com', _FakeResp(readme.encode()))]))
         pkg = _pkg(homepage='https://github.com/o/r')
         imgs = host._fetch_readme_images(pkg)
@@ -228,27 +230,27 @@ class TestFindFaviconUrl:
         <link rel="apple-touch-icon" href="https://cdn.example.com/apple-180.png">
         <link rel="icon" type="image/png" href="/favicon.png">
         </head></html>'''
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([('example.com', _FakeResp(html))]))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([('example.com', _FakeResp(html))]))
         assert host._find_favicon_url('https://example.com') == 'https://cdn.example.com/apple-180.png'
 
     def test_png_preferred_over_ico(self, host, monkeypatch):
         html = b'<html><head><link rel="icon" href="/favicon.ico"><link rel="icon" type="image/png" href="/favicon.png"></head></html>'
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([('example.com', _FakeResp(html))]))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([('example.com', _FakeResp(html))]))
         assert host._find_favicon_url('https://example.com') == 'https://example.com/favicon.png'
 
     def test_relative_href_resolved_against_origin(self, host, monkeypatch):
         html = b'<html><head><link rel="icon" type="image/png" href="/static/icon.png"></head></html>'
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([('example.com', _FakeResp(html))]))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([('example.com', _FakeResp(html))]))
         assert host._find_favicon_url('https://example.com/blog/index.html') == 'https://example.com/static/icon.png'
 
     def test_data_uri_href_skipped(self, host, monkeypatch):
         html = b'<html><head><link rel="icon" href="data:image/png;base64,AAAA"></head></html>'
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([('example.com', _FakeResp(html))]))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([('example.com', _FakeResp(html))]))
         assert host._find_favicon_url('https://example.com') is None
 
     def test_fallback_favicon_png(self, host, monkeypatch):
         html = b'<html><head></head></html>'
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('example.com/favicon.png', _FakeResp(b'x' * 300)),
             ('example.com', _FakeResp(html)),
         ]))
@@ -265,19 +267,19 @@ class TestFindFaviconUrl:
                 return _FakeResp(b'y' * 300)
             return _FakeResp(html)
 
-        monkeypatch.setattr(media_mod, 'urlopen', urlopen)
+        monkeypatch.setattr(backend_transport, 'media_urlopen', urlopen)
         assert host._find_favicon_url('https://example.com') == 'https://example.com/favicon.ico'
 
     def test_small_fallback_file_rejected(self, host, monkeypatch):
         html = b'<html><head></head></html>'
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('example.com/favicon.png', _FakeResp(b'x')),  # content-length 1, below threshold
             ('example.com', _FakeResp(html)),
         ]))
         assert host._find_favicon_url('https://example.com') is None
 
     def test_network_error_returns_none(self, host, monkeypatch):
-        monkeypatch.setattr(media_mod, 'urlopen', lambda *a, **k: (_ for _ in ()).throw(OSError('down')))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', lambda *a, **k: (_ for _ in ()).throw(OSError('down')))
         assert host._find_favicon_url('https://example.com') is None
 
 
@@ -285,7 +287,7 @@ class TestFindFaviconUrl:
 
 class TestFetchReadmeThread:
     def test_readme_found(self, host, idle, monkeypatch):
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('README.md', _FakeResp(b'# hello readme')),
         ]))
         pkg = _pkg(homepage='https://github.com/o/r')
@@ -298,7 +300,7 @@ class TestFetchReadmeThread:
 
     def test_no_owner_passes_none(self, host, idle, monkeypatch):
         calls = []
-        monkeypatch.setattr(media_mod, 'urlopen', lambda *a, **k: calls.append(1) or _FakeResp(b''))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', lambda *a, **k: calls.append(1) or _FakeResp(b''))
         pkg = _pkg(homepage='https://example.com/plain')
         results = []
         host._fetch_readme_thread(pkg, lambda p, t: results.append((p, t)))
@@ -316,7 +318,7 @@ class TestFetchReadmeThread:
                 return _FakeResp(b'lowercase readme')
             raise OSError(url)
 
-        monkeypatch.setattr(media_mod, 'urlopen', urlopen)
+        monkeypatch.setattr(backend_transport, 'media_urlopen', urlopen)
         pkg = _pkg(homepage='https://github.com/o/r')
         results = []
         host._fetch_readme_thread(pkg, lambda p, t: results.append((p, t)))
@@ -341,14 +343,14 @@ class TestFetchIcon:
         pixbuf = GdkPixbuf.Pixbuf()
         monkeypatch.setattr(GdkPixbuf.Pixbuf, 'new_from_file_at_scale',
                             staticmethod(lambda p, w, h, k: pixbuf))
-        monkeypatch.setattr(media_mod, 'urlopen', lambda *a, **k: (_ for _ in ()).throw(AssertionError('no network')))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', lambda *a, **k: (_ for _ in ()).throw(AssertionError('no network')))
         pkg = _pkg(name='ripgrep')
         result = host._fetch_icon(pkg)
         assert result is pixbuf
 
     def test_explicit_icon_url_used_first(self, host, monkeypatch, stub_pixbuf_loader):
         data = self._png_bytes()
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('icons.example.com', _FakeResp(data, headers={'Content-Type': 'image/png'})),
         ]))
         pkg = _pkg(name='app', icon_url='https://icons.example.com/app.png')
@@ -358,7 +360,7 @@ class TestFetchIcon:
 
     def test_github_avatar_appended_for_github_homepage(self, host, monkeypatch, stub_pixbuf_loader):
         data = self._png_bytes()
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('github.com', _FakeResp(data, headers={'Content-Type': 'image/png'})),
         ]))
         pkg = _pkg(name='cli', homepage='https://github.com/owner/cli',
@@ -367,7 +369,7 @@ class TestFetchIcon:
         assert result is not None
 
     def test_short_payload_filtered(self, host, monkeypatch):
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('example.com', _FakeResp(b'tiny')),  # < 200 bytes → skipped
             ('s2.google.com', _FakeResp(b'tiny')),
         ]))
@@ -376,7 +378,7 @@ class TestFetchIcon:
 
     def test_no_icon_sources_returns_none(self, host, monkeypatch):
         calls = []
-        monkeypatch.setattr(media_mod, 'urlopen', lambda *a, **k: calls.append(1) or _FakeResp(b''))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', lambda *a, **k: calls.append(1) or _FakeResp(b''))
         pkg = _pkg(name='app')  # no homepage, no icon_url, no source_url
         assert host._fetch_icon(pkg) is None
 
@@ -385,7 +387,7 @@ class TestFetchIcon:
         png = b'\x89PNG\r\n\x1a\n' + b'1' * 300
         ico = struct_pack_ico(png)
         html = b'<html><head><link rel="icon" href="/favicon.ico"></head></html>'
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('example.com/favicon.ico', _FakeResp(ico, headers={'Content-Type': 'image/x-icon'})),
             ('example.com', _FakeResp(html)),
         ]))
@@ -423,7 +425,7 @@ class TestFetchScreenshot:
 
     def test_download_saves_and_returns(self, host, idle, monkeypatch, stub_pixbuf_loader):
         data = b'\xff\xd8\xff\xe0' + b'2' * 500  # fake jpeg > 100 bytes
-        monkeypatch.setattr(media_mod, 'urlopen', _urlopen([
+        monkeypatch.setattr(backend_transport, 'media_urlopen', _urlopen([
             ('tavern-metadata', _FakeResp(data, headers={'Content-Type': 'image/jpeg'})),
         ]))
         pkg = _pkg(name='app')
@@ -437,7 +439,7 @@ class TestFetchScreenshot:
         assert open(saved, 'rb').read() == data
 
     def test_all_sources_fail_passes_none(self, host, idle, monkeypatch):
-        monkeypatch.setattr(media_mod, 'urlopen', lambda *a, **k: (_ for _ in ()).throw(OSError('down')))
+        monkeypatch.setattr(backend_transport, 'media_urlopen', lambda *a, **k: (_ for _ in ()).throw(OSError('down')))
         pkg = _pkg(name='app')
         results = []
         host._fetch_screenshot_thread(pkg, lambda p, s: results.append((p, s)))
@@ -707,9 +709,9 @@ class TestMediaUrlopenValidation:
             called.append(req)
             return _FakeResp(b'x' * 300)
 
-        monkeypatch.setattr(media_mod._MEDIA_OPENER, 'open', fake_open)
+        monkeypatch.setattr(backend_transport._MEDIA_OPENER, 'open', fake_open)
         with pytest.raises(ValueError):
-            media_mod.urlopen(Request('http://127.0.0.1/secret'))
+            backend_transport.media_urlopen(Request('http://127.0.0.1/secret'))
         assert called == []  # never reached the network
 
     def test_allows_safe_and_connects(self, monkeypatch):
@@ -719,8 +721,8 @@ class TestMediaUrlopenValidation:
             called.append(req.full_url)
             return _FakeResp(b'x' * 300)
 
-        monkeypatch.setattr(media_mod._MEDIA_OPENER, 'open', fake_open)
-        media_mod.urlopen(Request('https://raw.githubusercontent.com/o/r/HEAD/x.png'))
+        monkeypatch.setattr(backend_transport._MEDIA_OPENER, 'open', fake_open)
+        backend_transport.media_urlopen(Request('https://raw.githubusercontent.com/o/r/HEAD/x.png'))
         assert called == ['https://raw.githubusercontent.com/o/r/HEAD/x.png']
 
 
@@ -756,7 +758,7 @@ class TestMediaUrlopenRedirectEndToEnd:
             req = Request(f'http://127.0.0.1:{port}/go',
                           headers={'X-Redirect': f'http://127.0.0.1:{port}/secret'})
             with pytest.raises(ValueError):
-                media_mod._MEDIA_OPENER.open(req, timeout=5)
+                backend_transport._MEDIA_OPENER.open(req, timeout=5)
         finally:
             httpd.shutdown()
             t.join(timeout=5)

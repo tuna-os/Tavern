@@ -16,7 +16,7 @@ import threading
 from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
-from .brew_env import build_command as _brew_cmd
+from . import backend_transport
 
 _log = get_logger('backend_state')
 
@@ -31,7 +31,7 @@ class StateMixin:
         try:
             with log_timing('brew list --formula', 'backend'):
                 result = subprocess.run(
-                    _brew_cmd(['list', '--formula', '-1']),
+                    backend_transport._brew_cmd(['list', '--formula', '-1']),
                     capture_output=True, text=True, timeout=30,
                 )
             if result.returncode == 0:
@@ -43,7 +43,7 @@ class StateMixin:
         try:
             with log_timing('brew list --cask', 'backend'):
                 result = subprocess.run(
-                    _brew_cmd(['list', '--cask', '-1']),
+                    backend_transport._brew_cmd(['list', '--cask', '-1']),
                     capture_output=True, text=True, timeout=30,
                 )
             if result.returncode == 0:
@@ -60,7 +60,7 @@ class StateMixin:
         try:
             with log_timing('brew outdated', 'backend'):
                 result = subprocess.run(
-                    _brew_cmd(['outdated', '--json=v2']),
+                    backend_transport._brew_cmd(['outdated', '--json=v2']),
                     capture_output=True, text=True, timeout=30,
                 )
             if result.returncode == 0:
@@ -146,7 +146,7 @@ class StateMixin:
         try:
             with log_timing('brew list --pinned', 'backend'):
                 result = subprocess.run(
-                    _brew_cmd(['list', '--pinned']),
+                    backend_transport._brew_cmd(['list', '--pinned']),
                     capture_output=True, text=True, timeout=15,
                 )
             pinned = set()
@@ -200,7 +200,7 @@ class StateMixin:
             if callback:
                 GLib.idle_add(callback, False, 'Pinning only applies to formulae and casks')
             return
-        cmd = _brew_cmd([operation, package.name])
+        cmd = backend_transport._brew_cmd([operation, package.name])
         _log.info('_run_pin_operation: %s', ' '.join(cmd))
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)

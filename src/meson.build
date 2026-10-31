@@ -59,6 +59,7 @@ tavern_sources = [
   'window.py',
   'page_factory.py',
   'backend.py',
+  'backend_transport.py',
   'backend_contracts.py',
   'backend_cache.py',
   'backend_remote.py',

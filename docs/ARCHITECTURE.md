@@ -86,6 +86,13 @@ Each mixin is a plain class for one concern. The mixins do not import
 `backend.py`. A test (`tests/test_dependency_boundaries.py`) makes sure of
 this. `backend_icons.py` is a pure ICO to PNG decoder without backend state.
 
+Remote, state, tap, and media mixins share `backend_transport.py` as their
+transport boundary. Tests patch that module's `_brew_cmd` or `urlopen`, not
+the facade. Media uses `media_urlopen` on the same module to preserve URL
+and redirect validation for untrusted metadata. Command construction delegates
+to `brew_env.py`, including its current environment and Flatpak quote rules.
+`backend.py` re-exports `_brew_cmd` and `urlopen` for compatibility.
+
 ### CatalogStore
 
 `CatalogStore` (`catalog_store.py`) owns the catalog, the installed, pinned,

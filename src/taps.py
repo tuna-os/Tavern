@@ -6,14 +6,14 @@ import os
 import subprocess
 import sys
 import threading
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
 from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
 from .package import Package
 from .tap_metadata import parse_cask_file, parse_formula_file
-from .brew_env import build_command as _brew_cmd
+from . import backend_transport
 
 _log = get_logger('taps')
 
@@ -224,7 +224,7 @@ class TapsMixin:
                 'User-Agent': 'Tavern/0.1',
                 'Accept': 'application/vnd.github.v3+json',
             })
-            with urlopen(req, timeout=15) as resp:
+            with backend_transport.urlopen(req, timeout=15) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
 
             for item in data.get('items', []):
@@ -272,7 +272,7 @@ class TapsMixin:
         """Check trust by parsing `brew trust --json=v1` output."""
         try:
             result = subprocess.run(
-                _brew_cmd(['trust', '--json=v1']),
+                backend_transport._brew_cmd(['trust', '--json=v1']),
                 capture_output=True, text=True, timeout=15,
             )
             if result.returncode == 0:
@@ -299,7 +299,7 @@ class TapsMixin:
     def _trust_tap_thread(self, tap_name, callback):
         try:
             result = subprocess.run(
-                _brew_cmd(['trust', '--tap', tap_name]),
+                backend_transport._brew_cmd(['trust', '--tap', tap_name]),
                 capture_output=True, text=True, timeout=30,
             )
             success = result.returncode == 0
@@ -324,7 +324,7 @@ class TapsMixin:
     def _untrust_tap_thread(self, tap_name, callback):
         try:
             result = subprocess.run(
-                _brew_cmd(['untrust', '--tap', tap_name]),
+                backend_transport._brew_cmd(['untrust', '--tap', tap_name]),
                 capture_output=True, text=True, timeout=30,
             )
             success = result.returncode == 0
@@ -348,7 +348,7 @@ class TapsMixin:
         trusted_taps = set()
         try:
             result = subprocess.run(
-                _brew_cmd(['trust', '--json=v1']),
+                backend_transport._brew_cmd(['trust', '--json=v1']),
                 capture_output=True, text=True, timeout=10,
             )
             if result.returncode == 0:
@@ -365,7 +365,7 @@ class TapsMixin:
             # Prefer brew tap-info for installed taps (gives per-tap detail)
             try:
                 result = subprocess.run(
-                    _brew_cmd(['tap-info', '--json=v1', tap_name]),
+                    backend_transport._brew_cmd(['tap-info', '--json=v1', tap_name]),
                     capture_output=True, text=True, timeout=10,
                 )
                 if result.returncode == 0:
@@ -401,7 +401,7 @@ class TapsMixin:
         thread.start()
 
     def _run_tap_operation(self, operation, tap_name, callback=None):
-        cmd = _brew_cmd([operation, tap_name])
+        cmd = backend_transport._brew_cmd([operation, tap_name])
         _log.info('_run_tap_operation: %s %s', operation, tap_name)
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)

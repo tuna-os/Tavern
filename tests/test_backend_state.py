@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from tavern import backend_state
+from tavern import backend_state, backend_transport
 
 
 @pytest.mark.parametrize('formula_result', [
@@ -25,7 +25,7 @@ def test_installed_discovery_keeps_casks_when_formulae_fail(monkeypatch, formula
             return formula_result
         return subprocess.CompletedProcess(args, 0, 'tavern\n', '')
 
-    monkeypatch.setattr(backend_state, '_brew_cmd', lambda args: ['brew', *args])
+    monkeypatch.setattr(backend_transport, '_brew_cmd', lambda args: ['brew', *args])
     monkeypatch.setattr(backend_state.subprocess, 'run', run)
     formulae, casks = backend_state.StateMixin()._get_installed()
     expected = {'git', 'python'} if getattr(formula_result, 'returncode', None) == 0 else set()

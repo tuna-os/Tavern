@@ -12,7 +12,7 @@ from gi.repository import GLib, GdkPixbuf
 
 from .backend_icons import ico_to_png as _ico_to_png
 from .cache_policy import cache_manager_for
-from .url_security import assert_safe_media_url, build_safe_opener
+from . import backend_transport
 from .logging_util import get_logger
 
 _log = get_logger('media')
@@ -51,27 +51,6 @@ def _read_capped(resp):
         raise MemoryError('image exceeds size cap')
     return bytes(data)
 
-
-# Media fetches go through this redirect-aware opener (see
-# url_security.build_safe_opener): it re-validates every 3xx target, so a
-# public HTTPS site cannot hand the client off to http://127.0.0.1 or an
-# RFC1918 range. Built once at import — urllib openers are thread-safe.
-_MEDIA_OPENER = build_safe_opener()
-
-
-def urlopen(req, timeout=None):
-    """Validate the request URL against the SSRF policy, then fetch it.
-
-    The URL is rejected before any connection when it is not https, carries
-    userinfo, uses a non-default port, or resolves to a loopback / private /
-    link-local / multicast / reserved address. Redirects are re-validated by
-    _MEDIA_OPENER, so a public HTTPS site cannot 3xx-drop to a local address.
-    Fetch callers wrap this in try/except and skip the failed source, so an
-    unsafe metadata URL is simply never fetched.
-    """
-    url = req.full_url if hasattr(req, 'full_url') else str(req)
-    assert_safe_media_url(url)
-    return _MEDIA_OPENER.open(req, timeout=timeout)
 
 class MediaMixin:
     """Network media fetching mixed into BrewBackend."""
@@ -168,7 +147,7 @@ class MediaMixin:
         for url in icon_urls:
             try:
                 req = Request(url, headers={'User-Agent': 'Mozilla/5.0 Tavern/0.1'})
-                with urlopen(req, timeout=10) as resp:
+                with backend_transport.media_urlopen(req, timeout=10) as resp:
                     data = _read_capped(resp)
                     if len(data) < 200:  # Filter out 1x1 pixel / blank responses
                         continue
@@ -213,7 +192,7 @@ class MediaMixin:
         import re
         try:
             req = Request(homepage, headers={'User-Agent': 'Mozilla/5.0 Tavern/0.1'})
-            with urlopen(req, timeout=8) as resp:
+            with backend_transport.media_urlopen(req, timeout=8) as resp:
                 # Only read the <head> — stop after 32 KB to avoid downloading full pages
                 chunk = resp.read(32768).decode('utf-8', errors='replace')
         except Exception:
@@ -257,7 +236,7 @@ class MediaMixin:
             url = base + path
             try:
                 req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
-                with urlopen(req, timeout=5) as resp:
+                with backend_transport.media_urlopen(req, timeout=5) as resp:
                     if resp.status == 200 and int(resp.headers.get('Content-Length', '9999')) > 200:
                         return url
             except Exception:
@@ -309,7 +288,7 @@ class MediaMixin:
             raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{readme_name}'
             try:
                 req = Request(raw_url, headers={'User-Agent': 'Tavern/0.1'})
-                with urlopen(req, timeout=15) as resp:
+                with backend_transport.media_urlopen(req, timeout=15) as resp:
                     # Cap README size — a malicious repo can serve a
                     # multi-GB README to burn memory while parsing.
                     text = _read_capped(resp).decode('utf-8', errors='replace')
@@ -347,7 +326,7 @@ class MediaMixin:
         for url in screenshot_urls:
             try:
                 req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
-                with urlopen(req, timeout=10) as resp:
+                with backend_transport.media_urlopen(req, timeout=10) as resp:
                     data = _read_capped(resp)
                     if len(data) > 100:
                         cache_manager_for(self).atomic_write_bytes(screenshot_path, data)
@@ -408,7 +387,7 @@ class MediaMixin:
             raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/HEAD/{readme_name}'
             try:
                 req = Request(raw_url, headers={'User-Agent': 'Tavern/0.1'})
-                with urlopen(req, timeout=10) as resp:
+                with backend_transport.media_urlopen(req, timeout=10) as resp:
                     text = _read_capped(resp).decode('utf-8', errors='replace')
                 break
             except Exception:
