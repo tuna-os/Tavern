@@ -135,6 +135,8 @@ queue follow-up work.
 Package metadata gives the URLs for icons, screenshots, and READMEs.
 `url_security.py` examines each URL before `media.py` gets it. It accepts
 only HTTPS on port 443 to public addresses. It also examines each redirect.
+For non-curated hosts, the socket or proxy CONNECT target uses the approved
+IP address. TLS SNI and the HTTP Host header retain the original hostname.
 
 ## Threads
 

@@ -849,6 +849,53 @@ class TestDnsRebindingDefense:
         assert connected_addrs == [('proxy.example', 3128)]
 
 
+class TestPinnedProxyTunnel:
+    @pytest.mark.parametrize('pinned_ip,authority', [
+        ('93.184.216.34', '93.184.216.34:443'),
+        ('2606:4700:4700::1111', '[2606:4700:4700::1111]:443'),
+        (None, 'rebinding.example:443'),
+    ])
+    def test_connect_pins_proxy_target_but_preserves_tls_hostname(self, pinned_ip, authority):
+        import io
+
+        sent = []
+        destinations = []
+        tls_hosts = []
+
+        class FakeSocket:
+            def setsockopt(self, *args):
+                pass
+
+            def sendall(self, data):
+                sent.append(data)
+
+            def makefile(self, *args):
+                return io.BytesIO(b'HTTP/1.1 200 Connection established\r\n\r\n')
+
+        sock = FakeSocket()
+
+        def create_connection(address, *args):
+            destinations.append(address)
+            return sock
+
+        class FakeContext:
+            def wrap_socket(self, socket, server_hostname):
+                tls_hosts.append(server_hostname)
+                return socket
+
+        conn = us.PinnedHTTPSConnection('proxy.example', 3128, pinned_ip=pinned_ip)
+        conn.set_tunnel('rebinding.example', 443,
+                        headers={'Proxy-Authorization': 'Basic test'})
+        conn._create_connection = create_connection
+        conn._context = FakeContext()
+        conn.connect()
+        assert destinations == [('proxy.example', 3128)]
+        assert b''.join(sent).startswith(f'CONNECT {authority} HTTP/1.1\r\n'.encode())
+        assert f'Host: {authority}\r\n'.encode() in b''.join(sent)
+        assert b'Proxy-Authorization: Basic test\r\n' in b''.join(sent)
+        assert tls_hosts == ['rebinding.example']
+
+
 class TestMediaUrlopenRedirectEndToEnd:
     """A real local server 302-redirects; the module opener must block the
     redirect to a loopback target before connecting to it."""
