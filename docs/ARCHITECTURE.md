@@ -114,7 +114,9 @@ sets. Pages show `Package` objects. They do not read raw API data.
 install, remove, and upgrade. The window and all pages use one
 `TaskManager`. It runs `brew` on a worker thread. It changes the `brew` output
 into phases that the user can read, and it sets the progress bar of each
-`Package`. On successful install, upgrade, or removal, `TaskManager` records
+`Package`.
+
+On successful install, upgrade, or removal, `TaskManager` records
 the package through `BrewBackend.set_package_installed()`; it does not mutate
 the backend's private catalog sets. The backend owns the state update through
 its `CatalogStore`. At the end of a task, the window calls

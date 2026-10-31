@@ -63,7 +63,7 @@ sudo apt-get install -y python3-gi python3-gi-cairo python3-pip \
 ```
 
 `requirements-test.txt` pins the same compatible pytest and pytest-benchmark
-versions for the host, CI sandbox, and local Flatpak test script. Update them
+versions for the host, CI sandbox, and local script for Flatpak tests. Update them
 together: pytest-benchmark 5.3.0 supports pytest 9.1.1, but its fixture uses
 `Node._nodeid`, which pytest 9.2 removed.
 
