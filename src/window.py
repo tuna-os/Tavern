@@ -672,7 +672,50 @@ class TavernWindow(Adw.ApplicationWindow):
         missing = should_offer_homebrew_install()
         if hasattr(self, 'brew_missing_banner') and self.brew_missing_banner is not None:
             self.brew_missing_banner.set_revealed(missing)
+        if hasattr(self, 'dump_visual_state'):
+            self.dump_visual_state()
         return missing
+
+    def dump_visual_state(self, path=None):
+        """Serialize current visual semantic state if requested."""
+        import json
+        import time
+        from .brew_env import should_offer_homebrew_install
+        path = path or os.environ.get('TAVERN_VISUAL_STATE_PATH')
+        if not path:
+            return
+        try:
+            scenario = os.environ.get('TAVERN_VISUAL_SCENARIO', 'default')
+            banner_revealed = (
+                bool(self.brew_missing_banner.get_revealed())
+                if hasattr(self, 'brew_missing_banner') and self.brew_missing_banner is not None
+                else False
+            )
+            banner_text = (
+                self.brew_missing_banner.get_title()
+                if (banner_revealed and hasattr(self, 'brew_missing_banner') and self.brew_missing_banner is not None)
+                else ''
+            )
+            app = self.get_application()
+            app_id = app.get_application_id() if app else 'org.tunaos.tavern'
+            state = {
+                'application_id': app_id,
+                'scenario': scenario,
+                'window_title': self.get_title() or 'Tavern',
+                'content_stack_child': (
+                    self.content_stack.get_visible_child_name()
+                    if hasattr(self, 'content_stack') else None
+                ),
+                'is_loading': self.backend.loading if hasattr(self, 'backend') else False,
+                'homebrew_available': not should_offer_homebrew_install(),
+                'banner_revealed': banner_revealed,
+                'banner_text': banner_text,
+                'timestamp': time.time(),
+            }
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(state, f, indent=2)
+        except Exception as e:
+            _log.warning('Failed to dump visual state: %s', e)
 
     def _on_install_homebrew_clicked(self, _banner):
         self.show_install_homebrew_dialog()

@@ -142,6 +142,12 @@ def is_brew_available(brew_bin=None):
     brew invocation will fail with FileNotFoundError on a host without
     Homebrew. The missing-brew banner/dialog gates on this predicate.
     """
+    scenario = os.environ.get('TAVERN_VISUAL_SCENARIO')
+    if scenario == 'no-homebrew':
+        return False
+    if scenario == 'populated-fixture':
+        return True
+
     if brew_bin is None:
         brew_bin = BREW_BIN
     return brew_bin != 'brew' and bool(brew_bin)

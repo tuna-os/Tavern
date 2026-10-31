@@ -1,15 +1,38 @@
 name: Screenshots
 
-# Photographs the app as it actually ships: installs the published Flatpak
-# from the tuna-os remote and captures that. No build, and the image shows the
-# artifact users install, so a packaging regression surfaces as a broken
-# screenshot rather than only as a bug report.
+# Photographs the app across two separate, independently-reported lanes:
+# 1. published-artifact: installs the published Flatpak from the tuna-os remote.
+#    Records installed app/runtime commits and remotes, with source binding
+#    explicitly marked unknown rather than inferred from the PR.
+# 2. candidate-artifact: builds the exact candidate Flatpak bundle under review,
+#    binds its binary digest to candidate source/run, exercises no-Homebrew and
+#    deterministic populated fixture scenarios, and evaluates the production
+#    acceptance oracle.
 on:
   pull_request:
     paths:
-      - "data/org.tunaos.tavern.metainfo.xml.in"
+      - "src/**"
+      - "data/**"
+      - "po/**"
+      - "meson.build"
+      - "meson_options.txt"
+      - "org.tunaos.tavern.json"
+      - "org.tunaos.tavern.Devel.json"
       - ".github/workflows/screenshots.yml"
+      - "tools/visual_evidence.py"
+      - "tools/**"
+      - "scripts/**"
   workflow_dispatch:
+    inputs:
+      lane:
+        description: "Lane to run: candidate, published, or both"
+        required: false
+        default: "both"
+        type: choice
+        options:
+          - both
+          - candidate
+          - published
 
 permissions:
   contents: read
@@ -19,43 +42,153 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  capture:
-    # Not a container: Flatpak needs bubblewrap, which wants privileges the
-    # job container does not have.
+  candidate-artifact:
+    name: "Candidate Flatpak visual evidence"
+    if: ${{ github.event_name == 'pull_request' || inputs.lane == 'both' || inputs.lane == 'candidate' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Flatpak
+      - name: Install Flatpak, flatpak-builder, and runtime dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq flatpak
+          sudo apt-get install -y -qq --no-install-recommends \
+            flatpak flatpak-builder \
+            python3-gi python3-gi-cairo \
+            gir1.2-gtk-4.0 gir1.2-adw-1 gir1.2-gdkpixbuf-2.0 \
+            libglib2.0-dev-bin libxml2-utils blueprint-compiler xvfb dbus-x11 imagemagick
+          flatpak remote-add --user --if-not-exists flathub \
+            https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y flathub org.gnome.Platform//50 org.gnome.Sdk//50
 
-      - name: Install the published app
+      - name: Build and install candidate Flatpak bundle
         run: |
-          # Flathub too: the app's runtime (org.gnome.Platform) lives there,
-          # and the tuna-os remote carries only the apps.
+          flatpak-builder --user --repo=candidate-repo --force-clean build-dir org.tunaos.tavern.json
+          flatpak build-bundle candidate-repo candidate-tavern.flatpak org.tunaos.tavern
+          BUNDLE_DIGEST=$(sha256sum candidate-tavern.flatpak | cut -d' ' -f1)
+          echo "BUNDLE_DIGEST=$BUNDLE_DIGEST" >> "$GITHUB_ENV"
+          flatpak install --user -y candidate-tavern.flatpak
+          flatpak info --user org.tunaos.tavern > flatpak-candidate-info.txt
+          cat flatpak-candidate-info.txt
+
+      - name: Prepare fresh output directory
+        run: |
+          OUT_DIR="build/visual-evidence/candidate-run-${{ github.run_id }}-${{ github.run_attempt }}"
+          rm -rf "$OUT_DIR"
+          mkdir -p "$OUT_DIR"
+          echo "OUT_DIR=$OUT_DIR" >> "$GITHUB_ENV"
+          echo "RUN_START=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
+
+      - name: Capture candidate in no-Homebrew scenario
+        uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@9b8dada28499f53016f20b689fe46f1f31e0dd79 # main
+        with:
+          command: flatpak run --user --socket=x11 --env=TAVERN_VISUAL_SCENARIO=no-homebrew --env=TAVERN_VISUAL_STATE_PATH=${{ env.OUT_DIR }}/visual-state-no-homebrew.json org.tunaos.tavern
+          name: candidate-no-homebrew
+          out-dir: ${{ env.OUT_DIR }}
+          settle: "15"
+
+      - name: Capture candidate in populated-fixture scenario
+        uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@9b8dada28499f53016f20b689fe46f1f31e0dd79 # main
+        with:
+          command: flatpak run --user --socket=x11 --env=TAVERN_VISUAL_SCENARIO=populated-fixture --env=TAVERN_VISUAL_STATE_PATH=${{ env.OUT_DIR }}/visual-state-populated.json org.tunaos.tavern
+          name: candidate-populated-fixture
+          out-dir: ${{ env.OUT_DIR }}
+          settle: "15"
+
+      - name: Record candidate visual evidence and generate manifest
+        run: |
+          python3 tools/visual_evidence.py record \
+            --lane candidate-artifact \
+            --scenario multi-scenario \
+            --out-dir "${{ env.OUT_DIR }}" \
+            --image "${{ env.OUT_DIR }}/candidate-no-homebrew.png" \
+            --image "${{ env.OUT_DIR }}/candidate-populated-fixture.png" \
+            --app-id org.tunaos.tavern \
+            --source-commit "${{ github.sha }}" \
+            --binary-digest "${{ env.BUNDLE_DIGEST }}" \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --started-at "${{ env.RUN_START }}" \
+            --flatpak-info-file flatpak-candidate-info.txt \
+            --state-file "${{ env.OUT_DIR }}/visual-state-no-homebrew.json"
+
+      - name: Evaluate candidate acceptance oracle
+        run: |
+          python3 tools/visual_evidence.py evaluate \
+            --receipt "${{ env.OUT_DIR }}/receipt.json" \
+            --manifest "${{ env.OUT_DIR }}/artifacts-manifest.json" \
+            --expected-binary-digest "${{ env.BUNDLE_DIGEST }}" \
+            --expected-source-commit "${{ github.sha }}"
+
+      - name: Upload candidate visual evidence artifact
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: candidate-visual-evidence
+          path: ${{ env.OUT_DIR }}/
+
+  published-artifact:
+    name: "Published Flatpak visual evidence"
+    if: ${{ inputs.lane == 'both' || inputs.lane == 'published' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'run-published-visual-evidence') || contains(github.event.pull_request.paths, 'data/org.tunaos.tavern.metainfo.xml.in'))) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Flatpak and dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq flatpak imagemagick
+
+      - name: Install the published app from TunaOS remote
+        run: |
           flatpak remote-add --user --if-not-exists \
             flathub https://dl.flathub.org/repo/flathub.flatpakrepo
           flatpak remote-add --user --if-not-exists \
             tuna-os https://tunaos.org/flatpak/tuna-os.flatpakrepo
           flatpak install --user -y tuna-os org.tunaos.tavern
-          flatpak info --user org.tunaos.tavern
+          flatpak info --user org.tunaos.tavern > flatpak-published-info.txt
+          cat flatpak-published-info.txt
 
-      - uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@9b8dada28499f53016f20b689fe46f1f31e0dd79 # main
+      - name: Prepare fresh output directory
+        run: |
+          OUT_DIR="build/visual-evidence/published-run-${{ github.run_id }}-${{ github.run_attempt }}"
+          rm -rf "$OUT_DIR"
+          mkdir -p "$OUT_DIR"
+          echo "OUT_DIR=$OUT_DIR" >> "$GITHUB_ENV"
+          echo "RUN_START=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$GITHUB_ENV"
+
+      - name: Capture published app
+        uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@9b8dada28499f53016f20b689fe46f1f31e0dd79 # main
         with:
-          # --socket=x11 so the sandbox can see the Xvfb the action started.
-          # Homebrew is absent on the runner, so this shows whatever Tavern
-          # does with no brew present -- which is exactly what needs looking
-          # at before any of it is published.
           command: flatpak run --user --socket=x11 org.tunaos.tavern
-          name: main-window
-          out-dir: docs/screenshots
+          name: published-main-window
+          out-dir: ${{ env.OUT_DIR }}
           settle: "15"
 
-      # Uploaded for review, deliberately NOT committed by CI. An unreviewed
-      # auto-commit is how a bad capture publishes itself.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Record published visual evidence and generate manifest
+        run: |
+          python3 tools/visual_evidence.py record \
+            --lane published-artifact \
+            --scenario no-homebrew \
+            --out-dir "${{ env.OUT_DIR }}" \
+            --image "${{ env.OUT_DIR }}/published-main-window.png" \
+            --app-id org.tunaos.tavern \
+            --remote tuna-os \
+            --source-commit unknown \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --started-at "${{ env.RUN_START }}" \
+            --flatpak-info-file flatpak-published-info.txt
+
+      - name: Evaluate published acceptance oracle
+        run: |
+          python3 tools/visual_evidence.py evaluate \
+            --receipt "${{ env.OUT_DIR }}/receipt.json" \
+            --manifest "${{ env.OUT_DIR }}/artifacts-manifest.json"
+
+      - name: Upload published visual evidence artifact
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: screenshots
-          path: docs/screenshots/
+          name: published-visual-evidence
+          path: ${{ env.OUT_DIR }}/

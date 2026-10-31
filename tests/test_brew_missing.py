@@ -19,6 +19,15 @@ class TestIsBrewAvailable:
         assert be.is_brew_available('') is False
         assert be.is_brew_available(None) is False or be.is_brew_available(be.BREW_BIN)
 
+    def test_scenario_no_homebrew_forces_unavailable(self, monkeypatch):
+        monkeypatch.setenv('TAVERN_VISUAL_SCENARIO', 'no-homebrew')
+        assert be.is_brew_available('/usr/local/bin/brew') is False
+
+    def test_scenario_populated_fixture_forces_available(self, monkeypatch):
+        monkeypatch.setenv('TAVERN_VISUAL_SCENARIO', 'populated-fixture')
+        assert be.is_brew_available('') is True
+        assert be.should_offer_homebrew_install() is False
+
 
 class TestShouldOfferHomebrewInstall:
     def test_offers_when_brew_missing(self):
@@ -173,3 +182,51 @@ class TestWindowBannerState:
         monkeypatch.setattr(be, 'is_brew_available', lambda *a: True)
         assert TavernWindow._update_brew_missing_banner(mock_win) is False
         assert mock_win.brew_missing_banner.revealed is False
+
+    def test_dump_visual_state_writes_valid_json(self, tmp_path, monkeypatch):
+        import json
+        from tavern.window import TavernWindow
+
+        state_file = tmp_path / 'visual-state.json'
+        monkeypatch.setenv('TAVERN_VISUAL_STATE_PATH', str(state_file))
+        monkeypatch.setenv('TAVERN_VISUAL_SCENARIO', 'no-homebrew')
+
+        class MockBanner:
+            def get_revealed(self):
+                return True
+            def get_title(self):
+                return 'Homebrew is not installed. Tavern requires Homebrew to install and manage packages.'
+
+        class MockStack:
+            def get_visible_child_name(self):
+                return 'main'
+
+        class MockBackend:
+            loading = False
+
+        class MockApp:
+            def get_application_id(self):
+                return 'org.tunaos.tavern'
+
+        class MockWindow:
+            brew_missing_banner = MockBanner()
+            content_stack = MockStack()
+            backend = MockBackend()
+            dump_visual_state = TavernWindow.dump_visual_state
+
+            def get_application(self):
+                return MockApp()
+
+            def get_title(self):
+                return 'Tavern'
+
+        mock_win = MockWindow()
+        mock_win.dump_visual_state()
+
+        assert state_file.exists()
+        loaded = json.loads(state_file.read_text())
+        assert loaded['application_id'] == 'org.tunaos.tavern'
+        assert loaded['scenario'] == 'no-homebrew'
+        assert loaded['banner_revealed'] is True
+        assert 'Homebrew is not installed' in loaded['banner_text']
+        assert loaded['content_stack_child'] == 'main'
