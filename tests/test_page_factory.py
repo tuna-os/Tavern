@@ -58,12 +58,17 @@ def test_wire_pages_calls_the_right_setter_on_each_page():
         def set_backend(self, backend):
             calls.append(('tap', backend))
 
-    factory.wire_pages(Browse(), Search(), Installed(), Tap())
+    class Doctor:
+        def set_task_manager(self, task_manager):
+            calls.append(('doctor', task_manager))
+
+    factory.wire_pages(Browse(), Search(), Installed(), Tap(), Doctor())
     assert calls == [
         ('browse', 'BACKEND'),
         ('search', 'BACKEND'),
         ('installed', 'BACKEND', 'TM'),
         ('tap', 'BACKEND'),
+        ('doctor', 'TM'),
     ]
 
 

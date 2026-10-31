@@ -1,4 +1,4 @@
-"""GTK presentation for read-only Homebrew diagnostics."""
+"""GTK presentation and queued fixes for Homebrew diagnostics."""
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import gettext
@@ -51,18 +51,27 @@ class TavernDoctorPage(Adw.Bin):
     sidebar_box = Gtk.Template.Child()
     sidebar_separator = Gtk.Template.Child()
 
-    def __init__(self, service=None, **kwargs):
+    def __init__(self, service=None, task_manager=None, **kwargs):
         super().__init__(**kwargs)
         self._service = service if service is not None else DoctorService(_run_doctor)
         self._report = None
         self._busy = False
         self._rows = {}
+        self._task_manager = task_manager
+        self._fix_tasks = {}
+        self._fix_widgets = {}
+        self._refresh_pending = False
         self.run_button.connect('clicked', lambda _button: self.refresh(force=True))
         self.copy_button.connect('clicked', self._copy_output)
         self.config_button.connect('clicked', self._show_config)
         self.connect('map', lambda _page: self.refresh())
         self.findings_list.connect('row-selected', self._on_row_selected)
         self._render_detail(None)
+
+    def set_task_manager(self, task_manager):
+        self._task_manager = task_manager
+        for key in self._fix_widgets:
+            self._update_fix(key)
 
     def refresh(self, force=False):
         if self._busy:
@@ -85,6 +94,10 @@ class TavernDoctorPage(Adw.Bin):
 
     def _complete(self, report, error):
         self._busy = False
+        if self._refresh_pending:
+            self._refresh_pending = False
+            self.refresh(force=True)
+            return False
         self.spinner.stop()
         self.run_button.set_sensitive(True)
         self.run_button.set_label(_('Run Again'))
@@ -170,6 +183,7 @@ class TavernDoctorPage(Adw.Bin):
         self._render_detail(self._rows.get(row) if row is not None else None)
 
     def _clear_detail_blocks(self):
+        self._fix_widgets.clear()
         while child := self.detail_blocks.get_first_child():
             self.detail_blocks.remove(child)
 
@@ -225,21 +239,17 @@ class TavernDoctorPage(Adw.Bin):
 
                     card.append(inner)
 
-                    if step.needs_admin:
-                        admin_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-                        admin_box.set_margin_start(14)
-                        admin_box.set_margin_bottom(8)
-                        admin_icon = Gtk.Image.new_from_icon_name('dialog-warning-symbolic')
-                        admin_icon.add_css_class('warning')
-                        admin_box.append(admin_icon)
-                        admin_lbl = Gtk.Label(
-                            label=_('Requires administrator privileges — run in Terminal'),
-                            xalign=0.0,
-                        )
-                        admin_lbl.add_css_class('caption')
-                        admin_lbl.add_css_class('warning')
-                        admin_box.append(admin_lbl)
-                        card.append(admin_box)
+                    if block.is_runnable:
+                        self._add_fix_controls(inner, card, block)
+                    else:
+                        note = (_('Requires administrator privileges — run in Terminal')
+                                if step.needs_admin else _('Run in Terminal — copy this command'))
+                        label = Gtk.Label(label=note, xalign=0.0, wrap=True)
+                        label.add_css_class('caption')
+                        label.set_margin_start(14)
+                        label.set_margin_end(14)
+                        label.set_margin_bottom(8)
+                        card.append(label)
 
                     self.detail_blocks.append(card)
 
@@ -279,6 +289,67 @@ class TavernDoctorPage(Adw.Bin):
                         link_list.append(row)
 
                     self.detail_blocks.append(link_list)
+
+    def _add_fix_controls(self, inner, card, block):
+        key = block.runnable_step.display_command
+        button = Gtk.Button(label=_('Fix'), valign=Gtk.Align.CENTER)
+        button.connect('clicked', lambda _button: self._submit_fix(block))
+        inner.append(button)
+        spinner = Gtk.Spinner()
+        inner.append(spinner)
+        status = Gtk.Label(xalign=0.0, wrap=True, selectable=True)
+        status.set_margin_start(14)
+        status.set_margin_end(14)
+        status.set_margin_bottom(8)
+        card.append(status)
+        progress = Gtk.ProgressBar()
+        card.append(progress)
+        self._fix_widgets.setdefault(key, []).append((button, spinner, status, progress))
+        self._update_fix(key)
+
+    def _update_fix(self, key):
+        task = self._fix_tasks.get(key)
+        active = task is not None and task.is_active
+        for button, spinner, status, progress in self._fix_widgets.get(key, ()):
+            button.set_sensitive(self._task_manager is not None and not active)
+            spinner.set_spinning(active)
+            spinner.set_visible(active)
+            progress.set_visible(active)
+            progress.set_fraction(task.progress if task is not None else 0.0)
+            text = (task.error_detail or task.status_text) if task is not None else ''
+            status.set_label(text)
+            status.set_visible(bool(text))
+            if task is not None and task.error_detail:
+                status.add_css_class('error')
+            else:
+                status.remove_css_class('error')
+
+    def _submit_fix(self, block):
+        # Recheck the parser's rule at the action boundary, including multi-step blocks.
+        if not block.is_runnable or self._task_manager is None:
+            return
+        step = block.runnable_step
+        key = step.display_command
+        previous = self._fix_tasks.get(key)
+        if previous is not None and previous.is_active:
+            return
+        task = self._task_manager.submit_command(step.arguments, title=key)
+        task.operation = key
+        self._fix_tasks[key] = task
+        changed = task.connect('notify', lambda *_args: self._update_fix(key))
+
+        def finished(task, success):
+            task.disconnect(changed)
+            task.disconnect(done)
+            self._update_fix(key)
+            if success:
+                if self._busy:
+                    self._refresh_pending = True
+                else:
+                    self.refresh(force=True)
+
+        done = task.connect('finished', finished)
+        self._update_fix(key)
 
     def _render_detail(self, issue):
         if issue is None:

@@ -53,6 +53,7 @@ def test_refresh_suppresses_duplicate_runs_and_delivers_on_main_loop(monkeypatch
 
 def test_runner_requests_structured_output_and_preserves_warnings(monkeypatch):
     calls = []
+    monkeypatch.setattr('tavern.brew_env.is_brew_available', lambda: True)
     result = SimpleNamespace(stdout='{"findings": [], "tier": 1}', stderr='Extra warning', returncode=0)
     monkeypatch.setattr(doctor_page, 'run_read', lambda *args, **kwargs: calls.append((args, kwargs)) or result)
     assert doctor_page._run_doctor() is result
@@ -61,6 +62,7 @@ def test_runner_requests_structured_output_and_preserves_warnings(monkeypatch):
 
 def test_runner_falls_back_only_for_unsupported_json(monkeypatch):
     calls = []
+    monkeypatch.setattr('tavern.brew_env.is_brew_available', lambda: True)
     def run(args, **kwargs):
         calls.append(args)
         if '--json' in args:
@@ -189,3 +191,151 @@ def test_detail_renders_structured_blocks(monkeypatch):
 
     page._copy_text('test-copy')
     assert copied == ['test-copy']
+
+
+def _walk(widget):
+    yield widget
+    child = widget.get_first_child()
+    while child is not None:
+        yield from _walk(child)
+        child = child.get_next_sibling()
+
+
+def _fix_buttons(page):
+    from gi.repository import Gtk
+    return [widget for widget in _walk(page.detail_blocks)
+            if isinstance(widget, Gtk.Button) and widget.get_label() == 'Fix']
+
+
+def _fix_page():
+    from tavern.task_manager import Task
+    tasks = []
+
+    def submit(args, title):
+        task = Task(None, args[0], packages=[], command=args, title=title)
+        tasks.append(task)
+        return task
+
+    page = doctor_page.TavernDoctorPage(task_manager=SimpleNamespace(submit_command=submit))
+    report = parse_report('Warning: Cleanup\n  brew cleanup\n\nWarning: Links\n  brew link foo\n', 1)
+    page._complete(report, None)
+    return page, tasks, report
+
+
+def test_fix_queues_argv_once_and_tracks_progress_across_selection():
+    page, tasks, report = _fix_page()
+    button, = _fix_buttons(page)
+    button.emit('clicked')
+    # Even a stale/programmatic duplicate click must be suppressed.
+    button.emit('clicked')
+    assert len(tasks) == 1
+    task = tasks[0]
+    assert task.command == ('cleanup',)
+    assert task.title == task.operation == 'brew cleanup'
+    assert not button.get_sensitive()
+    task._set_running()
+    task._update_phase('Removing…', 0.5)
+    page.findings_list.select_row(_by_title(page, 'Links'))
+    assert _fix_buttons(page)[0].get_sensitive()
+    page.findings_list.select_row(_by_title(page, 'Cleanup'))
+    button, = _fix_buttons(page)
+    assert not button.get_sensitive()
+    _, spinner, status, progress = page._fix_widgets['brew cleanup'][0]
+    assert spinner.get_spinning()
+    assert status.get_label() == 'Removing…'
+    assert progress.get_fraction() == 0.5
+    # A reload reconstructs controls but preserves the same command state.
+    page._complete(report, None)
+    assert not _fix_buttons(page)[0].get_sensitive()
+
+
+def test_failed_fix_stays_inline_and_can_be_retried(monkeypatch):
+    page, tasks, _ = _fix_page()
+    refreshes = []
+    monkeypatch.setattr(page, 'refresh', lambda **kwargs: refreshes.append(kwargs))
+    _fix_buttons(page)[0].emit('clicked')
+    tasks[0]._set_failed('<literal error>')
+    button, spinner, status, progress = page._fix_widgets['brew cleanup'][0]
+    assert button.get_sensitive()
+    assert status.get_label() == '<literal error>'
+    assert status.has_css_class('error')
+    assert not spinner.get_visible()
+    assert not progress.get_visible()
+    assert not refreshes
+    button.emit('clicked')
+    assert len(tasks) == 2
+    assert page._fix_tasks['brew cleanup'] is tasks[1]
+    assert not status.has_css_class('error')
+    tasks[1]._set_completed()
+    assert refreshes == [{'force': True}]
+
+
+def test_cancelled_fix_can_retry_without_refresh(monkeypatch):
+    page, tasks, _ = _fix_page()
+    refreshes = []
+    monkeypatch.setattr(page, 'refresh', lambda **kwargs: refreshes.append(kwargs))
+    _fix_buttons(page)[0].emit('clicked')
+    tasks[0]._set_cancelled()
+    assert _fix_buttons(page)[0].get_sensitive()
+    assert not refreshes
+
+
+def test_non_runnable_blocks_are_copy_only(monkeypatch):
+    page, tasks, _ = _fix_page()
+    copied = []
+    monkeypatch.setattr(page, '_copy_text', copied.append)
+    for body in ('  sudo brew cleanup', '  brew cleanup\n  brew autoremove',
+                 '  brew cleanup && brew autoremove', '  rm /tmp/example'):
+        report = parse_report('Warning: Manual fix\n' + body, 1)
+        page._complete(report, None)
+        assert not _fix_buttons(page)
+        block = report.issues[0].blocks[0]
+        page._submit_fix(block)
+        assert not tasks
+        from gi.repository import Gtk
+        notes = [w.get_label() for w in _walk(page.detail_blocks) if isinstance(w, Gtk.Label)]
+        assert any('Terminal' in note for note in notes)
+        copies = [w for w in _walk(page.detail_blocks)
+                  if isinstance(w, Gtk.Button) and w.get_tooltip_text() == 'Copy Command']
+        copies[0].emit('clicked')
+        assert copied[-1] == block.value[0].display_command
+
+
+def test_success_during_check_forces_another_report(monkeypatch):
+    page, tasks, report = _fix_page()
+    workers = []
+    monkeypatch.setattr(doctor_page.threading, 'Thread',
+                        lambda **kwargs: SimpleNamespace(start=lambda: workers.append(kwargs['target'])))
+    _fix_buttons(page)[0].emit('clicked')
+    page.refresh()
+    tasks[0]._set_completed()
+    assert page._refresh_pending
+    assert len(workers) == 1
+    page._complete(report, None)
+    assert len(workers) == 2
+    assert page._busy
+    assert not page._refresh_pending
+
+
+def test_identical_commands_share_inflight_state():
+    page, tasks, _ = _fix_page()
+    report = parse_report('Warning: First\n  brew cleanup\n\nWarning: Second\n  brew cleanup', 1)
+    page._complete(report, None)
+    _fix_buttons(page)[0].emit('clicked')
+    page.findings_list.select_row(_by_title(page, 'Second'))
+    _fix_buttons(page)[0].emit('clicked')
+    assert len(tasks) == 1
+    assert not _fix_buttons(page)[0].get_sensitive()
+
+
+def test_fix_requires_shared_task_manager():
+    page = doctor_page.TavernDoctorPage()
+    report = parse_report('Warning: Cleanup\n  brew cleanup', 1)
+    page._complete(report, None)
+    button, = _fix_buttons(page)
+    assert not button.get_sensitive()
+    block = report.issues[0].blocks[0]
+    page._submit_fix(block)
+    assert not page._fix_tasks
+    page.set_task_manager(SimpleNamespace())
+    assert button.get_sensitive()

@@ -37,6 +37,7 @@ class TavernWindow(Adw.ApplicationWindow):
     browse_page = Gtk.Template.Child()
     search_page = Gtk.Template.Child()
     installed_page = Gtk.Template.Child()
+    doctor_page = Gtk.Template.Child()
     tap_page = Gtk.Template.Child()
     main_stack = Gtk.Template.Child()
     task_button = Gtk.Template.Child()
@@ -104,7 +105,7 @@ class TavernWindow(Adw.ApplicationWindow):
         self.page_factory = PageFactory(self.backend, self.task_manager)
         self.page_factory.wire_pages(
             self.browse_page, self.search_page,
-            self.installed_page, self.tap_page,
+            self.installed_page, self.tap_page, self.doctor_page,
         )
 
         # Wire package open signal from pages
