@@ -143,9 +143,20 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         self._pinned_ip = kwargs.pop('pinned_ip', None)
         super().__init__(host, port, **kwargs)
 
+    def set_tunnel(self, host, port=None, headers=None):
+        # CONNECT must name the approved IP too: otherwise the proxy could
+        # resolve the metadata hostname again and reach a rebound private IP.
+        self._tls_tunnel_host = host
+        if self._pinned_ip:
+            headers = {k: v for k, v in (headers or {}).items()
+                       if k.lower() != 'host'}
+        super().set_tunnel(self._pinned_ip or host, port, headers)
+        if self._pinned_ip:
+            host = f'[{self._pinned_ip}]' if ':' in self._pinned_ip else self._pinned_ip
+            self._tunnel_headers['Host'] = f'{host}:{self._tunnel_port}'
+
     def connect(self):
-        # Through a CONNECT proxy, self.host is the proxy and the proxy resolves
-        # the target, so only a direct connection uses the pinned address.
+        # The TCP socket reaches the proxy; set_tunnel pins its CONNECT target.
         if self._pinned_ip and not self._tunnel_host:
             dest_host = self._pinned_ip
         else:
@@ -161,7 +172,7 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
         if self._tunnel_host:
             self._tunnel()
 
-        server_hostname = self._tunnel_host if self._tunnel_host else self.host
+        server_hostname = self._tls_tunnel_host if self._tunnel_host else self.host
         self.sock = self._context.wrap_socket(self.sock, server_hostname=server_hostname)
 
 
