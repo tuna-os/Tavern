@@ -188,6 +188,11 @@ class CacheMixin:
             self._build_search_provider_cache()
             _log.info('refresh_cache_files completed')
 
+            # Notify active catalog listeners that cache refresh has finished
+            GLib.idle_add(self.emit, 'formulae-loaded', self._formulae)
+            GLib.idle_add(self.emit, 'casks-loaded', self._casks)
+            GLib.idle_add(self.emit, 'cache-refreshed', self)
+
     def _build_search_provider_cache(self):
         """Build a lightweight cache of Linux-compatible packages for the search provider."""
         _log.info('Building search provider cache…')

@@ -1334,6 +1334,40 @@ class TestBrewBackendJWS:
         assert len(backend.casks) == 1
         assert backend.casks[0].name == 'firefox'
 
+    def test_refresh_cache_files_emits_signals(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+        backend = BrewBackend()
+
+        formula_path = tmp_path / 'formula.jws.json'
+        formula_payload = [{'name': 'ripgrep', 'desc': 'fast search', 'versions': {'stable': '1.0.0'}}]
+        with open(formula_path, 'w') as f:
+            json.dump({'payload': json.dumps(formula_payload)}, f)
+
+        cache_paths = {'formula': str(formula_path), 'cask': str(tmp_path / 'none.json')}
+        backend._get_host_brew_cache_paths = lambda: cache_paths
+        backend._fetch_json = lambda url: None
+
+        signals_received = []
+        backend.connect('cache-refreshed', lambda b, obj: signals_received.append('cache-refreshed'))
+        backend.connect('formulae-loaded', lambda b, pkgs: signals_received.append('formulae-loaded'))
+
+        # Mock GLib.idle_add to run immediately
+        monkeypatch.setattr(GLib, 'idle_add', lambda func, *args, **kwargs: func(*args, **kwargs))
+
+        backend.refresh_cache_files()
+
+        assert 'formulae-loaded' in signals_received
+        assert 'cache-refreshed' in signals_received
+
+    def test_backend_shutdown(self):
+        backend = BrewBackend()
+        assert not backend._search_executor._shutdown
+        assert not backend._icon_executor._shutdown
+        backend.shutdown()
+        assert backend._search_executor._shutdown
+        assert backend._icon_executor._shutdown
+
+
 
 
 

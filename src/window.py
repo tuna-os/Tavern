@@ -70,11 +70,15 @@ class TavernWindow(Adw.ApplicationWindow):
 
         # Shared backend
         backend_start = time.perf_counter()
-        self.backend = BrewBackend()
+        app = self.get_application()
+        if app and hasattr(app, 'get_backend'):
+            self.backend = app.get_backend()
+        else:
+            self.backend = BrewBackend()
         self.backend.bind_property('loading_status', self.loading_label, 'label', GObject.BindingFlags.DEFAULT)
         self.backend.bind_property('loading_progress', self.loading_progress_bar, 'fraction', GObject.BindingFlags.DEFAULT)
         backend_time = (time.perf_counter() - backend_start) * 1000
-        _log.info('Backend created: %.1f ms', backend_time)
+        _log.info('Backend obtained: %.1f ms', backend_time)
 
         # Task manager (central operation coordinator)
         task_mgr_start = time.perf_counter()
