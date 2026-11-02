@@ -1,6 +1,8 @@
 data/org.tunaos.tavern.desktop.in
 data/org.tunaos.tavern.metainfo.xml.in
 src/backend.py
+src/deeplink_router.py
+src/tap_choice_dialog.py
 src/window.py
 src/application.py
 src/browse-page.blp

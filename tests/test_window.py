@@ -136,20 +136,8 @@ def test_window_workflows(tmp_path, monkeypatch):
     task_conflict.conflict_info = {'installed_tap': 'user/tap', 'target_tap': 'homebrew/core'}
     win._on_task_finished(win.task_manager, task_conflict)
     
-    # Trigger ambiguous tap row response
     dialog_mock = Adw.AlertDialog()
-    class MockRow:
-        def __init__(self, val):
-            self._qualified = val
-    class MockListBox:
-        def __init__(self, row):
-            self._row = row
-        def get_selected_row(self):
-            return self._row
-            
-    win._on_ambiguous_tap_response(dialog_mock, 'install', MockListBox(MockRow('user/tap/ripgrep')), pkg_rg)
-    win._on_ambiguous_tap_response(dialog_mock, 'cancel', None, pkg_rg)
-    
+
     # Trigger conflict resolution responses
     win._on_conflict_resolution(dialog_mock, 'switch', task_conflict)
     win._on_conflict_resolution(dialog_mock, 'cancel', task_conflict)
@@ -184,12 +172,12 @@ def test_window_workflows(tmp_path, monkeypatch):
     
     # Test backend loading changed
     win.backend.loading = False
-    win._package_to_open = 'ripgrep'
+    win.deeplink_router.package_to_open = 'ripgrep'
     win._on_backend_loading_changed(win.backend, None)
     
     # Test _check_deeplink
-    win._package_to_open = 'firefox'
-    win._tap_to_open = 'hanthor/tap'
+    win.deeplink_router.package_to_open = 'firefox'
+    win.deeplink_router.tap_to_open = 'hanthor/tap'
     win._check_deeplink()
     
     # Test open_tap_by_name (should return False in test context since mock list is empty)

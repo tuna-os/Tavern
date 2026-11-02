@@ -14,6 +14,7 @@ from .backend_lifecycle import BackendLifecycle
 from .task_manager import TaskManager
 from .logging_util import get_logger
 from .page_factory import PageFactory
+from .deeplink_router import DeepLinkRouter
 
 _ = gettext.gettext
 
@@ -56,10 +57,6 @@ class TavernWindow(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         _log.info('TavernWindow.__init__: starting')
 
-        # Store deeplink target
-        self._package_to_open = package_to_open
-        self._tap_to_open = self.get_application()._tap_to_open
-        self._brewfile_to_open = self.get_application()._brewfile_to_open
         self._formulae_loaded = False
         self._casks_loaded = False
         self._brewfile_page_count = 0  # Counter for unique brewfile tab names
@@ -171,6 +168,19 @@ class TavernWindow(Adw.ApplicationWindow):
 
         self.connect('close-request', self._on_close)
 
+        self.deeplink_router = DeepLinkRouter(
+            self.backend,
+            show_package=lambda package: self._on_package_activated(None, package),
+            select_tap=self._select_tap,
+            show_message=self._show_deeplink_message,
+            open_brewfile=self.open_brewfile,
+            show_tap_choice=self._show_tap_choice,
+            install_qualified=self.task_manager.install_qualified,
+            package_to_open=package_to_open,
+            tap_to_open=self.get_application()._tap_to_open,
+            brewfile_to_open=self.get_application()._brewfile_to_open,
+        )
+
         # Start loading
         backend_load_start = time.perf_counter()
         self.backend.connect('formulae-loaded', self._on_formulae_loaded)
@@ -187,35 +197,13 @@ class TavernWindow(Adw.ApplicationWindow):
         _log.info('TavernWindow.__init__: completed in %.1f ms', total_init_time)
 
     def _find_package_by_name(self, package_name):
-        target = (package_name or '').strip().lower()
-        if not target:
-            return None
-
-        for pkg in self.backend.formulae:
-            if pkg.name.lower() == target or (pkg.display_name and pkg.display_name.lower() == target):
-                return pkg
-
-        for pkg in self.backend.casks:
-            if pkg.name.lower() == target or (pkg.display_name and pkg.display_name.lower() == target):
-                return pkg
-
-        return None
+        return self.deeplink_router.find_package_by_name(package_name)
 
     def open_package_by_name(self, package_name, show_not_found=True):
-        """Open a package details page by name (deeplink support)."""
-        _log.info('Attempting to open package: %s', package_name)
+        return self.deeplink_router.open_package_by_name(package_name, show_not_found)
 
-        package = self._find_package_by_name(package_name)
-        if package:
-            _log.info('Found package: %s (%s)', package.name, package.pkg_type)
-            self._on_package_activated(None, package)
-            return True
-
-        if show_not_found:
-            _log.warning('Package not found: %s', package_name)
-            self.toast_overlay.add_toast(Adw.Toast.new(_(f'Package "{package_name}" not found')))
-        return False
-
+    def _show_deeplink_message(self, message):
+        self.toast_overlay.add_toast(Adw.Toast.new(message))
 
     # ── Task manager signals ─────────────────────────────────────
     def _on_task_added(self, mgr, task):
@@ -317,37 +305,17 @@ class TavernWindow(Adw.ApplicationWindow):
             # Transition to main content smoothly
             self.content_stack.set_visible_child_name("main")
             self._update_brew_missing_banner()
-        if self._package_to_open:
-            self.open_package_by_name(self._package_to_open, show_not_found=True)
-            self._package_to_open = None
-
-        if self._tap_to_open:
-            self.open_tap_by_name(self._tap_to_open)
-            self._tap_to_open = None
-
-        if self._brewfile_to_open:
-            self.open_brewfile(self._brewfile_to_open)
-            self._brewfile_to_open = None
+        self.deeplink_router.check_pending(final=True)
 
     def _check_deeplink(self):
-        """Check if we should open a package or tap from deeplink after data loads."""
-        if self._package_to_open:
-            if self.open_package_by_name(self._package_to_open, show_not_found=False):
-                self._package_to_open = None
-        if self._tap_to_open:
-            if self.open_tap_by_name(self._tap_to_open):
-                self._tap_to_open = None
+        self.deeplink_router.check_pending()
 
     def open_tap_by_name(self, tap_name):
-        """Switch to Taps page and select a tap by name (deeplink support)."""
-        _log.info('Attempting to open tap: %s', tap_name)
-        self.main_stack.set_visible_child_name("taps")
-        if self.tap_page.select_tap(tap_name):
-            return True
-        _log.warning('Tap not found: %s', tap_name)
-        self.toast_overlay.add_toast(Adw.Toast.new(_(f'Tap "{tap_name}" not found')))
-        return False
+        return self.deeplink_router.open_tap_by_name(tap_name)
 
+    def _select_tap(self, tap_name):
+        self.main_stack.set_visible_child_name("taps")
+        return self.tap_page.select_tap(tap_name)
 
     def _on_package_activated(self, page, package):
         _log.debug('Package activated: %s (%s)', package.name, package.pkg_type)
@@ -362,56 +330,11 @@ class TavernWindow(Adw.ApplicationWindow):
         self.installed_page.refresh(self.backend)
 
     def _offer_ambiguous_tap_choice(self, task):
-        """Show a dialog letting the user pick which tap to install from."""
-        pkg = task.package
-        options = task.ambiguous_taps  # ['user/tap/name', ...]
+        self.deeplink_router.offer_ambiguous_tap_choice(task)
 
-        dialog = Adw.AlertDialog()
-        dialog.set_heading(_('Choose a Tap'))
-        dialog.set_body(
-            _('"{name}" is available from multiple taps.\nChoose which one to install from:').format(name=pkg.display_name or pkg.name)
-        )
-        dialog.add_response('cancel', _('Cancel'))
-        dialog.set_close_response('cancel')
-
-        listbox = Gtk.ListBox()
-        listbox.add_css_class('boxed-list')
-        listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
-        listbox.set_margin_top(8)
-
-        for qualified in options:
-            # Parse tap name from fully-qualified: user/repo/pkg → user/repo
-            parts = qualified.rsplit('/', 1)
-            tap_name = parts[0] if len(parts) == 2 else qualified
-            row = Adw.ActionRow()
-            row.set_title(qualified)
-            row.set_subtitle(_('from tap: {tap}').format(tap=tap_name))
-            row._qualified = qualified
-            listbox.append(row)
-
-        # Select first row by default
-        first = listbox.get_row_at_index(0)
-        if first:
-            listbox.select_row(first)
-
-        dialog.set_extra_child(listbox)
-        dialog.add_response('install', _('Install'))
-        dialog.set_response_appearance('install', Adw.ResponseAppearance.SUGGESTED)
-        dialog.set_default_response('install')
-        dialog.connect('response', self._on_ambiguous_tap_response, listbox, pkg)
-        dialog.present(self)
-
-    def _on_ambiguous_tap_response(self, dialog, response, listbox, pkg):
-        if response != 'install':
-            return
-        row = listbox.get_selected_row()
-        if not row:
-            return
-        qualified = getattr(row, '_qualified', None)
-        if not qualified:
-            return
-        _log.info('User chose qualified install: %s', qualified)
-        self.task_manager.install_qualified(pkg, qualified)
+    def _show_tap_choice(self, package, options, on_selected):
+        from .tap_choice_dialog import show_tap_choice
+        show_tap_choice(self, package, options, on_selected)
 
     def _offer_tap_conflict_resolution(self, task):
         """Show a dialog offering to switch taps when a multi-tap conflict occurs."""

@@ -57,6 +57,8 @@ tavern_sources = [
   'application.py',
   'logging_util.py',
   'window.py',
+  'deeplink_router.py',
+  'tap_choice_dialog.py',
   'page_factory.py',
   'backend.py',
   'backend_lifecycle.py',
