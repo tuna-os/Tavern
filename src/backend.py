@@ -70,7 +70,16 @@ class BrewBackend(TapsMixin, MediaMixin, CacheMixin, RemoteMixin, StateMixin, Ui
         'taps-loaded': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'outdated-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
         'pinned-changed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
+        'cache-refreshed': (GObject.SignalFlags.RUN_LAST, None, (object,)),
     }
+
+    def shutdown(self):
+        """Shut down worker executors and background resources owned by this backend."""
+        _log.info('Shutting down BrewBackend background worker executors')
+        if hasattr(self, '_search_executor'):
+            self._search_executor.shutdown(wait=False, cancel_futures=True)
+        if hasattr(self, '_icon_executor'):
+            self._icon_executor.shutdown(wait=False, cancel_futures=True)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

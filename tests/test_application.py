@@ -71,3 +71,37 @@ def test_application_command_line(tmp_path, monkeypatch):
     assert app._brewfile_to_open == "my.Brewfile"
     assert app._tap_to_open == "hanthor/tap"
     assert len(activated) == 1
+
+
+def test_application_backend_lifecycle(tmp_path, monkeypatch):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestAppLifecycle")
+    
+    # Lazy backend creation
+    assert app._backend is None
+    backend1 = app.get_backend()
+    assert backend1 is not None
+    backend2 = app.get_backend()
+    assert backend1 is backend2
+
+    # Shutdown shuts down the backend
+    shutdown_called = []
+    monkeypatch.setattr(backend1, 'shutdown', lambda: shutdown_called.append(True))
+    
+    app.do_shutdown()
+    assert len(shutdown_called) == 1
+    assert app._backend is None
+
+
+def test_application_refresh_cache_thread_reuses_backend(tmp_path, monkeypatch):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    app = TavernApplication(version="1.0.0", application_id="org.tunaos.tavern.TestAppRefresher")
+    
+    refreshed = []
+    backend = app.get_backend()
+    monkeypatch.setattr(backend, 'refresh_cache_files', lambda: refreshed.append(True))
+    
+    # Run _refresh_cache_thread with no cache file present
+    app._refresh_cache_thread()
+    assert len(refreshed) == 1
+
