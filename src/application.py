@@ -32,7 +32,7 @@ class TavernApplication(Adw.Application):
         self._package_to_open = None
         self._tap_to_open = None
         self._brewfile_to_open = None
-        
+        self._backend = None
 
         self.create_action('quit', lambda *_: self.quit(), ['<primary>q'])
         self.create_action('about', self._on_about_action)
@@ -47,11 +47,26 @@ class TavernApplication(Adw.Application):
 
         _log.debug('TavernApplication created  version=%s', version)
 
+    def get_backend(self):
+        """Return the shared BrewBackend instance, creating it if needed."""
+        if self._backend is None:
+            from .backend import BrewBackend
+            self._backend = BrewBackend()
+        return self._backend
+
     # ── Startup & Background Cache Refresher Worker ─────────────────
     def do_startup(self):
         """Initialize the background service worker once on startup."""
         Adw.Application.do_startup(self)
         self.start_background_refresher()
+
+    def do_shutdown(self):
+        """Clean up application-owned backend resources on shutdown."""
+        _log.info('TavernApplication shutting down')
+        if self._backend is not None:
+            self._backend.shutdown()
+            self._backend = None
+        Adw.Application.do_shutdown(self)
 
     def start_background_refresher(self):
         """Start a periodic background worker to keep the package cache fresh."""
@@ -87,8 +102,7 @@ class TavernApplication(Adw.Application):
         if needs_refresh:
             _log.info('Cache is stale, performing background refresh of Homebrew metadata...')
             try:
-                from .backend import BrewBackend
-                backend = BrewBackend()
+                backend = self.get_backend()
                 backend.refresh_cache_files()
                 _log.info('Background cache refresh completed successfully!')
             except Exception as e:
