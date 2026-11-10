@@ -17,7 +17,7 @@ Unknown cask shapes and downgrades fail. Never regenerate the whole cask.
 The tap owns runtime dependencies, AppRun patches, desktop artifacts, icons,
 and cache refresh hooks. Artifact paths must match the released AppImage.
 
-The updater requires `TAP_GITHUB_TOKEN` with write access to the org tap.
+The updater requires `HOMEBREW_TAP_SSH_KEY`. It is a deploy key with write access to the org tap.
 Rejected pushes fail the job. Both install verification jobs use the org tap.
 
 ## A green host test job is not full coverage
