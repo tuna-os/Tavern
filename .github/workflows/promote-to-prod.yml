@@ -6,7 +6,7 @@ name: Promote to Prod
 # pushes don't fire other workflows), so this workflow dispatches it directly.
 
 on:
-  workflow_run:
+  workflow_run:  # zizmor: ignore[dangerous-triggers] the job if: accepts only a successful push run on this repository's main
     workflows: ["Flatpak CI"]
     types:
       - completed
@@ -18,23 +18,27 @@ permissions:
 jobs:
   promote:
     name: "Fast-forward prod and publish"
+    # Only a push to this repository's main: a fork PR from a branch named
+    # main also reports head_branch == 'main'.
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1  # zizmor: ignore[artipacked] a later step pushes prod with these credentials
         with:
           fetch-depth: 0
           ref: main
 
       - name: Fast-forward prod to tested main commit
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          TESTED_SHA="${{ github.event.workflow_run.head_sha }}"
 
           git fetch origin prod
           git checkout -B prod origin/prod

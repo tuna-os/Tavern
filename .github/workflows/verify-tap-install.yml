@@ -10,7 +10,7 @@ permissions:
 # --appimage-extract-and-run.
 
 on:
-  workflow_run:
+  workflow_run:  # zizmor: ignore[dangerous-triggers] read-only token, no secrets, does not check out the triggering run's code
     workflows: ["Update Homebrew Tap"]
     types:
       - completed

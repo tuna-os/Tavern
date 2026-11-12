@@ -67,3 +67,44 @@ def test_allows_tagged_source_with_commit(tmp_path, monkeypatch):
 def test_allows_untagged_source(tmp_path, monkeypatch):
     setup(tmp_path, monkeypatch, '', '{"branch": "main"}')
     assert check_supply_chain.main() == 0
+
+
+LOCK = """\
+version: 'v0.0.3'
+workflows:
+    '.github/workflows/ci.yml':
+        - 'actions/cache@v6.1.0'
+dependencies:
+    'actions/cache@v6.1.0':
+        ref: 'v6.1.0'
+"""
+
+
+def write_workflow(tmp_path, text):
+    workflows = tmp_path / '.github' / 'workflows'
+    workflows.mkdir(parents=True)
+    (workflows / 'actions.lock').write_text(LOCK)
+    (workflows / 'ci.yml').write_text(text)
+
+
+def test_allows_tag_pinned_in_lockfile(tmp_path, monkeypatch):
+    setup(tmp_path, monkeypatch)
+    sha = '0' * 40
+    write_workflow(tmp_path, (
+        '      - uses: actions/cache/restore@v6.1.0\n'
+        f'      - uses: actions/checkout@{sha} # v7\n'
+        '      - uses: $/.github/actions/setup\n'))
+    assert check_supply_chain.main() == 0
+
+
+def test_flags_tag_missing_from_lockfile(tmp_path, monkeypatch, capsys):
+    setup(tmp_path, monkeypatch)
+    write_workflow(tmp_path, '      - uses: actions/checkout@v7.0.1\n')
+    assert check_supply_chain.main() == 1
+    assert 'ci.yml:1: unpinned uses ref "@v7.0.1"' in capsys.readouterr().out
+
+
+def test_flags_reusable_workflow_tag(tmp_path, monkeypatch):
+    setup(tmp_path, monkeypatch)
+    write_workflow(tmp_path, '    uses: tuna-os/.github/.github/workflows/ste-lint.yml@main\n')
+    assert check_supply_chain.main() == 1

@@ -24,7 +24,9 @@ jobs:
     # job container does not have.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Flatpak
         run: |
@@ -42,7 +44,7 @@ jobs:
           flatpak install --user -y tuna-os org.tunaos.tavern
           flatpak info --user org.tunaos.tavern
 
-      - uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@060465cb74fc2a243abdfafa3474ecc949db18de # main
+      - uses: tuna-os/flatpak-index/.github/actions/capture-screenshots@4ad379efb1b951b841e9fd4c44c9f7b60b48aef8 # main  # zizmor: ignore[ref-version-mismatch] pinned to a reviewed main commit; Renovate bumps the digest, so main may be ahead
         with:
           # --socket=x11 so the sandbox can see the Xvfb the action started.
           # Homebrew is absent on the runner, so this shows whatever Tavern
@@ -55,7 +57,7 @@ jobs:
 
       # Uploaded for review, deliberately NOT committed by CI. An unreviewed
       # auto-commit is how a bad capture publishes itself.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: screenshots
           path: docs/screenshots/
