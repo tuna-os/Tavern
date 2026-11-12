@@ -17,8 +17,9 @@ jobs:
     name: Validate release contract
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - run: python3 tools/validate-release.py --tag "${GITHUB_REF_NAME}"
       - name: Require a tag from main history
@@ -31,7 +32,9 @@ jobs:
     needs: validate
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - name: Install dependencies
         run: |
           brew update
@@ -44,7 +47,7 @@ jobs:
         run: |
           find Tavern.app -exec touch -t 198001010000 {} +
           COPYFILE_DISABLE=1 zip -X -r Tavern-macOS.zip Tavern.app
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-macos
           path: Tavern-macOS.zip
@@ -55,7 +58,9 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -93,7 +98,7 @@ jobs:
             --desktop-file AppDir/usr/share/applications/org.tunaos.tavern.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg \
             --output appimage
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-appimage
           path: Tavern-Linux.AppImage
@@ -107,13 +112,15 @@ jobs:
       image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
       options: --privileged
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.8
         with:
           bundle: Tavern-Linux.flatpak
           manifest-path: org.tunaos.tavern.json
           cache-key: flatpak-builder-${{ github.sha }}
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: release-flatpak
           path: Tavern-Linux.flatpak
@@ -130,14 +137,14 @@ jobs:
       artifact-metadata: write
       actions: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      - uses: actions/checkout@v7.0.1  # zizmor: ignore[artipacked] later steps create the GitHub release and dispatch workflows with gh
+      - uses: actions/download-artifact@v8.0.2
         with:
           pattern: release-*
           path: dist
           merge-multiple: true
       - name: Generate SPDX SBOM
-        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        uses: anchore/sbom-action@v0.24.3
         with:
           path: .
           format: spdx-json
@@ -147,16 +154,16 @@ jobs:
         working-directory: dist
         run: sha256sum Tavern-Linux.AppImage Tavern-Linux.flatpak Tavern-macOS.zip Tavern.spdx.json > SHA256SUMS
       - name: Generate signed provenance
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        uses: actions/attest@v4.2.2
         with:
           subject-checksums: dist/SHA256SUMS
       - name: Generate signed SBOM attestation
-        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        uses: actions/attest@v4.2.2
         with:
           subject-checksums: dist/SHA256SUMS
           sbom-path: dist/Tavern.spdx.json
       - name: Publish one release
-        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
+        uses: softprops/action-gh-release@v3.0.4  # zizmor: ignore[superfluous-actions] replacing action-gh-release with gh would change how the release is made
         with:
           files: dist/*
           generate_release_notes: true
@@ -177,8 +184,9 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Wait for all channels and verify parity
         env:
