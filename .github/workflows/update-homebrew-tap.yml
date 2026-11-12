@@ -23,7 +23,7 @@ jobs:
     env:
       RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
@@ -34,7 +34,7 @@ jobs:
           test -n "$TAP_TOKEN" || { echo '::error::TAP_GITHUB_TOKEN must have write access to tuna-os/homebrew-tap'; exit 1; }
 
       - name: Checkout the maintained cask
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7.0.1  # zizmor: ignore[artipacked] a later step pushes the cask update to the tap with these credentials
         with:
           repository: tuna-os/homebrew-tap
           ref: main

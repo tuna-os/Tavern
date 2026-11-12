@@ -1,7 +1,7 @@
 name: Prepare Release Tag
 
 on:
-  workflow_run:
+  workflow_run:  # zizmor: ignore[dangerous-triggers] the job if: accepts only a successful push run on this repository's main
     workflows: ["Tests"]
     types: [completed]
   workflow_dispatch:
@@ -18,10 +18,14 @@ permissions:
 jobs:
   tag:
     name: Validate and tag tested main
+    # Only a push to this repository's main: a fork PR from a branch named
+    # main also reports head_branch == 'main'.
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main')
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     concurrency:
       group: prepare-release-tag
@@ -29,14 +33,14 @@ jobs:
     env:
       RELEASE_VERSION: ${{ inputs.version || '' }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1  # zizmor: ignore[artipacked] a later step pushes the release tag with these credentials
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'main' }}
           fetch-depth: 0
 
       - name: Read version from Meson for automatic releases
         if: ${{ github.event_name == 'workflow_run' }}
-        run: |
+        run: |  # zizmor: ignore[github-env] one line read from meson.build of the tested commit; head -1 stops a second variable
           VERSION=$(sed -n "s/.*version: '\([^']*\)'.*/\1/p" meson.build | head -1)
           test -n "$VERSION" || { echo '::error::Could not read version from meson.build'; exit 1; }
           echo "RELEASE_VERSION=$VERSION" >> "$GITHUB_ENV"
