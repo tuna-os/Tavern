@@ -21,7 +21,7 @@ A merge to `main` never invents or increments a version.
    Compare it with `SHA256SUMS` before you update downstream packages.
 
 The org tap owns `Casks/tavern.rb`. Tavern changes only its version and two
-checksums. The updater needs `TAP_GITHUB_TOKEN` with write access to that tap.
+checksums. The updater needs `HOMEBREW_TAP_SSH_KEY`. It is a deploy key with write access to that tap.
 Before a release with new AppImage paths, update the cask structure in the tap.
 In particular, the v0.1.9 cask uses `dev.hanthor.Tavern` desktop and icon paths;
 a release with `org.tunaos.tavern` paths needs a matching tap change.
