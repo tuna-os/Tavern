@@ -15,6 +15,7 @@ except Exception:
 
 from gi.repository import Adw, Gtk, GObject, GLib, Gdk
 from .logging_util import get_logger
+from .readme_renderer import README_CSP, is_external_link_allowed, strip_unsafe_html
 
 _log = get_logger('version_history')
 _ = gettext.gettext
@@ -285,6 +286,8 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
                     extensions=['fenced_code', 'tables', 'nl2br'],
                     output_format='html5',
                 )
+                # Release notes are untrusted, like README text.
+                html_body = strip_unsafe_html(html_body)
             except Exception as e:
                 _log.debug('Markdown parsing failed: %s', e)
                 escaped = GLib.markup_escape_text(changelog)
@@ -300,6 +303,7 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
 <!doctype html>
 <html>
   <head>
+    <meta http-equiv="Content-Security-Policy" content="{README_CSP}" />
     <meta charset="utf-8" />
     <style>
       html, body {{
@@ -405,9 +409,12 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
             action = decision.get_navigation_action()
             uri = action.get_request().get_uri()
             if uri and not uri.startswith('about:') and not uri.startswith('data:'):
-                _log.debug('Opening external link from webview: %s', uri)
-                launcher = Gtk.UriLauncher.new(uri)
-                launcher.launch(self.get_root(), None, None, None)
+                if is_external_link_allowed(uri):
+                    _log.debug('Opening external link from webview: %s', uri)
+                    launcher = Gtk.UriLauncher.new(uri)
+                    launcher.launch(self.get_root(), None, None, None)
+                else:
+                    _log.debug('Blocked webview navigation: %s', uri)
                 decision.ignore()
                 return True
         return False

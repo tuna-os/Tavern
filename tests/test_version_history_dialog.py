@@ -123,3 +123,68 @@ def test_version_history_dialog_empty_constructor(tmp_path, monkeypatch):
     
     # Pin click with None selection does early return
     dialog._on_pin_clicked(None)
+
+
+def _render_changelog(changelog):
+    """Run the WebKit branch of _on_version_selected against a recording view.
+
+    A stand-in for the dialog lets this run on hosts without WebKitGTK, where
+    the real dialog falls back to a plain text view.
+    """
+    from types import SimpleNamespace
+
+    loaded = []
+    view = SimpleNamespace(load_html=lambda html, base_uri: loaded.append(html))
+    dialog = SimpleNamespace(_changelog_webview=view, _package=None, _current_selection=None)
+    row = SimpleNamespace(version_info={'version': '1.0.0', 'changelog': changelog})
+    TavernVersionHistoryDialog._on_version_selected(dialog, None, row)
+    return loaded[0]
+
+
+def test_changelog_document_has_csp_and_strips_active_elements():
+    html = _render_changelog(
+        '## Fixed\n\n<iframe src="https://evil.example"></iframe>\n'
+        '<form action="https://evil.example"><input name="x"></form>\n'
+        '<meta http-equiv="refresh" content="0;url=file:///etc/passwd">\n'
+        '<link rel="stylesheet" href="https://evil.example/x.css">\n'
+        '<script>alert(1)</script>\n\nSafe **bold** text.'
+    )
+    body = html.split('<body>', 1)[1]
+
+    assert "default-src 'none'" in html
+    assert "form-action 'none'" in html
+    # Without python-markdown the notes are escaped whole, so only tag
+    # openings are checked.
+    for needle in ('<iframe', '<form', '<input', '<meta', '<link', '<script'):
+        assert needle not in body
+    assert 'Safe' in body
+
+
+def test_changelog_navigation_only_launches_external_links(monkeypatch):
+    from types import SimpleNamespace
+    import tavern.version_history_dialog as version_history_dialog
+
+    navigation = object()
+    monkeypatch.setattr(version_history_dialog, 'WebKit', SimpleNamespace(
+        PolicyDecisionType=SimpleNamespace(NAVIGATION_ACTION=navigation)))
+    launched = []
+    monkeypatch.setattr(Gtk.UriLauncher, 'launch',
+                        lambda self, parent, *args: launched.append(self.get_uri()))
+
+    def navigate(uri):
+        ignored = []
+        request = SimpleNamespace(get_uri=lambda: uri)
+        action = SimpleNamespace(get_request=lambda: request)
+        decision = SimpleNamespace(get_navigation_action=lambda: action,
+                                   ignore=lambda: ignored.append(uri))
+        dialog = SimpleNamespace(get_root=lambda: None)
+        handled = TavernVersionHistoryDialog._on_decide_policy(
+            dialog, None, decision, navigation)
+        return handled, ignored
+
+    assert navigate('https://example.com/notes') == (True, ['https://example.com/notes'])
+    assert launched == ['https://example.com/notes']
+
+    for uri in ('file:///etc/passwd', 'smb://host/share', 'brew://formula/wget'):
+        assert navigate(uri) == (True, [uri])
+    assert launched == ['https://example.com/notes']
