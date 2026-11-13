@@ -526,16 +526,26 @@ class TavernPackageDetails(Adw.NavigationPage):
         return False
 
     def _on_decide_policy(self, webview, decision, decision_type):
-        if decision_type == WebKit.PolicyDecisionType.NAVIGATION_ACTION:
-            action = decision.get_navigation_action()
-            uri = action.get_request().get_uri()
-            if uri and not uri.startswith('about:') and not uri.startswith('data:'):
-                _log.debug('Opening external link from webview: %s', uri)
-                launcher = Gtk.UriLauncher.new(uri)
-                launcher.launch(self.get_root(), None, None, None)
-                decision.ignore()
-                return True
-        return False
+        if decision_type != WebKit.PolicyDecisionType.NAVIGATION_ACTION:
+            return False
+        action = decision.get_navigation_action()
+        uri = action.get_request().get_uri()
+        policy = self._readme_renderer.navigation_policy(
+            uri,
+            link_clicked=(action.get_navigation_type()
+                          == WebKit.NavigationType.LINK_CLICKED),
+            document_uri=self._readme_base_uri(),
+        )
+        if policy == 'load':
+            return False
+        if policy == 'open':
+            _log.debug('Opening external link from webview: %s', uri)
+            launcher = Gtk.UriLauncher.new(uri)
+            launcher.launch(self.get_root(), None, None, None)
+        else:
+            _log.debug('Blocked README navigation: %s', uri)
+        decision.ignore()
+        return True
 
     # ── Button handlers ──────────────────────────────────────────
     def _on_install_clicked(self, button):

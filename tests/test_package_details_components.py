@@ -68,6 +68,38 @@ def test_readme_renderer_formats_document_and_counts():
     assert renderer.format_install_count(1_500_000) == '1.50M'
 
 
+def test_readme_document_limits_what_untrusted_html_can_load():
+    html = ReadmeRenderer().html('<iframe src="https://example.com/"></iframe>')
+
+    head = html.split('<body>', 1)[0]
+    assert 'http-equiv="Content-Security-Policy"' in head
+    for directive in ("default-src 'none'", 'img-src https: data:', 'media-src https:',
+                      "form-action 'none'", "base-uri 'none'"):
+        assert directive in head
+
+
+def test_readme_navigation_policy_opens_only_clicked_web_links():
+    policy = ReadmeRenderer().navigation_policy
+    document = 'https://raw.githubusercontent.com/example/project/HEAD/'
+
+    # The rendered document itself, with and without a base URI.
+    assert policy(document, link_clicked=False, document_uri=document) == 'load'
+    assert policy('about:blank', link_clicked=False) == 'load'
+
+    # A README cannot navigate without a click, for example by meta refresh.
+    assert policy('https://example.com/', link_clicked=False, document_uri=document) == 'block'
+    assert policy('brew://formula/wget', link_clicked=False, document_uri=document) == 'block'
+    assert policy(None, link_clicked=False) == 'block'
+
+    # A clicked link leaves the app only for web and mail schemes.
+    assert policy('https://example.com/docs', link_clicked=True, document_uri=document) == 'open'
+    assert policy('HTTP://example.com/', link_clicked=True) == 'open'
+    assert policy('mailto:dev@example.com', link_clicked=True) == 'open'
+    for uri in ('file:///etc/passwd', 'javascript:alert(1)', 'brew://tap/x/y',
+                'appstream://org.example.App', '', None):
+        assert policy(uri, link_clicked=True, document_uri=document) == 'block'
+
+
 def test_task_binder_replaces_connections_and_cleans_up():
     package = Package({'name': 'ripgrep'}, 'formula')
     first = Task(package, TaskOperation.INSTALL)

@@ -5,6 +5,19 @@
 
 from gi.repository import GLib
 
+# README text is untrusted: it comes from whichever repository a package's
+# metadata names, and python-markdown passes raw HTML through. The policy
+# keeps what that HTML can load in line with the media policy in
+# url_security.py: https images and media only, and no frames, forms,
+# stylesheets, fonts or plugins. Scripts are also off in the view's settings.
+CONTENT_SECURITY_POLICY = (
+    "default-src 'none'; img-src https: data:; media-src https:; "
+    "style-src 'unsafe-inline'; form-action 'none'; base-uri 'none'"
+)
+
+# Schemes a clicked README link may hand to the desktop.
+EXTERNAL_LINK_SCHEMES = frozenset({'http', 'https', 'mailto'})
+
 
 class ReadmeRenderer:
     """Render README text without owning any GTK widgets or page state."""
@@ -67,6 +80,7 @@ class ReadmeRenderer:
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="{CONTENT_SECURITY_POLICY}" />
     <style>
       html, body {{
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -93,6 +107,21 @@ class ReadmeRenderer:
   <body>{html_body}</body>
 </html>
 """
+
+    def navigation_policy(self, uri, *, link_clicked, document_uri=None):
+        """Return 'load', 'open' or 'block' for a navigation in the README view.
+
+        Only the rendered document itself loads in the view. A link opens
+        outside the app only when the user clicked it and it uses a web or
+        mail scheme. Everything else is blocked, which covers a README that
+        redirects itself with ``<meta http-equiv="refresh">``.
+        """
+        if link_clicked:
+            scheme = (uri or '').split(':', 1)[0].lower()
+            return 'open' if scheme in EXTERNAL_LINK_SCHEMES else 'block'
+        if uri and uri in ('about:blank', document_uri):
+            return 'load'
+        return 'block'
 
     def format_install_count(self, count):
         """Format a Homebrew install count, or return an empty value for zero."""
