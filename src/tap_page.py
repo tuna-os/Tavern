@@ -2,13 +2,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import threading
-from urllib.request import Request, urlopen
 
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
-from gi.repository import Adw, Gtk, GObject, GLib, GdkPixbuf, Gdk
+from gi.repository import Adw, Gtk, GObject, GLib, Gdk
 from .package_tile import TavernPackageTile, clear_flow
 from .logging_util import get_logger
 
@@ -16,22 +15,16 @@ _log = get_logger('tap_page')
 
 # ── Avatar fetch helper ──────────────────────────────────────────────────────
 
-def _fetch_avatar_pixbuf(github_user, size=48):
-    """Fetch a GitHub user/org avatar; returns a square GdkPixbuf or None."""
-    url = f'https://github.com/{github_user}.png?size={size * 2}'
-    try:
-        req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
-        with urlopen(req, timeout=8) as resp:
-            data = resp.read()
-        loader = GdkPixbuf.PixbufLoader()
-        loader.write(data)
-        loader.close()
-        pb = loader.get_pixbuf()
-        if pb:
-            return pb.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
-    except Exception as e:
-        _log.debug('Avatar fetch failed for %s: %s', github_user, e)
-    return None
+def _fetch_avatar_pixbuf(backend, github_user, size=48):
+    """Fetch an avatar through the backend; returns a GdkPixbuf or None.
+
+    The page does no network I/O itself (docs/ARCHITECTURE.md): the backend
+    owns the request.
+    """
+    fetch = getattr(backend, 'fetch_avatar_pixbuf', None)
+    if fetch is None:
+        return None
+    return fetch(github_user, size=size)
 
 
 # ── "Add Tap" dialog ─────────────────────────────────────────────────────────
@@ -195,7 +188,7 @@ class TavernTapPage(Adw.Bin):
             return
 
         def _thread():
-            pb = _fetch_avatar_pixbuf(gh_user, size=36)
+            pb = _fetch_avatar_pixbuf(self._backend, gh_user, size=36)
             texture = Gdk.Texture.new_for_pixbuf(pb) if pb else None
             self._avatar_cache[gh_user] = texture
             if texture:
@@ -386,7 +379,7 @@ class TavernTapPage(Adw.Bin):
                     tap_listbox.append(row)
 
                     def _fetch_av(user=gh_user, av=avatar):
-                        pb = _fetch_avatar_pixbuf(user, size=36)
+                        pb = _fetch_avatar_pixbuf(self._backend, user, size=36)
                         if pb:
                             texture = Gdk.Texture.new_for_pixbuf(pb)
                             GLib.idle_add(av.set_custom_image, texture)

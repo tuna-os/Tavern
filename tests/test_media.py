@@ -404,6 +404,33 @@ def struct_pack_ico(png):
 
 # ─── screenshot fetch ─────────────────────────────────────────────────────────
 
+class TestFetchAvatarPixbuf:
+    def test_fetches_github_avatar_through_media_transport(self, host, monkeypatch, stub_pixbuf_loader):
+        seen = []
+
+        def fake_urlopen(req, timeout=None):
+            seen.append(req.full_url)
+            return _FakeResp(b'\x89PNG\r\n\x1a\n' + b'0' * 300)
+
+        monkeypatch.setattr(media_mod, 'urlopen', fake_urlopen)
+        pb = host.fetch_avatar_pixbuf('owner', size=36)
+        assert pb is not None
+        assert (pb.get_width(), pb.get_height()) == (36, 36)
+        assert seen == ['https://github.com/owner.png?size=72']
+
+    def test_oversized_avatar_is_rejected(self, host, monkeypatch, stub_pixbuf_loader):
+        big = b'x' * (media_mod.MAX_IMAGE_BYTES + 1)
+        monkeypatch.setattr(media_mod, 'urlopen', lambda req, timeout=None: _FakeResp(big))
+        assert host.fetch_avatar_pixbuf('owner') is None
+
+    def test_fetch_error_returns_none(self, host, monkeypatch):
+        def boom(req, timeout=None):
+            raise OSError('offline')
+
+        monkeypatch.setattr(media_mod, 'urlopen', boom)
+        assert host.fetch_avatar_pixbuf('owner') is None
+
+
 class TestFetchScreenshot:
     def test_cached_screenshot_used(self, host, idle, monkeypatch):
         shot = os.path.join(host._cache_dir, 'screenshot_app.jpg')

@@ -9,11 +9,16 @@ from tavern.tap_page import TavernTapPage, _fetch_avatar_pixbuf
 from tavern.backend import Package, BrewBackend
 from tavern.package_tile import TavernPackageTile
 
-def test_avatar_fetch_handling(monkeypatch):
-    # Mock urlopen to raise an exception to cover exception path
-    import urllib.request
-    monkeypatch.setattr(urllib.request, 'urlopen', lambda *args, **kwargs: exec("raise ValueError('mock error')"))
-    assert _fetch_avatar_pixbuf('testuser') is None
+def test_avatar_fetch_delegates_to_backend():
+    calls = []
+    backend = SimpleNamespace(
+        fetch_avatar_pixbuf=lambda user, size=48: calls.append((user, size)) or 'pixbuf')
+    assert _fetch_avatar_pixbuf(backend, 'testuser', size=36) == 'pixbuf'
+    assert calls == [('testuser', 36)]
+
+
+def test_avatar_fetch_without_backend_returns_none():
+    assert _fetch_avatar_pixbuf(None, 'testuser') is None
 
 # src/task_panel.py constructs Adw.Spinner, which arrived in libadwaita 1.6.
 # Ubuntu 24.04 (GitHub's current ubuntu-latest) ships 1.5, where that raises
