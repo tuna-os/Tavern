@@ -3,7 +3,7 @@
 
 """
 Support for fetching release/version information from different git forges.
-Currently supports: GitHub, GitLab, Codeberg (Gitea), Gitea (generic).
+Currently supports: GitHub, GitLab (gitlab.com), Codeberg.
 """
 
 import re
@@ -80,7 +80,7 @@ class GitHubForge(GitForge):
 
 
 class GitLabForge(GitForge):
-    """GitLab releases fetcher (also supports self-hosted GitLab)."""
+    """GitLab releases fetcher (gitlab.com)."""
     
     DOMAIN_PATTERN = re.compile(r'(?:https?://)?(?:www\.)?gitlab\.com')
     REPO_PATTERN = re.compile(r'(https?://[^/]+)/(.+?)(?:\.git)?$')
@@ -176,53 +176,6 @@ class CodebergForge(GitForge):
             return []
 
 
-class GiteaForge(GitForge):
-    """Generic Gitea instance releases fetcher (self-hosted)."""
-    
-    REPO_PATTERN = re.compile(r'(https?://[^/]+)/([^/]+)/([^/]+)')
-    
-    def __init__(self, base_url: str):
-        """Initialize with Gitea instance base URL."""
-        self.base_url = base_url
-    
-    def detect_from_url(self, url: str) -> bool:
-        """Check if URL is from this Gitea instance."""
-        return url.startswith(self.base_url)
-    
-    def get_releases(self, owner: str, repo: str) -> list:
-        """Fetch releases from Gitea API."""
-        try:
-            api_url = f'{self.base_url}/api/v1/repos/{owner}/{repo}/releases'
-            _log.debug('Fetching Gitea releases: %s', api_url)
-            
-            req = Request(api_url, headers={'User-Agent': 'Tavern/0.1'})
-            with urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-            
-            releases = []
-            for release in data:
-                version = release.get('tag_name', '').lstrip('v')
-                date = release.get('published_at', '')[:10]  # YYYY-MM-DD
-                changelog = release.get('body', '') or release.get('name', 'No description')
-                
-                if version:
-                    releases.append({
-                        'version': version,
-                        'date': date,
-                        'changelog': changelog,
-                    })
-            
-            _log.info('Fetched %d releases from Gitea', len(releases))
-            return releases
-        
-        except URLError as e:
-            _log.warning('Failed to fetch Gitea releases: %s', e)
-            return []
-        except Exception as e:
-            _log.error('Error parsing Gitea releases: %s', e)
-            return []
-
-
 def get_forge_for_url(source_url: str) -> tuple:
     """Detect which forge a URL belongs to and extract owner/repo.
     
@@ -252,37 +205,12 @@ def get_forge_for_url(source_url: str) -> tuple:
     if forge.detect_from_url(source_url):
         match = forge.REPO_PATTERN.search(source_url)
         if match:
-            base_url = match.group(1)
             path = match.group(2).rstrip('.git')
             parts = path.split('/')
             if len(parts) >= 2:
                 owner = parts[0]
                 repo = parts[-1]
-                # Create instance with custom base URL
-                forge_instance = GitLabForge()
-                return forge_instance, owner, repo
+                return forge, owner, repo
     
     _log.debug('No recognized git forge found in URL: %s', source_url)
     return None, None, None
-
-
-def extract_owner_repo_from_url(source_url: str) -> tuple:
-    """Extract owner and repo from a git URL (supports multiple forges).
-    
-    Returns: (owner, repo) or (None, None) if not recognized.
-    """
-    # Remove .git suffix if present
-    url = source_url.rstrip('.git') if isinstance(source_url, str) else ''
-    
-    # Try various patterns
-    patterns = [
-        r'[:/]([^/:]+)/([^/.]+?)(?:\.git)?$',  # git@github.com:owner/repo or https://...owner/repo
-        r'/([^/:]+)/([^/.]+?)(?:\.git)?/?$',   # /owner/repo format
-    ]
-    
-    for pattern in patterns:
-        match = re.search(pattern, url)
-        if match:
-            return match.group(1), match.group(2)
-    
-    return None, None
