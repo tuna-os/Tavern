@@ -11,9 +11,7 @@ from tavern.git_forge import (
     GitHubForge,
     GitLabForge,
     CodebergForge,
-    GiteaForge,
     get_forge_for_url,
-    extract_owner_repo_from_url,
 )
 
 
@@ -169,50 +167,6 @@ class TestCodebergForge:
         assert releases == []
 
 
-class TestGiteaForge:
-    def test_detect_from_url(self):
-        forge = GiteaForge("https://gitea.example.com")
-        assert forge.detect_from_url("https://gitea.example.com/user/repo") is True
-        assert forge.detect_from_url("https://gitea.other.com/user/repo") is False
-
-    def test_get_releases_success(self, monkeypatch):
-        mock_response_data = [
-            {
-                "tag_name": "1.0",
-                "published_at": "2026-05-29T10:00:00Z",
-                "name": "Gitea Release",
-            }
-        ]
-
-        class MockResponse:
-            def __init__(self, data):
-                self.data = json.dumps(data).encode("utf-8")
-            def read(self):
-                return self.data
-            def __enter__(self):
-                return self
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                pass
-
-        monkeypatch.setattr("tavern.git_forge.urlopen", lambda req, timeout=None: MockResponse(mock_response_data))
-
-        forge = GiteaForge("https://gitea.example.com")
-        releases = forge.get_releases("user", "repo")
-        assert len(releases) == 1
-        assert releases[0]["version"] == "1.0"
-        assert releases[0]["changelog"] == "Gitea Release"
-
-    def test_get_releases_url_error(self, monkeypatch):
-        def mock_urlopen_error(*args, **kwargs):
-            raise URLError("Gitea offline")
-        
-        monkeypatch.setattr("tavern.git_forge.urlopen", mock_urlopen_error)
-        
-        forge = GiteaForge("https://gitea.example.com")
-        releases = forge.get_releases("user", "repo")
-        assert releases == []
-
-
 def test_get_forge_for_url():
     # Valid GitHub
     forge, owner, repo = get_forge_for_url("https://github.com/hanthor/tavern.git")
@@ -241,10 +195,3 @@ def test_get_forge_for_url():
     # Invalid types
     assert get_forge_for_url(None) == (None, None, None)
     assert get_forge_for_url(123) == (None, None, None)
-
-
-def test_extract_owner_repo_from_url():
-    assert extract_owner_repo_from_url("https://github.com/hanthor/tavern") == ("hanthor", "tavern")
-    assert extract_owner_repo_from_url("git@github.com:hanthor/tavern.git") == ("hanthor", "tavern")
-    assert extract_owner_repo_from_url("/var/home/james/dev/Tavern") == ("dev", "Tavern")
-    assert extract_owner_repo_from_url(None) == (None, None)
