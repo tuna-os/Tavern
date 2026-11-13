@@ -21,6 +21,7 @@ from urllib.error import URLError
 from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
+from .brew_commands import validate_name
 from .brew_env import build_command as _brew_cmd
 
 _ = gettext.gettext
@@ -364,6 +365,9 @@ class RemoteMixin:
 
     def get_package_info(self, name, pkg_type='formula'):
         """Get package info synchronously (for brewfile loading)."""
+        # The name comes from a Brewfile nobody has reviewed yet. Only a
+        # package name may reach the URL or the brew command line.
+        validate_name(name)
         try:
             # First try the API
             if pkg_type == 'formula':
