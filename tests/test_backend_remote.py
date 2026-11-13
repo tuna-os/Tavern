@@ -2,6 +2,8 @@
 
 from types import SimpleNamespace
 
+import pytest
+
 from tavern.backend_remote import RemoteMixin
 
 
@@ -139,3 +141,28 @@ def test_fetch_analytics_data_returns_fresh_cache_without_network():
     )
 
     assert RemoteMixin._fetch_analytics_data(harness) is cached
+
+
+def test_get_package_info_only_looks_up_package_names(monkeypatch):
+    from tavern import backend_remote
+
+    harness = RemoteHarness()
+    harness.remote = None
+    runs = []
+    monkeypatch.setattr(backend_remote.subprocess, 'run',
+                        lambda *args, **kwargs: runs.append(args))
+
+    for name in ('--eval-all', '-d', '/tmp/evil.rb', '~/evil.rb', './evil.rb',
+                 'file:///tmp/evil.rb', '../cask/firefox', 'two words', ''):
+        with pytest.raises(ValueError):
+            harness.get_package_info(name, 'formula')
+        with pytest.raises(ValueError):
+            harness.get_package_info(name, 'cask')
+    assert harness.fetches == []
+    assert runs == []
+
+    harness.remote = {'name': 'wget'}
+    assert harness.get_package_info('user/tap/wget', 'formula') == {'name': 'wget'}
+    assert harness.fetches == [
+        ('https://formulae.brew.sh/api/formula/user/tap/wget.json', None)]
+    assert runs == []
