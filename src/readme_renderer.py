@@ -3,7 +3,47 @@
 
 """Transform package README data into details-page presentation values."""
 
+import re
+from urllib.parse import urlparse
+
 from gi.repository import GLib
+
+# README text is untrusted. The document may not load anything except https
+# images, and may not submit forms or change its base URI.
+README_CSP = (
+    "default-src 'none'; img-src https: data:; style-src 'unsafe-inline'; "
+    "form-action 'none'; base-uri 'none'; frame-src 'none'; object-src 'none'"
+)
+
+# Raw HTML elements that load subresources, navigate, or restyle the page.
+_BLOCKED_PAIRED = re.compile(
+    r'<\s*(script|iframe|object|embed|form|style|noscript|svg|math|template)\b.*?<\s*/\s*\1\s*>',
+    re.IGNORECASE | re.DOTALL,
+)
+_BLOCKED_SINGLE = re.compile(
+    r'<\s*/?\s*(script|iframe|object|embed|form|style|noscript|svg|math|template|'
+    r'meta|link|base|frame|frameset|applet|input|button|textarea|select)\b[^>]*>?',
+    re.IGNORECASE,
+)
+
+_EXTERNAL_SCHEMES = frozenset({'http', 'https', 'mailto'})
+
+
+def strip_unsafe_html(html):
+    """Remove raw HTML elements that could load content or navigate."""
+    previous = None
+    while previous != html:
+        previous = html
+        html = _BLOCKED_PAIRED.sub('', html)
+    return _BLOCKED_SINGLE.sub('', html)
+
+
+def is_external_link_allowed(uri):
+    """True only for http(s)/mailto links that may be handed to the launcher."""
+    try:
+        return urlparse(uri or '').scheme.lower() in _EXTERNAL_SCHEMES
+    except ValueError:
+        return False
 
 
 class ReadmeRenderer:
@@ -55,6 +95,7 @@ class ReadmeRenderer:
                 extensions=['fenced_code', 'tables', 'nl2br'],
                 output_format='html5',
             )
+            html_body = strip_unsafe_html(html_body)
         except Exception:
             # Keep the existing safe fallback when python-markdown is absent.
             escaped = GLib.markup_escape_text(text)
@@ -66,6 +107,7 @@ class ReadmeRenderer:
 <!doctype html>
 <html>
   <head>
+    <meta http-equiv="Content-Security-Policy" content="{README_CSP}" />
     <meta charset="utf-8" />
     <style>
       html, body {{
