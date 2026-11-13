@@ -42,8 +42,13 @@ _DEFAULT_PORTS = {'https': 443}
 
 def _ip_is_blocked(ip):
     """True if ip is loopback / link-local / private / multicast /
-    unspecified / reserved. Covers IPv4 and IPv6 (broadcast falls under
-    is_private / is_reserved)."""
+    unspecified / reserved, or otherwise not globally routable. Covers IPv4
+    and IPv6 (broadcast falls under is_private / is_reserved).
+
+    ``is_private`` is False for the shared address space 100.64.0.0/10
+    (RFC 6598), which carrier NAT and overlay networks such as Tailscale use
+    for hosts that are not public. ``is_global`` is False for it too, so the
+    last test catches that range."""
     return (
         ip.is_private
         or ip.is_loopback
@@ -51,6 +56,7 @@ def _ip_is_blocked(ip):
         or ip.is_multicast
         or ip.is_unspecified
         or ip.is_reserved
+        or not ip.is_global
     )
 
 

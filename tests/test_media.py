@@ -597,6 +597,8 @@ class TestIsSafeMediaUrl:
             'private-b.example': ['192.168.1.1'],
             'private-c.example': ['172.16.5.4'],
             'linklocal.example': ['169.254.10.10'],
+            'shared.example': ['100.64.0.1'],               # RFC 6598 (carrier NAT, Tailscale)
+            'shared-top.example': ['100.127.255.254'],
             'unspecified.example': ['0.0.0.0'],
             'multicast.example': ['224.0.0.1'],
             'v6fe80.example': ['fe80::1'],
@@ -660,7 +662,7 @@ class TestIsSafeMediaUrl:
     @pytest.mark.parametrize('host', [
         'loopback.example', 'private-a.example', 'private-b.example',
         'private-c.example', 'linklocal.example', 'unspecified.example',
-        'multicast.example',
+        'multicast.example', 'shared.example', 'shared-top.example',
     ])
     def test_ipv4_blocked_ranges(self, dns, host):
         assert not us.is_safe_media_url(f'https://{host}/a.png')
