@@ -82,6 +82,28 @@ def urlopen(req, timeout=None):
 class MediaMixin:
     """Network media fetching mixed into BrewBackend."""
 
+    def fetch_avatar_pixbuf(self, github_user, size=48):
+        """Fetch a GitHub user or org avatar as a square GdkPixbuf, or None.
+
+        The tap page calls this from a worker thread. The request uses the
+        media transport, so it gets the same URL policy and size cap as the
+        other media fetches.
+        """
+        url = f'https://github.com/{github_user}.png?size={size * 2}'
+        try:
+            req = Request(url, headers={'User-Agent': 'Tavern/0.1'})
+            with urlopen(req, timeout=8) as resp:
+                data = _read_capped(resp)
+            loader = GdkPixbuf.PixbufLoader()
+            loader.write(data)
+            loader.close()
+            pb = loader.get_pixbuf()
+            if pb:
+                return pb.scale_simple(size, size, GdkPixbuf.InterpType.BILINEAR)
+        except Exception as e:
+            _log.debug('Avatar fetch failed for %s: %s', github_user, e)
+        return None
+
     def fetch_icon_async(self, package, callback):
         """Fetch an icon for the package on a bounded worker pool.
 
