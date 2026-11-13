@@ -59,7 +59,12 @@ not an inverse install: it can remove packages outside the Brewfile.
 ## Diagnostics and old versions
 
 Doctor uses Homebrew 7 JSON reports, with a text fallback for older Homebrew.
-Suggested commands remain text; Tavern does not execute them.
+A suggested command gets a **Fix** button only when it is the only command in
+its block and is a single `brew` invocation without `sudo`. Fix adds that
+command to the task queue, shows its progress and status, and runs Doctor
+again when the task succeeds. Tavern does not run other suggestions. Tavern
+tells you to run a `sudo` command in a terminal, and shows other commands as
+text to copy.
 **View Homebrew Configuration** shows `brew config`, with Landlock details
 when the host supports them.
 
