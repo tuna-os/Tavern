@@ -20,7 +20,9 @@ For a bug report, include the app version, install channel, OS, steps to
 reproduce, expected result, actual result, and relevant logs.
 For a release failure, also include the workflow URL and source commit.
 
-The Doctor page can copy its report and show `brew config`.
+The Doctor page can copy its report, show `brew config`, and queue a fix
+when the suggestion is a single `brew` command.
 The task panel can show and copy command output.
-See [Homebrew tools](HOMEBREW_FEATURES.md) for security scan coverage and safe previews,
-and the [Brew Doctor proposal](BREW_DOCTOR_PROPOSAL.md) for the design and the plan for fixes.
+See [Homebrew tools](HOMEBREW_FEATURES.md) for security scan coverage, safe previews,
+and which Doctor suggestions Tavern runs. For the design, see the
+[proposal for Brew Doctor](BREW_DOCTOR_PROPOSAL.md).

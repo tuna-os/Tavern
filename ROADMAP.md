@@ -24,6 +24,7 @@ Part of the [TunaOS](https://tunaos.org) ecosystem.
 - ✅ Prioritize system bins over Homebrew in PATH (Bluefin parity) (#281)
 - ✅ Missing Homebrew detection, interactive terminal install offer, and live detection retry (#281)
 - ✅ Released version `v0.1.65` with system-first PATH ordering and missing-brew onboard dialog
+- ✅ Brew Doctor two-column layout and queued fixes for single `brew` commands (#241, #319)
 
 ## Release health
 
@@ -47,7 +48,7 @@ new tags alone are not evidence of a stable release.
 ## Planned
 
 - **Release parity** — finish the artifact and install checks in #104.
-- **Brew Doctor** — assess explicit fix actions and report export per the [implementation proposal](docs/BREW_DOCTOR_PROPOSAL.md) (#170).
+- **Brew Doctor** — report export (save the raw output to a file) per the [implementation proposal](docs/BREW_DOCTOR_PROPOSAL.md).
 - **Backend contracts** — add focused state tests (#153), then separate state
   ownership (#172). Tap parsing and Brewfile execution now have separate boundaries.
 - **Performance** — measure the proposals in #171 before changing search,
