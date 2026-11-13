@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   publish:
-    uses: tuna-os/.github/.github/workflows/publish-flatpak.yml@4078f531ac74703f203bde835ef6c25e9321b97b # main  # zizmor: ignore[ref-version-mismatch] pinned to a reviewed main commit; Renovate bumps the digest, so main may be ahead
+    uses: tuna-os/.github/.github/workflows/publish-flatpak.yml@4f08bf7b295f70306352e0e865b7f3d5bc08d5f6 # main  # zizmor: ignore[ref-version-mismatch] pinned to a reviewed main commit; Renovate bumps the digest, so main may be ahead
     with:
       app-id: org.tunaos.tavern
       manifest-path: org.tunaos.tavern.json
