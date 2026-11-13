@@ -85,9 +85,17 @@ def test_readme_html_has_csp_and_strips_active_elements():
 
     assert "default-src 'none'" in html
     assert "form-action 'none'" in html
-    for needle in ('<iframe', '<form', '<input', 'refresh', '<link', '<script', 'evil.example'):
+    # Raw active tags must never reach the WebView. Without python-markdown the
+    # fallback escapes the whole README, so only tag openings are checked here.
+    for needle in ('<iframe', '<form', '<input', '<meta', '<link', '<script'):
         assert needle not in body
-    assert '<strong>bold</strong>' in body
+    try:
+        import markdown  # noqa: F401
+    except ImportError:
+        # Fallback path: text is escaped and shown verbatim, not rendered.
+        assert 'Safe **bold** text.' in body
+    else:
+        assert '<strong>bold</strong>' in body
     assert is_external_link_allowed('https://example.com')
     assert is_external_link_allowed('mailto:a@example.com')
     assert not is_external_link_allowed('file:///etc/passwd')
