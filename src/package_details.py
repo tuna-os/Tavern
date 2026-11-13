@@ -17,7 +17,7 @@ except Exception:
 from .logging_util import get_logger
 from .screenshot_lightbox import TavernScreenshotLightbox
 from .asset_loader import AssetLoaderController
-from .readme_renderer import ReadmeRenderer
+from .readme_renderer import ReadmeRenderer, is_external_link_allowed
 from .task_binding import PackageTaskBinder
 
 
@@ -530,9 +530,12 @@ class TavernPackageDetails(Adw.NavigationPage):
             action = decision.get_navigation_action()
             uri = action.get_request().get_uri()
             if uri and not uri.startswith('about:') and not uri.startswith('data:'):
-                _log.debug('Opening external link from webview: %s', uri)
-                launcher = Gtk.UriLauncher.new(uri)
-                launcher.launch(self.get_root(), None, None, None)
+                if is_external_link_allowed(uri):
+                    _log.debug('Opening external link from webview: %s', uri)
+                    launcher = Gtk.UriLauncher.new(uri)
+                    launcher.launch(self.get_root(), None, None, None)
+                else:
+                    _log.debug('Blocked webview navigation: %s', uri)
                 decision.ignore()
                 return True
         return False

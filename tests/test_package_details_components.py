@@ -68,6 +68,32 @@ def test_readme_renderer_formats_document_and_counts():
     assert renderer.format_install_count(1_500_000) == '1.50M'
 
 
+def test_readme_html_has_csp_and_strips_active_elements():
+    from tavern.readme_renderer import is_external_link_allowed
+
+    renderer = ReadmeRenderer()
+    text = (
+        '# Hi\n\n<iframe src="https://evil.example"></iframe>\n'
+        '<form action="https://evil.example"><input name="x"></form>\n'
+        '<meta http-equiv="refresh" content="0;url=https://evil.example">\n'
+        '<link rel="stylesheet" href="https://evil.example/x.css">\n'
+        '<script>alert(1)</script>\n\nSafe **bold** text.'
+    )
+
+    html = renderer.html(text)
+    body = html.split('<body>', 1)[1]
+
+    assert "default-src 'none'" in html
+    assert "form-action 'none'" in html
+    for needle in ('<iframe', '<form', '<input', 'refresh', '<link', '<script', 'evil.example'):
+        assert needle not in body
+    assert '<strong>bold</strong>' in body
+    assert is_external_link_allowed('https://example.com')
+    assert is_external_link_allowed('mailto:a@example.com')
+    assert not is_external_link_allowed('file:///etc/passwd')
+    assert not is_external_link_allowed('javascript:alert(1)')
+
+
 def test_task_binder_replaces_connections_and_cleans_up():
     package = Package({'name': 'ripgrep'}, 'formula')
     first = Task(package, TaskOperation.INSTALL)
