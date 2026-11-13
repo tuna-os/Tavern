@@ -598,6 +598,8 @@ class TestIsSafeMediaUrl:
             'private-c.example': ['172.16.5.4'],
             'linklocal.example': ['169.254.10.10'],
             'unspecified.example': ['0.0.0.0'],
+            'cgnat.example': ['100.64.0.1'],
+            'cgnat-high.example': ['100.127.255.254'],
             'multicast.example': ['224.0.0.1'],
             'v6fe80.example': ['fe80::1'],
             'v6unique.example': ['fc00::1'],
@@ -618,6 +620,10 @@ class TestIsSafeMediaUrl:
                      'avatars.githubusercontent.com', 'www.google.com',
                      'icons.duckduckgo.com', 'flathub.org'):
             assert us.is_safe_media_url(f'https://{host}/x.png')
+
+    def test_shared_address_space_rejected(self, dns):
+        assert not us.is_safe_media_url('https://cgnat.example/a.png')
+        assert not us.is_safe_media_url('https://cgnat-high.example/a.png')
 
     # ── scheme / userinfo / port ──
     def test_http_rejected(self):

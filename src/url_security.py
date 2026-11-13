@@ -42,7 +42,7 @@ _DEFAULT_PORTS = {'https': 443}
 
 def _ip_is_blocked(ip):
     """True if ip is loopback / link-local / private / multicast /
-    unspecified / reserved. Covers IPv4 and IPv6 (broadcast falls under
+    unspecified / reserved / non-global (e.g. CGNAT 100.64.0.0/10). Covers IPv4 and IPv6 (broadcast falls under
     is_private / is_reserved)."""
     return (
         ip.is_private
@@ -51,6 +51,9 @@ def _ip_is_blocked(ip):
         or ip.is_multicast
         or ip.is_unspecified
         or ip.is_reserved
+        # Shared address space (RFC 6598, 100.64.0.0/10) is not is_private but
+        # is not globally routable either; block anything non-global.
+        or not ip.is_global
     )
 
 
