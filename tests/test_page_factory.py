@@ -62,6 +62,9 @@ def test_wire_pages_calls_the_right_setter_on_each_page():
         def set_task_manager(self, task_manager):
             calls.append(('doctor', task_manager))
 
+        def set_runner(self, runner):
+            calls.append(('doctor-runner', runner))
+
     factory.wire_pages(Browse(), Search(), Installed(), Tap(), Doctor())
     assert calls == [
         ('browse', 'BACKEND'),
@@ -69,6 +72,7 @@ def test_wire_pages_calls_the_right_setter_on_each_page():
         ('installed', 'BACKEND', 'TM'),
         ('tap', 'BACKEND'),
         ('doctor', 'TM'),
+        ('doctor-runner', factory.runner),
     ]
 
 
@@ -104,7 +108,8 @@ def test_create_brewfile_page_wires_backend_and_manager(monkeypatch):
     FakeBF = _inject_fake_page(monkeypatch, 'brewfile_page', 'TavernBrewfilePage')
     FakeBF.set_backend_and_manager = (
         lambda self, backend, task_manager: setattr(self, 'wired', (backend, task_manager)))
-    factory = PageFactory('BACKEND', 'TM')
+    FakeBF.set_runner = lambda self, runner: setattr(self, 'runner', runner)
+    factory = PageFactory('BACKEND', 'TM', runner='RUNNER')
 
     page = factory.create_brewfile_page()
 
@@ -112,15 +117,21 @@ def test_create_brewfile_page_wires_backend_and_manager(monkeypatch):
     assert page.args == ()
     assert page.kwargs == {}
     assert page.wired == ('BACKEND', 'TM')
+    assert page.runner == 'RUNNER'
 
 
 def test_create_maintenance_page_passes_task_manager(monkeypatch):
     FakeMP = _inject_fake_page(monkeypatch, 'maintenance_page', 'MaintenancePage')
-    factory = PageFactory('BACKEND', 'TM')
+    factory = PageFactory('BACKEND', 'TM', runner='RUNNER')
 
     page = factory.create_maintenance_page()
 
     assert isinstance(page, FakeMP)
     # MaintenancePage(self, manager, ...) is constructed positionally.
     assert page.args == ('TM',)
-    assert page.kwargs == {}
+    assert page.kwargs == {'runner': 'RUNNER'}
+
+
+def test_factory_defaults_to_the_brew_read_runner():
+    from tavern.brew_commands import run_read
+    assert PageFactory('BACKEND', 'TM').runner is run_read

@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from dataclasses import dataclass
+import gettext
 import hashlib
 import json
 import re
 import threading
 import time
+
+_ = gettext.gettext
 
 REPORT_TTL = 3600
 _ANSI = re.compile(r'\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07]*(?:\x07|\x1b\\)')
@@ -475,6 +478,24 @@ def _json_issue(title, finding, severity):
                                        preceded_by_blank_line=True),)
     body = '\n'.join(body_lines)
     return DoctorIssue(title, body, severity, blocks)
+
+
+def run_doctor(runner):
+    """Run `brew doctor` through ``runner``; prefer JSON, fall back on pre-7 Homebrew."""
+    from .brew_env import is_brew_available
+    from .brew_commands import transcript
+    if not is_brew_available():
+        raise DoctorError(_('Homebrew is not installed.'))
+    result = runner(('doctor', '--json'), timeout=60)
+    if result.returncode and any(message in transcript(result).lower() for message in
+                                ('invalid option: --json', 'unknown option: --json')):
+        # Pre-7 Homebrew: warnings are printed to stderr in the text format.
+        result = runner(('doctor',), timeout=60)
+        result.stdout = transcript(result)
+        result.stderr = ''
+    else:
+        result.doctor_json = True
+    return result
 
 
 class DoctorService:

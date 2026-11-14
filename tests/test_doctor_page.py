@@ -1,7 +1,7 @@
 """The Doctor page renders reports and retries without real Homebrew calls."""
 from types import SimpleNamespace
 
-from tavern import doctor_page
+from tavern import doctor, doctor_page
 from tavern.doctor import (
     parse_report, DoctorReport, DoctorIssue, DoctorBlock, DoctorFixStep, DoctorLink
 )
@@ -55,8 +55,8 @@ def test_runner_requests_structured_output_and_preserves_warnings(monkeypatch):
     calls = []
     monkeypatch.setattr('tavern.brew_env.is_brew_available', lambda: True)
     result = SimpleNamespace(stdout='{"findings": [], "tier": 1}', stderr='Extra warning', returncode=0)
-    monkeypatch.setattr(doctor_page, 'run_read', lambda *args, **kwargs: calls.append((args, kwargs)) or result)
-    assert doctor_page._run_doctor() is result
+    runner = lambda *args, **kwargs: calls.append((args, kwargs)) or result
+    assert doctor.run_doctor(runner) is result
     assert calls == [((('doctor', '--json'),), {'timeout': 60})]
 
 
@@ -68,8 +68,7 @@ def test_runner_falls_back_only_for_unsupported_json(monkeypatch):
         if '--json' in args:
             return SimpleNamespace(stdout='', stderr='Error: invalid option: --json', returncode=1)
         return SimpleNamespace(stdout='', stderr='Warning: Unlinked kegs', returncode=1)
-    monkeypatch.setattr(doctor_page, 'run_read', run)
-    result = doctor_page._run_doctor()
+    result = doctor.run_doctor(run)
     assert calls == [('doctor', '--json'), ('doctor',)]
     assert result.stdout == 'Warning: Unlinked kegs'
     assert result.stderr == ''

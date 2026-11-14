@@ -5,7 +5,7 @@ import gettext
 import shlex
 import threading
 from gi.repository import Adw, GLib, Gtk
-from .brew_commands import run_read, transcript
+from .brew_commands import transcript
 
 _ = gettext.gettext
 
@@ -22,9 +22,15 @@ def text_view(text=''):
 
 
 def show_command(parent, title, description, *, args=None, text='', confirm=None,
-                 confirm_label=None, destructive=False, cancelled=None, runner=run_read,
+                 confirm_label=None, destructive=False, cancelled=None, runner=None,
                  allow_legacy_install=False):
-    """Run only the supplied preview argv; never interpret output as commands."""
+    """Run only the supplied preview argv; never interpret output as commands.
+
+    ``runner`` executes ``args``. UI modules do not run brew themselves, so a
+    caller that passes ``args`` also passes the runner ``PageFactory`` owns.
+    """
+    if args is not None and runner is None:
+        raise TypeError('show_command(args=...) needs a runner')
     dialog = Adw.AlertDialog(heading=title, body=description)
     dialog.add_response('cancel', _('Cancel') if confirm else _('Close'))
     dialog.set_close_response('cancel')

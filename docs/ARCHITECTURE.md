@@ -56,7 +56,10 @@ to other pages.
 **Page construction.** `PageFactory` (`page_factory.py`) makes each page and
 dialog and gives it the shared `backend` and `task_manager`. The window does
 not call page constructors. Refer to
-[ADR-0002](adr/0002-page-factory.md).
+[ADR-0002](adr/0002-page-factory.md). The factory also owns the runner for
+read-only `brew` commands, such as `brew doctor` and previews. It gives this
+runner to the pages and dialogs. UI modules do not run `brew` themselves.
+`tests/test_dependency_boundaries.py` makes sure of this.
 
 **Backend lifecycle.** `BackendLifecycle` (`backend_lifecycle.py`) controls
 the initial and manual catalog loads, the periodic outdated check, and the
