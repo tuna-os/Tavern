@@ -6,27 +6,9 @@ import threading
 
 from gi.repository import Adw, GLib, Gtk
 
-from .doctor import DoctorService, severity_groups, select_after_reload
-from .brew_commands import run_read, transcript
+from .doctor import DoctorService, run_doctor, severity_groups, select_after_reload
 
 _ = gettext.gettext
-
-
-def _run_doctor():
-    from .brew_env import is_brew_available
-    if not is_brew_available():
-        from .doctor import DoctorError
-        raise DoctorError(_('Homebrew is not installed.'))
-    result = run_read(('doctor', '--json'), timeout=60)
-    if result.returncode and any(message in transcript(result).lower() for message in
-                                ('invalid option: --json', 'unknown option: --json')):
-        # Pre-7 Homebrew: warnings are printed to stderr in the text format.
-        result = run_read(('doctor',), timeout=60)
-        result.stdout = transcript(result)
-        result.stderr = ''
-    else:
-        result.doctor_json = True
-    return result
 
 
 @Gtk.Template(resource_path='/org.tunaos.tavern/doctor-page.ui')
@@ -51,9 +33,13 @@ class TavernDoctorPage(Adw.Bin):
     sidebar_box = Gtk.Template.Child()
     sidebar_separator = Gtk.Template.Child()
 
-    def __init__(self, service=None, task_manager=None, **kwargs):
+    def __init__(self, service=None, task_manager=None, runner=None, **kwargs):
         super().__init__(**kwargs)
-        self._service = service if service is not None else DoctorService(_run_doctor)
+        # PageFactory.wire_pages supplies the brew read runner; UI modules do
+        # not run brew themselves (tests/test_dependency_boundaries.py).
+        self._runner = runner
+        self._service = service if service is not None else DoctorService(
+            lambda: run_doctor(self._runner))
         self._report = None
         self._busy = False
         self._rows = {}
@@ -67,6 +53,9 @@ class TavernDoctorPage(Adw.Bin):
         self.connect('map', lambda _page: self.refresh())
         self.findings_list.connect('row-selected', self._on_row_selected)
         self._render_detail(None)
+
+    def set_runner(self, runner):
+        self._runner = runner
 
     def set_task_manager(self, task_manager):
         self._task_manager = task_manager
@@ -399,4 +388,5 @@ class TavernDoctorPage(Adw.Bin):
         from .command_dialog import show_command
         show_command(self.get_root(), _('Homebrew Configuration'),
                      _('Includes platform and sandbox diagnostics, including Landlock when available. '
-                       'Review local paths and account details before sharing.'), args=('config',))
+                       'Review local paths and account details before sharing.'), args=('config',),
+                     runner=self._runner)

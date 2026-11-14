@@ -411,7 +411,7 @@ class TavernWindow(Adw.ApplicationWindow):
                        'The actual installation may differ if Homebrew changes before it runs.'),
                      args=(*task.command, '--dry-run'), confirm=approve,
                      confirm_label=_('Install'), cancelled=task._set_cancelled,
-                     allow_legacy_install=True)
+                     allow_legacy_install=True, runner=self.page_factory.runner)
 
     def _on_maintenance(self, *_args):
         self.navigation_view.push(self.page_factory.create_maintenance_page())

@@ -52,6 +52,7 @@ class TavernBrewfilePage(Adw.Bin):
         super().__init__(**kwargs)
         self.backend = None
         self.task_manager = None
+        self.runner = None
         self._brewfile_path = None
         self._document = None
         self._default_notice = self.source_notice.get_label()
@@ -73,6 +74,10 @@ class TavernBrewfilePage(Adw.Bin):
         """Set the backend and task manager after widget creation."""  
         self.backend = backend
         self.task_manager = task_manager
+
+    def set_runner(self, runner):
+        """Set the brew read runner that ``PageFactory`` owns."""
+        self.runner = runner
 
     def load_brewfile(self, path):
         """Load and display a Brewfile with overall timing."""
@@ -507,9 +512,8 @@ class TavernBrewfilePage(Adw.Bin):
                          args=document.deps_args, runner=read_dependencies)
 
         def read_dependencies(args):
-            from .brew_commands import run_read
             document.verify()
-            return run_read(args)
+            return self.runner(args)
 
         show_command(self.get_root(), _('Trust This Brewfile?'),
                      _('Homebrew evaluates Brewfiles as Ruby, even when listing dependencies. '

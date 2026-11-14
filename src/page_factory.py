@@ -29,9 +29,15 @@ class PageFactory:
     service, ...) changes only this file and the page — never ``window.py``.
     """
 
-    def __init__(self, backend, task_manager):
+    def __init__(self, backend, task_manager, runner=None):
         self.backend = backend
         self.task_manager = task_manager
+        # The one brew read runner for pages and dialogs. UI modules do not
+        # import it (tests/test_dependency_boundaries.py); they get it here.
+        if runner is None:
+            from .brew_commands import run_read
+            runner = run_read
+        self.runner = runner
 
     def wire_pages(self, browse_page, search_page, installed_page, tap_page, doctor_page):
         """Inject shared dependencies into the template-built pages."""
@@ -40,6 +46,7 @@ class PageFactory:
         installed_page.set_backend_and_manager(self.backend, self.task_manager)
         tap_page.set_backend(self.backend)
         doctor_page.set_task_manager(self.task_manager)
+        doctor_page.set_runner(self.runner)
 
     def create_package_details(self, package):
         """Create the package-details navigation page."""
@@ -67,9 +74,10 @@ class PageFactory:
         from .brewfile_page import TavernBrewfilePage
         page = TavernBrewfilePage()
         page.set_backend_and_manager(self.backend, self.task_manager)
+        page.set_runner(self.runner)
         return page
 
     def create_maintenance_page(self):
         """Create the on-demand maintenance page."""
         from .maintenance_page import MaintenancePage
-        return MaintenancePage(self.task_manager)
+        return MaintenancePage(self.task_manager, runner=self.runner)

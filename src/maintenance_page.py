@@ -4,14 +4,14 @@
 import gettext
 import threading
 from gi.repository import Adw, GLib, Gtk
-from .brew_commands import parse_services, parse_vulns, run_read, transcript, version_install_args
+from .brew_commands import parse_services, parse_vulns, transcript, version_install_args
 from .command_dialog import show_command
 
 _ = gettext.gettext
 
 
 class MaintenancePage(Adw.NavigationPage):
-    def __init__(self, manager, runner=run_read):
+    def __init__(self, manager, runner=None):
         super().__init__(title=_('Maintenance'))
         self._manager = manager
         self._runner = runner

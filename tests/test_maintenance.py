@@ -184,3 +184,8 @@ def test_security_scan_renders_structured_findings():
     row = page.security_list.get_first_child()
     assert row is not None
     assert 'CVE-2023-1234' in row.get_title()
+
+
+def test_command_preview_requires_an_injected_runner():
+    with pytest.raises(TypeError):
+        command_dialog.show_command(None, 'Review', 'Description', args=('config',))
