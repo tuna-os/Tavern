@@ -172,6 +172,10 @@ class TavernPackageDetails(Adw.NavigationPage):
         if package.homepage:
             _log.debug('Setting homepage: %s', package.homepage)
             self.homepage_label.set_label(package.homepage)
+            # The homepage is package metadata, so the author of a tap
+            # chooses it. The row shows the text but opens only a web link.
+            self.homepage_row.set_sensitive(
+                is_external_link_allowed(package.homepage))
         else:
             self.homepage_row.set_sensitive(False)
             self.homepage_label.set_label('Not available')
@@ -465,7 +469,7 @@ class TavernPackageDetails(Adw.NavigationPage):
 
     @Gtk.Template.Callback()
     def on_show_readme_clicked(self, *args):
-        if self._package and self._package.homepage:
+        if self._package and is_external_link_allowed(self._package.homepage):
             _log.debug('Opening homepage externally for README')
             launcher = Gtk.UriLauncher.new(self._package.homepage)
             launcher.launch(self.get_root(), None, None, None)
@@ -565,7 +569,8 @@ class TavernPackageDetails(Adw.NavigationPage):
     def _on_info_row_activated(self, listbox, row):
         if row == self.version_row and self._package:
             self.emit('package-history-requested', self._package)
-        elif row == self.homepage_row and self._package and self._package.homepage:
+        elif (row == self.homepage_row and self._package
+              and is_external_link_allowed(self._package.homepage)):
             launcher = Gtk.UriLauncher.new(self._package.homepage)
             launcher.launch(self.get_root(), None, None, None)
         elif row == self.installs_row and self._package and self._package._raw_analytics:

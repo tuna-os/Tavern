@@ -125,3 +125,42 @@ def test_package_details_empty(tmp_path, monkeypatch):
     monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
     details = TavernPackageDetails(package=None, backend=None, task_manager=None)
     assert details is not None
+
+
+@pytest.mark.parametrize('homepage', [
+    'file:///etc/passwd',
+    'smb://host/share',
+    'brew://tap/owner/name',
+    'javascript:alert(1)',
+])
+def test_homepage_that_is_not_a_web_link_is_never_launched(tmp_path, monkeypatch, homepage):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    launched = []
+    monkeypatch.setattr(Gtk.UriLauncher, 'launch',
+                        lambda self, parent, *args: launched.append(self.get_uri()))
+
+    # The author of a tap chooses the homepage text of its packages.
+    pkg = Package({'name': 'tap-formula', 'desc': 'd', 'homepage': homepage}, 'formula')
+    details = TavernPackageDetails(package=pkg, backend=None, task_manager=None)
+
+    assert details.homepage_label.get_label() == homepage
+    assert not details.homepage_row.get_sensitive()
+    details._on_info_row_activated(None, details.homepage_row)
+    details.on_show_readme_clicked()
+    assert launched == []
+
+
+def test_web_homepage_is_launched(tmp_path, monkeypatch):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    launched = []
+    monkeypatch.setattr(Gtk.UriLauncher, 'launch',
+                        lambda self, parent, *args: launched.append(self.get_uri()))
+
+    homepage = 'https://example.com/project'
+    pkg = Package({'name': 'tap-formula', 'desc': 'd', 'homepage': homepage}, 'formula')
+    details = TavernPackageDetails(package=pkg, backend=None, task_manager=None)
+
+    assert details.homepage_row.get_sensitive()
+    details._on_info_row_activated(None, details.homepage_row)
+    details.on_show_readme_clicked()
+    assert launched == [homepage, homepage]
