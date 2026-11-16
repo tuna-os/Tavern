@@ -29,6 +29,17 @@ def _fetch_avatar_pixbuf(backend, github_user, size=48):
 
 # ── "Add Tap" dialog ─────────────────────────────────────────────────────────
 
+def _popular_tap_row(tap_name, desc):
+    """Row for one tap from the GitHub search.
+
+    The repository owner writes the name and the description, so the row
+    shows them as text and does not read them as Pango markup.
+    """
+    row = Adw.ActionRow(use_markup=False)
+    row.set_title(tap_name)
+    row.set_subtitle(desc or tap_name)
+    row._tap_name = tap_name
+    return row
 
 
 # ── Page widget ──────────────────────────────────────────────────────────────
@@ -360,10 +371,7 @@ class TavernTapPage(Adw.Bin):
                     gh_user  = info['gh_user']
                     desc     = info.get('desc', '')
 
-                    row = Adw.ActionRow()
-                    row.set_title(tap_name)
-                    row.set_subtitle(desc or tap_name)
-                    row._tap_name = tap_name
+                    row = _popular_tap_row(tap_name, desc)
 
                     avatar = Adw.Avatar(size=36, text=gh_user, show_initials=True)
                     avatar.set_valign(Gtk.Align.CENTER)
