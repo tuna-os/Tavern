@@ -20,6 +20,15 @@ _ = gettext.gettext
 
 _log = get_logger('window')
 
+
+def _plain_toast(text):
+    """Build a toast that shows *text* as it is.
+
+    Adw.Toast reads its title as Pango markup by default. Text that holds a
+    package, tap or file name, or command output, is not markup.
+    """
+    return Adw.Toast(title=text, use_markup=False)
+
 # These imports register the GTypes BEFORE the window template is parsed.
 # GTK needs to know about these custom widget types when building the UI.
 from .browse_page import TavernBrowsePage      # noqa: F401
@@ -207,27 +216,27 @@ class TavernWindow(Adw.ApplicationWindow):
         return self.deeplink_router.open_package_by_name(package_name, show_not_found)
 
     def _show_deeplink_message(self, message):
-        self.toast_overlay.add_toast(Adw.Toast.new(message))
+        self.toast_overlay.add_toast(_plain_toast(message))
 
     # ── Task manager signals ─────────────────────────────────────
     def _on_task_added(self, mgr, task):
         _log.info('Task added: %s', task.title)
         op_label = task.title
-        self.toast_overlay.add_toast(Adw.Toast.new(f'{op_label}…'))
+        self.toast_overlay.add_toast(_plain_toast(f'{op_label}…'))
 
     def _on_task_finished(self, mgr, task):
         _log.info('Task finished: %s  status=%s', task.title, task.status)
         pkg = task.package
         from .task_manager import TaskStatus
         if pkg is None:
-            self.toast_overlay.add_toast(Adw.Toast.new(
+            self.toast_overlay.add_toast(_plain_toast(
                 task.title + ': ' + task.status_text))
             return
         if task.status == TaskStatus.COMPLETED:
             verb = _('Installed') if task.operation == 'install' else (
                 _('Removed') if task.operation == 'uninstall' else _('Upgraded')
             )
-            self.toast_overlay.add_toast(Adw.Toast.new(
+            self.toast_overlay.add_toast(_plain_toast(
                 f'{verb}: {pkg.display_name or pkg.name}'
             ))
         elif task.status == TaskStatus.FAILED:
@@ -236,7 +245,7 @@ class TavernWindow(Adw.ApplicationWindow):
             elif task.conflict_info:
                 self._offer_tap_conflict_resolution(task)
             else:
-                self.toast_overlay.add_toast(Adw.Toast.new(
+                self.toast_overlay.add_toast(_plain_toast(
                     _('Failed: {name}').format(name=pkg.display_name or pkg.name)
                 ))
         # Refresh installed page
@@ -393,12 +402,12 @@ class TavernWindow(Adw.ApplicationWindow):
         if task.status == TaskStatus.COMPLETED:
             self.task_manager.install(pkg)
         else:
-            self.toast_overlay.add_toast(Adw.Toast.new(
+            self.toast_overlay.add_toast(_plain_toast(
                 _('Could not uninstall {name} — tap switch cancelled').format(name=pkg.name)
             ))
 
     def _on_tap_operation(self, page, message):
-        self.toast_overlay.add_toast(Adw.Toast.new(message))
+        self.toast_overlay.add_toast(_plain_toast(message))
 
     def _on_install_requested(self, page, package):
         _log.info('Install requested from page: %s (%s)', package.name, package.pkg_type)
@@ -449,7 +458,7 @@ class TavernWindow(Adw.ApplicationWindow):
                 if success
                 else _('Failed to pin {name}').format(name=package.name)
             )
-            self.toast_overlay.add_toast(Adw.Toast.new(text))
+            self.toast_overlay.add_toast(_plain_toast(text))
 
         _log.info('Pinning %s (requested version %s)', package.name, version)
         self.backend.pin_async(package, _on_pin_done)
@@ -531,7 +540,7 @@ class TavernWindow(Adw.ApplicationWindow):
             if os.path.abspath(brewfile_path) == abs_path:
                 _log.info('Brewfile already open: %s', abs_path)
                 self.main_stack.set_visible_child_name(page_name)
-                self.toast_overlay.add_toast(Adw.Toast.new(_(f'Already viewing {os.path.basename(path)}')))
+                self.toast_overlay.add_toast(_plain_toast(_(f'Already viewing {os.path.basename(path)}')))
                 return
         
         # Extract filename for tab title

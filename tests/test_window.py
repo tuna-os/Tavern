@@ -209,3 +209,36 @@ def test_window_workflows(tmp_path, monkeypatch):
     
     # Test close request (saves sizes)
     win._on_close()
+
+
+def test_toasts_show_names_and_command_output_as_text():
+    from types import SimpleNamespace
+
+    shown = []
+    win = SimpleNamespace(
+        toast_overlay=SimpleNamespace(add_toast=shown.append),
+        installed_page=SimpleNamespace(refresh=lambda backend: None),
+        backend=None,
+    )
+    link = '<a href="file:///etc/passwd">Update</a>'
+    cask = Package({'token': 'tap-cask', 'name': [f'AT&T {link}']}, 'cask')
+    task = SimpleNamespace(
+        title=f'Installing {cask.display_name}', package=cask, operation='install',
+        status=TaskStatus.COMPLETED, status_text='Done',
+        ambiguous_taps=None, conflict_info=None)
+
+    # A brew:// link supplies the name in the "not found" message.
+    TavernWindow._show_deeplink_message(win, f'Package "{link}" not found')
+    # The tap page forwards the first line of brew or git output.
+    TavernWindow._on_tap_operation(win, None, 'Failed to add tap: a & b')
+    # A cask in a third-party tap supplies its display name.
+    TavernWindow._on_task_added(win, None, task)
+    TavernWindow._on_task_finished(win, None, task)
+
+    assert [toast.get_title() for toast in shown] == [
+        f'Package "{link}" not found',
+        'Failed to add tap: a & b',
+        f'Installing AT&T {link}…',
+        f'Installed: AT&T {link}',
+    ]
+    assert all(toast.get_use_markup() is False for toast in shown)

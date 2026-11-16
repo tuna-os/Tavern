@@ -31,6 +31,19 @@ requires_adw_spinner = pytest.mark.skipif(
     reason='needs libadwaita >= 1.6 for Adw.Spinner (used by src/task_panel.py)',
 )
 
+def test_popular_tap_row_shows_github_text_as_text():
+    from tavern.tap_page import _popular_tap_row
+
+    desc = 'Formulae & casks <a href="file:///etc/passwd">Official tap</a>'
+    row = _popular_tap_row('owner/tap', desc)
+
+    assert row.get_use_markup() is False
+    assert row.get_title() == 'owner/tap'
+    assert row.get_subtitle() == desc
+    assert row._tap_name == 'owner/tap'
+    assert _popular_tap_row('owner/tap', '').get_subtitle() == 'owner/tap'
+
+
 def test_empty_trust_list_shows_sidebar_warning(monkeypatch):
     import tavern.taps as taps_mod
 
