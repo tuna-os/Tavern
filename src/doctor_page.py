@@ -7,6 +7,7 @@ import threading
 from gi.repository import Adw, GLib, Gtk
 
 from .doctor import DoctorService, run_doctor, severity_groups, select_after_reload
+from .external_links import web_link_button
 
 _ = gettext.gettext
 
@@ -272,7 +273,7 @@ class TavernDoctorPage(Adw.Bin):
                             subtitle=_('Action required') if link.role == 'action' else _('Reference documentation'),
                             use_markup=False,
                         )
-                        link_btn = Gtk.LinkButton.new_with_label(link.url, _('Open'))
+                        link_btn = web_link_button(link.url, _('Open'))
                         link_btn.set_valign(Gtk.Align.CENTER)
                         row.add_suffix(link_btn)
                         link_list.append(row)

@@ -5,6 +5,7 @@ import gi
 gi.require_version('Gio', '2.0')
 from gi.repository import Gio
 
+from .external_links import open_brew_link
 from .search_provider import TavernSearchProvider
 
 
@@ -28,12 +29,10 @@ class TavernSearchService(Gio.Application):
         Gio.Application.do_dbus_unregister(self, connection, object_path)
 
     def open_package(self, package_name):
-        Gio.AppInfo.launch_default_for_uri(
-            f'brew://formula/{package_name}', None,
-        )
+        open_brew_link(f'formula/{package_name}')
 
     def open_search(self, query):
-        Gio.AppInfo.launch_default_for_uri(f'brew://{query}', None)
+        open_brew_link(query)
 
 
 def main(desktop_app_id='org.tunaos.tavern'):

@@ -192,6 +192,28 @@ def test_detail_renders_structured_blocks(monkeypatch):
     assert copied == ['test-copy']
 
 
+def test_link_block_opens_only_web_links(monkeypatch):
+    from gi.repository import Gtk
+    launched = []
+    monkeypatch.setattr(Gtk.UriLauncher, 'launch',
+                        lambda self, parent, *args: launched.append(self.get_uri()))
+    page = doctor_page.TavernDoctorPage()
+    links = (DoctorLink('https://example.com/fix', 'action'),
+             DoctorLink('file:///etc/passwd', 'reference'))
+    issue = DoctorIssue('Issue with links', 'raw body', 'warning',
+                        blocks=(DoctorBlock(type='link', value=links),))
+    page._complete(_report(issue), None)
+
+    web, other = [widget for widget in _walk(page.detail_blocks)
+                  if isinstance(widget, Gtk.LinkButton)]
+    assert web.get_sensitive()
+    assert not other.get_sensitive()
+    for button in (web, other):
+        # True means the default handler, which opens any scheme, did not run.
+        assert button.emit('activate-link') is True
+    assert launched == ['https://example.com/fix']
+
+
 def _walk(widget):
     yield widget
     child = widget.get_first_child()

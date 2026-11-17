@@ -3,9 +3,11 @@
 
 import pytest
 import os
+import subprocess
 import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from types import SimpleNamespace
 from gi.repository import Gtk, GLib, Adw
 from tavern.brewfile_page import TavernBrewfilePage
 from tavern.backend import Package, BrewBackend
@@ -75,8 +77,8 @@ def test_brewfile_page_workflows(tmp_path, monkeypatch):
             return MockCompletedProcess(0, 'Tapped successfully', '')
         return MockCompletedProcess(0, 'Done', '')
     
-    monkeypatch.setattr('tavern.brewfile_page.subprocess.run', mock_subprocess_run)
-    monkeypatch.setattr('tavern.brewfile_page.subprocess.Popen', lambda args, **kwargs: subprocess_calls.append(args))
+    monkeypatch.setattr(subprocess, 'run', mock_subprocess_run)
+    monkeypatch.setattr(subprocess, 'Popen', lambda args, **kwargs: subprocess_calls.append(args))
     
     # 2. Setup Tavern Backend and Task Manager
     backend = BrewBackend()
@@ -232,3 +234,21 @@ def test_brewfile_page_empty_load(tmp_path, monkeypatch):
     # Install / remove on empty parsed data
     page._on_install_all_clicked(None)
     page._on_remove_all_clicked(None)
+
+
+@pytest.mark.parametrize('app_id', [
+    'org.example.App/../../other?x=1',
+    'org.example.App extra',
+    'not-an-app-id',
+])
+def test_flatpak_line_that_is_not_an_app_id_opens_nothing(tmp_path, monkeypatch, app_id):
+    monkeypatch.setattr(GLib, 'get_user_cache_dir', lambda: str(tmp_path))
+    opened = []
+    monkeypatch.setattr(subprocess, 'Popen', lambda args, **kwargs: opened.append(args))
+
+    # The text of a `flatpak "..."` line in the opened Brewfile is the name.
+    pkg = Package(data={'id': app_id, 'name': app_id, 'summary': ''}, pkg_type='flatpak')
+    page = TavernBrewfilePage()
+    page._on_tile_clicked(SimpleNamespace(get_package=lambda: pkg))
+
+    assert opened == []
