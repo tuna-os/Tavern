@@ -15,6 +15,7 @@ from .task_manager import TaskManager
 from .logging_util import get_logger
 from .page_factory import PageFactory
 from .deeplink_router import DeepLinkRouter
+from .external_links import open_web_link
 
 _ = gettext.gettext
 
@@ -662,12 +663,7 @@ class TavernWindow(Adw.ApplicationWindow):
                 )
             elif response_id == 'open_site':
                 try:
-                    from gi.repository import Gtk
-                    launcher = getattr(Gtk, 'UriLauncher', None)
-                    if launcher is not None and hasattr(launcher, 'new'):
-                        launcher.new(HOMEBREW_DOC_URL).launch(self, None, None, None)
-                    else:
-                        subprocess.Popen(['xdg-open', HOMEBREW_DOC_URL])
+                    open_web_link(HOMEBREW_DOC_URL, self)
                 except Exception as e:
                     _log.error('Failed to open URL: %s', e)
             elif response_id == 'retry':

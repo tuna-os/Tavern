@@ -63,6 +63,15 @@ The factory also owns the runner for read-only `brew` commands, such as
 UI modules do not run `brew` themselves.
 `tests/test_dependency_boundaries.py` makes sure of this.
 
+**External links.** `external_links.py` is the only module that gives a URI
+to the desktop. The desktop opens a URI with the application that owns its
+scheme. Thus each function in this module examines its argument before it
+opens the URI. A web link must be `http`, `https`, or `mailto`. A software
+center link must contain a Flatpak application ID. Other modules call these
+functions and do not use `Gtk.UriLauncher`, `Gtk.LinkButton`,
+`Gio.AppInfo.launch_default_for_uri`, or `xdg-open`.
+`tests/test_dependency_boundaries.py` makes sure of this.
+
 **Backend lifecycle.** `BackendLifecycle` (`backend_lifecycle.py`) controls
 the initial and manual catalog loads, the periodic outdated check, and the
 refresh of installed state after the task queue drains. It takes the shared
@@ -189,6 +198,7 @@ state. `_icon_lock` protects the map of icon downloads in progress.
 | `package_details.py` | UI | Package presentation and user actions; delegates asset requests, README transforms, and task signal lifecycle. |
 | `asset_loader.py` | UI/backend boundary | Coordinates icon and screenshot requests and drops stale page callbacks. |
 | `readme_renderer.py` | presentation | Pure README preview, HTML, base-URI, and install-count transformations. |
+| `external_links.py` | UI | The only module that opens a URI outside Tavern. It examines each URI first. |
 | `task_binding.py` | operations/UI boundary | Owns task signal connection lifecycle for package details. |
 | `backend.py` | backend | The `BrewBackend` facade. |
 | `catalog_store.py` | backend | `CatalogStore`. It owns catalog and package state. |

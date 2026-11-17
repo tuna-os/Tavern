@@ -17,6 +17,7 @@ except Exception:
 from .logging_util import get_logger
 from .screenshot_lightbox import TavernScreenshotLightbox
 from .asset_loader import AssetLoaderController
+from .external_links import open_web_link
 from .readme_renderer import ReadmeRenderer, is_external_link_allowed
 from .task_binding import PackageTaskBinder
 
@@ -471,8 +472,7 @@ class TavernPackageDetails(Adw.NavigationPage):
     def on_show_readme_clicked(self, *args):
         if self._package and is_external_link_allowed(self._package.homepage):
             _log.debug('Opening homepage externally for README')
-            launcher = Gtk.UriLauncher.new(self._package.homepage)
-            launcher.launch(self.get_root(), None, None, None)
+            open_web_link(self._package.homepage, self.get_root())
 
 
     # Removed Read More and Debug button handlers
@@ -534,10 +534,8 @@ class TavernPackageDetails(Adw.NavigationPage):
             action = decision.get_navigation_action()
             uri = action.get_request().get_uri()
             if uri and not uri.startswith('about:') and not uri.startswith('data:'):
-                if is_external_link_allowed(uri):
-                    _log.debug('Opening external link from webview: %s', uri)
-                    launcher = Gtk.UriLauncher.new(uri)
-                    launcher.launch(self.get_root(), None, None, None)
+                if open_web_link(uri, self.get_root()):
+                    _log.debug('Opened external link from webview: %s', uri)
                 else:
                     _log.debug('Blocked webview navigation: %s', uri)
                 decision.ignore()
@@ -571,8 +569,7 @@ class TavernPackageDetails(Adw.NavigationPage):
             self.emit('package-history-requested', self._package)
         elif (row == self.homepage_row and self._package
               and is_external_link_allowed(self._package.homepage)):
-            launcher = Gtk.UriLauncher.new(self._package.homepage)
-            launcher.launch(self.get_root(), None, None, None)
+            open_web_link(self._package.homepage, self.get_root())
         elif row == self.installs_row and self._package and self._package._raw_analytics:
             try:
                 from .stats_dialog import TavernStatsDialog

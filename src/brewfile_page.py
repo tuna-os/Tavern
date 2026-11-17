@@ -6,7 +6,6 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gtk, GObject, GLib
-import subprocess
 import time
 import threading
 import gettext
@@ -17,6 +16,7 @@ from .logging_util import get_logger, log_timing
 from .brewfile_plan import build_plan
 from .brewfile_document import BrewfileDocument
 from .command_dialog import show_command
+from .external_links import open_flatpak_app_page
 
 _ = gettext.gettext
 
@@ -563,9 +563,11 @@ class TavernBrewfilePage(Adw.Bin):
     def _open_flatpak_in_bazaar(self, package):
         """Open a flatpak app id using appstream URI so MIME/xdg routing can launch Bazaar."""
         app_id = package.name
-        uri = f'appstream://{app_id}'
         try:
-            subprocess.Popen(['xdg-open', uri])
-            _log.info('Opened flatpak in Bazaar via URI: %s', uri)
+            # The ID is text from the opened Brewfile.
+            if open_flatpak_app_page(app_id):
+                _log.info('Opened flatpak in Bazaar via URI: appstream://%s', app_id)
+            else:
+                _log.warning('Not a Flatpak application ID, not opened: %r', app_id)
         except Exception as e:
-            _log.error('Failed to open flatpak URI %s: %s', uri, e)
+            _log.error('Failed to open flatpak %r: %s', app_id, e)

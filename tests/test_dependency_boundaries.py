@@ -94,3 +94,85 @@ def test_ui_modules_do_not_run_brew():
                     violations.append(f'{path.name}:{node.lineno} imports {alias.name}')
 
     assert not violations, 'UI module runs brew directly: ' + ', '.join(violations)
+
+
+# docs/ARCHITECTURE.md: external_links.py is the only module that gives a URI
+# to the desktop. The desktop opens a URI with the application that claims its
+# scheme, so text from a README, a tap or a Brewfile must not get there
+# unchecked. Each fix of that kind was made at one call site and the next
+# finding was a call site the fix did not cover (#351, #357, #367), so no other
+# module may name a launcher API at all.
+LAUNCHER_MODULE = 'external_links.py'
+LAUNCHER_NAMES = {
+    'UriLauncher',
+    'LinkButton',
+    'show_uri',
+    'launch_default_for_uri',
+    'launch_default_for_uri_async',
+    'webbrowser',
+}
+LAUNCHER_COMMAND = 'xdg-open'
+
+
+def _launcher_uses(tree):
+    """Yield (line, name) for each launcher API or command named in ``tree``."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr in LAUNCHER_NAMES:
+            yield node.lineno, node.attr
+        elif isinstance(node, ast.Name) and node.id in LAUNCHER_NAMES:
+            yield node.lineno, node.id
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name.split('.')[0] in LAUNCHER_NAMES:
+                    yield node.lineno, alias.name
+        elif isinstance(node, ast.ImportFrom):
+            if (node.module or '').split('.')[0] in LAUNCHER_NAMES:
+                yield node.lineno, node.module
+            for alias in node.names:
+                if alias.name in LAUNCHER_NAMES:
+                    yield node.lineno, alias.name
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            # getattr(Gtk, 'UriLauncher'), or a command line as a list or a string.
+            if node.value in LAUNCHER_NAMES or node.value.split()[:1] == [LAUNCHER_COMMAND]:
+                yield node.lineno, node.value
+
+
+def test_only_external_links_module_reaches_the_desktop_launcher():
+    source_dir = Path(__file__).parents[1] / 'src'
+    violations = []
+
+    for path in sorted(source_dir.glob('*.py')):
+        if path.name == LAUNCHER_MODULE:
+            continue
+        tree = ast.parse(path.read_text(encoding='utf-8'))
+        violations.extend(f'{path.name}:{line} {name}' for line, name in _launcher_uses(tree))
+
+    # Blueprint can declare a link button without any Python.
+    for path in sorted(source_dir.glob('*.blp')):
+        for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+            if 'LinkButton' in line:
+                violations.append(f'{path.name}:{number} LinkButton')
+
+    assert not violations, (
+        'launcher API outside external_links.py (call its functions instead): '
+        + ', '.join(violations)
+    )
+
+
+def test_launcher_check_reports_each_way_to_reach_a_launcher():
+    source = '\n'.join((
+        'import webbrowser',
+        'from gi.repository.Gtk import UriLauncher',
+        'Gtk.UriLauncher.new(uri).launch(None, None, None, None)',
+        "getattr(Gtk, 'UriLauncher')",
+        "Gtk.LinkButton.new_with_label(uri, 'Open')",
+        'Gtk.show_uri(None, uri, 0)',
+        'Gio.AppInfo.launch_default_for_uri(uri, None)',
+        "subprocess.Popen(['xdg-open', uri])",
+        "subprocess.run('xdg-open ' + uri, shell=True)",
+    ))
+    lines = {line for line, _name in _launcher_uses(ast.parse(source))}
+    assert lines == set(range(1, 10))
+
+    harmless = "subprocess.run(['brew', 'doctor'])\nlabel = 'Open the link'\n"
+    assert not list(_launcher_uses(ast.parse(harmless)))

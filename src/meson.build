@@ -86,6 +86,7 @@ tavern_sources = [
   'package_details.py',
   'asset_loader.py',
   'readme_renderer.py',
+  'external_links.py',
   'task_binding.py',
   'search_page.py',
   'browse_page.py',

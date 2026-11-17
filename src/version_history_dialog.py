@@ -15,7 +15,8 @@ except Exception:
 
 from gi.repository import Adw, Gtk, GObject, GLib, Gdk
 from .logging_util import get_logger
-from .readme_renderer import README_CSP, is_external_link_allowed, strip_unsafe_html
+from .external_links import open_web_link
+from .readme_renderer import README_CSP, strip_unsafe_html
 
 _log = get_logger('version_history')
 _ = gettext.gettext
@@ -409,10 +410,8 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
             action = decision.get_navigation_action()
             uri = action.get_request().get_uri()
             if uri and not uri.startswith('about:') and not uri.startswith('data:'):
-                if is_external_link_allowed(uri):
-                    _log.debug('Opening external link from webview: %s', uri)
-                    launcher = Gtk.UriLauncher.new(uri)
-                    launcher.launch(self.get_root(), None, None, None)
+                if open_web_link(uri, self.get_root()):
+                    _log.debug('Opened external link from webview: %s', uri)
                 else:
                     _log.debug('Blocked webview navigation: %s', uri)
                 decision.ignore()
