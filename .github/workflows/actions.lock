@@ -11,6 +11,7 @@ workflows:
         - 'actions/checkout@v7.0.1'
         - 'actions/upload-artifact@v7.0.2'
         - 'flatpak/flatpak-github-actions@v6.8'
+        - 'tuna-os/.github@main'
     '.github/workflows/promote-to-prod.yml':
         - 'actions/checkout@v7.0.1'
     '.github/workflows/publish-flatpak.yml': []
@@ -22,6 +23,7 @@ workflows:
         - 'anchore/sbom-action@v0.24.3'
         - 'flatpak/flatpak-github-actions@v6.8'
         - 'softprops/action-gh-release@v3.0.4'
+        - 'tuna-os/.github@main'
     '.github/workflows/screenshots.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/upload-artifact@v7.0.2'
@@ -76,6 +78,11 @@ dependencies:
         commit: 'sha1-8a0cd651e5b2365bd640854a3fa5dfc70e4875f3'
         owner_id: 2242
         repo_id: 204253808
+    'tuna-os/.github@main':
+        ref: 'main'
+        commit: 'sha1-6c76230bdd69e19634d9c74d5e3edbd8eacadd9f'
+        owner_id: 223733964
+        repo_id: 1187761922
     'tuna-os/flatpak-index@4ad379efb1b951b841e9fd4c44c9f7b60b48aef8':
         ref: 'main'
         commit: 'sha1-4ad379efb1b951b841e9fd4c44c9f7b60b48aef8'

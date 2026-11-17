@@ -115,6 +115,13 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
+      # flatpak-builder updates the runtimes baked into the image. Some
+      # runner hosts' overlayfs cannot rename image-layer directories, and
+      # that update fails with "Invalid cross-device link". The action
+      # copies the installation up only on those hosts (tuna-os/.github#380).
+      - name: Make the image's Flatpak installations updatable
+        uses: tuna-os/.github/.github/actions/flatpak-copy-up@main
+
       - uses: flatpak/flatpak-github-actions/flatpak-builder@v6.8
         with:
           bundle: Tavern-Linux.flatpak
