@@ -99,6 +99,13 @@ rank, cache TTLs, and `brew` subcommands. `brew_env.py` makes each `brew`
 command line. In the Flatpak, it runs `brew` on the host through
 `flatpak-spawn --host` and quotes each argument.
 
+**GNOME Shell search.** Shell search runs in a second process,
+`tavern-search-provider`. D-Bus starts it on demand from the installed
+`SearchProvider` service file. Its entry point is `search_service.py`, and it
+does not import GTK or `BrewBackend`. `search_provider.py` gets results from the
+cached `linux_packages.json`. When the user selects a result, the process opens
+a `brew://` link, and the desktop gives that link to the Tavern app.
+
 ## Main parts
 
 ### Mixins
@@ -194,6 +201,7 @@ state. `_icon_lock` protects the map of icon downloads in progress.
 | `backend_lifecycle.py` | coordination | Catalog loading, periodic outdated checks, and refresh after tasks finish. |
 | `deeplink_router.py` | coordination | Widget-free package/tap lookup, pending deep links, and qualified tap selection. |
 | `tap_choice_dialog.py` | UI | Renders qualified tap choices and returns the selection to the router. |
+| `command_dialog.py` | UI | Shows the literal text of a command. The command runs only after the user confirms it. |
 | `page_factory.py` | UI | `PageFactory`. It makes pages and dialogs with their dependencies. |
 | `package_details.py` | UI | Package presentation and user actions; delegates asset requests, README transforms, and task signal lifecycle. |
 | `asset_loader.py` | UI/backend boundary | Coordinates icon and screenshot requests and drops stale page callbacks. |
@@ -202,6 +210,7 @@ state. `_icon_lock` protects the map of icon downloads in progress.
 | `task_binding.py` | operations/UI boundary | Owns task signal connection lifecycle for package details. |
 | `backend.py` | backend | The `BrewBackend` facade. |
 | `catalog_store.py` | backend | `CatalogStore`. It owns catalog and package state. |
+| `backend_contracts.py` | backend | Protocols for the parts of the backend that other modules use, such as the state that `TaskManager` sets. |
 | `backend_ui.py` | backend | `UiMixin`: catalog load, search, and progress properties. |
 | `backend_remote.py` | backend | `RemoteMixin`: catalog, detail, and analytics data from the API, curation, and version history. |
 | `backend_cache.py` | backend | `CacheMixin`: the local cache, the Homebrew JWS cache, Brewfile parse, and the Linux cask filter. |
@@ -212,11 +221,16 @@ state. `_icon_lock` protects the map of icon downloads in progress.
 | `taps.py` | backend | `TapsMixin`: tap scan, trust, and operations, and the popular taps. |
 | `package.py` | model | `Package`: the shared formula or cask row. |
 | `task_manager.py` | operations | `TaskManager`: install, remove, and upgrade. |
+| `brewfile_document.py` | model | `BrewfileDocument`: the path, text, and digest of a Brewfile. It lists other entry types for display and does not run the Ruby. |
+| `brewfile_plan.py` | policy | The plan for a Brewfile bulk operation. It removes the entries that Tavern did not find. |
+| `doctor.py` | policy | Makes a report from the `brew doctor` output. `DoctorService` keeps the last good report in memory for one hour. |
+| `tap_metadata.py` | policy | Gets formula and cask data from the files of a local tap. |
 | `catalog_policy.py` | policy | Catalog validation and search rank. |
 | `cache_policy.py` | policy | Atomic JSON cache files, TTLs, and eviction. |
 | `brew_commands.py` | policy | Read-only `brew` subcommands. |
 | `brew_env.py` | platform | Flatpak and `brew` detection, PATH ordering policy (Bluefin parity), missing-Homebrew install commands, and `brew` subprocess construction. |
 | `search_provider.py` | integration | GNOME Shell search through D-Bus, from the cached `linux_packages.json`. |
+| `search_service.py` | integration | The `tavern-search-provider` process. It runs `search_provider.py` on D-Bus without GTK or the backend. |
 | `git_forge.py` | backend | Finds GitHub, GitLab, or Codeberg from a source URL for the version history. |
 
 ## Data flow: open a package
