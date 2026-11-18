@@ -9,6 +9,19 @@ from tavern.tap_page import TavernTapPage, _fetch_avatar_pixbuf
 from tavern.backend import Package, BrewBackend
 from tavern.package_tile import TavernPackageTile
 
+
+@pytest.fixture(autouse=True)
+def no_avatar_downloads(monkeypatch):
+    """Keep the page's avatar worker threads off the network.
+
+    The page fetches an avatar on a daemon thread and then calls
+    ``GLib.idle_add``. A download that outlives its test calls that patched
+    ``idle_add`` in whichever test runs next, so the result depends on how
+    fast github.com answers (#378). Returning None makes each thread end
+    without scheduling anything.
+    """
+    monkeypatch.setattr(BrewBackend, 'fetch_avatar_pixbuf', lambda self, user, size=48: None)
+
 def test_avatar_fetch_delegates_to_backend():
     calls = []
     backend = SimpleNamespace(
