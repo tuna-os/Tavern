@@ -22,7 +22,7 @@ from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
 from .brew_commands import validate_name
-from .external_links import is_flatpak_app_id
+from .flatpak_app_id import is_flatpak_app_id
 from .brew_env import build_command as _brew_cmd
 
 _ = gettext.gettext

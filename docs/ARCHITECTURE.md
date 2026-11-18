@@ -229,6 +229,7 @@ state. `_icon_lock` protects the map of icon downloads in progress.
 | `catalog_policy.py` | policy | Catalog validation and search rank. |
 | `cache_policy.py` | policy | Atomic JSON cache files, TTLs, and eviction. |
 | `brew_commands.py` | policy | Read-only `brew` subcommands. |
+| `flatpak_app_id.py` | policy | Checks that text is a Flatpak application ID. The backend and `external_links.py` both use it. |
 | `brew_env.py` | platform | Flatpak and `brew` detection, PATH ordering policy (Bluefin parity), missing-Homebrew install commands, and `brew` subprocess construction. |
 | `search_provider.py` | integration | GNOME Shell search through D-Bus, from the cached `linux_packages.json`. |
 | `search_service.py` | integration | The `tavern-search-provider` process. It runs `search_provider.py` on D-Bus without GTK or the backend. |

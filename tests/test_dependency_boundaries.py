@@ -34,6 +34,52 @@ def test_backend_leaves_do_not_import_composition_root():
     assert not violations, 'backend leaf imports composition root: ' + ', '.join(violations)
 
 
+# docs/ARCHITECTURE.md: the modules in the `backend` layer. The UI depends on
+# the backend, never the reverse. A rule the UI and the backend both need goes
+# in a module without GTK (as flatpak_app_id.py does), not in a UI module.
+BACKEND_MODULES = BACKEND_LEAVES + (
+    'backend.py',
+    'backend_contracts.py',
+    'backend_icons.py',
+    'catalog_store.py',
+    'git_forge.py',
+    'url_security.py',
+)
+
+
+def _relative_imports(tree):
+    """Yield (line, module) for each `from .x import ...` / `from . import x` in ``tree``."""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.level:
+            if node.module:
+                yield node.lineno, node.module.split('.')[0]
+            else:
+                for alias in node.names:
+                    yield node.lineno, alias.name
+
+
+def test_backend_modules_do_not_import_ui_modules():
+    source_dir = Path(__file__).parents[1] / 'src'
+    ui_modules = {
+        path.stem
+        for path in source_dir.glob('*.py')
+        if _imports_ui_toolkit(ast.parse(path.read_text(encoding='utf-8')))
+    }
+    violations = []
+
+    for filename in BACKEND_MODULES:
+        tree = ast.parse((source_dir / filename).read_text(encoding='utf-8'))
+        if _imports_ui_toolkit(tree):
+            violations.append(f'{filename} imports Gtk or Adw')
+        violations.extend(
+            f'{filename}:{line} imports {module}'
+            for line, module in _relative_imports(tree)
+            if module in ui_modules
+        )
+
+    assert not violations, 'backend module depends on the UI: ' + ', '.join(violations)
+
+
 # docs/ARCHITECTURE.md: the backend is the only layer that uses the network.
 # A module that imports Gtk or Adw is a UI module and must not open sockets or
 # HTTP connections itself; it calls a backend method instead.

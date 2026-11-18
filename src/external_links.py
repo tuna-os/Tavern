@@ -13,20 +13,15 @@ Gtk is imported inside the functions that need it: the search provider process
 imports this module and does not load GTK.
 """
 
-import re
 import subprocess
 
 from gi.repository import Gio
 
+from .flatpak_app_id import is_flatpak_app_id
 from .logging_util import get_logger
 from .readme_renderer import is_external_link_allowed
 
 _log = get_logger('external_links')
-
-# A Flatpak application ID: three or more elements joined by periods, where an
-# element starts with a letter or an underscore.
-_FLATPAK_APP_ID = re.compile(r'[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*){2,}')
-_FLATPAK_APP_ID_MAX_LENGTH = 255
 
 
 def open_web_link(uri, parent=None):
@@ -53,15 +48,6 @@ def _on_link_button_activated(button):
         button.set_visited(True)
     # True stops the default handler, which opens a URI of any scheme.
     return True
-
-
-def is_flatpak_app_id(app_id):
-    """True when ``app_id`` has the form of a Flatpak application ID."""
-    return (
-        isinstance(app_id, str)
-        and len(app_id) <= _FLATPAK_APP_ID_MAX_LENGTH
-        and _FLATPAK_APP_ID.fullmatch(app_id) is not None
-    )
 
 
 def open_flatpak_app_page(app_id):

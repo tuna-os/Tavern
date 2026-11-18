@@ -87,6 +87,7 @@ tavern_sources = [
   'asset_loader.py',
   'readme_renderer.py',
   'external_links.py',
+  'flatpak_app_id.py',
   'task_binding.py',
   'search_page.py',
   'browse_page.py',
