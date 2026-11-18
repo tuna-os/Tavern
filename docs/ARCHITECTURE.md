@@ -67,9 +67,10 @@ UI modules do not run `brew` themselves.
 to the desktop. The desktop opens a URI with the application that owns its
 scheme. Thus each function in this module examines its argument before it
 opens the URI. A web link must be `http`, `https`, or `mailto`. A software
-center link must contain a Flatpak application ID. Other modules call these
-functions and do not use `Gtk.UriLauncher`, `Gtk.LinkButton`,
-`Gio.AppInfo.launch_default_for_uri`, or `xdg-open`.
+center link must contain a Flatpak application ID.
+
+Other modules call these functions and do not use `Gtk.UriLauncher`,
+`Gtk.LinkButton`, `Gio.AppInfo.launch_default_for_uri`, or `xdg-open`.
 `tests/test_dependency_boundaries.py` makes sure of this.
 
 **Backend lifecycle.** `BackendLifecycle` (`backend_lifecycle.py`) controls
