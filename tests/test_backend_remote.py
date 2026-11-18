@@ -166,3 +166,20 @@ def test_get_package_info_only_looks_up_package_names(monkeypatch):
     assert harness.fetches == [
         ('https://formulae.brew.sh/api/formula/user/tap/wget.json', None)]
     assert runs == []
+
+
+def test_get_flatpak_info_only_looks_up_application_ids():
+    harness = RemoteHarness()
+    harness.remote = {'id': 'org.example.App'}
+
+    # The text of a `flatpak "..."` line in an opened Brewfile is the ID.
+    for app_id in ('org.example.App/../../other?x=1', '../../../search?q=x',
+                   'org.example.App#fragment', 'org.example.App extra',
+                   'not-an-app-id', '', None):
+        with pytest.raises(ValueError):
+            harness.get_flatpak_info(app_id)
+    assert harness.fetches == []
+
+    assert harness.get_flatpak_info('org.example.App') == {'id': 'org.example.App'}
+    assert harness.fetches == [
+        ('https://flathub.org/api/v2/appstream/org.example.App', None)]
