@@ -22,6 +22,7 @@ from gi.repository import GLib
 
 from .logging_util import get_logger, log_timing
 from .brew_commands import validate_name
+from .external_links import is_flatpak_app_id
 from .brew_env import build_command as _brew_cmd
 
 _ = gettext.gettext
@@ -76,6 +77,10 @@ class RemoteMixin:
 
     def get_flatpak_info(self, app_id):
         """Fetch Flatpak appstream metadata from Flathub."""
+        # The ID comes from a Brewfile nobody has reviewed yet. Only an
+        # application ID may reach the URL.
+        if not is_flatpak_app_id(app_id):
+            raise ValueError('Invalid Flatpak application ID')
         from .logging_util import log_timing
         with log_timing(f'fetch flatpak appstream {app_id}', 'brewfile'):
             return self._fetch_json(FLATHUB_APPSTREAM_API.format(app_id))
