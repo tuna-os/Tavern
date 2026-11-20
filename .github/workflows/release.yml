@@ -95,6 +95,7 @@ jobs:
           ./linuxdeploy-x86_64.AppImage \
             --appdir AppDir \
             --plugin gtk \
+            --custom-apprun packaging/AppRun \
             --desktop-file AppDir/usr/share/applications/org.tunaos.tavern.desktop \
             --icon-file AppDir/usr/share/icons/hicolor/scalable/apps/org.tunaos.tavern.svg \
             --output appimage

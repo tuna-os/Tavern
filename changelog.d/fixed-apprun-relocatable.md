@@ -1,0 +1,1 @@
+The Linux AppImage now ships its own relocatable AppRun: it resolves its directory through symlinks and sets the data, locale and library paths itself, so the extracted bundle runs from a symlink without Homebrew cask patches.
