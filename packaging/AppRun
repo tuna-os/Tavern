@@ -1,0 +1,18 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# AppImage entry point. Resolves its own directory through symlinks so the
+# extracted bundle runs from anywhere (e.g. a symlink in a bin directory).
+this_dir="$(dirname "$(readlink -f "$0")")"
+
+export TAVERN_DATADIR="$this_dir/usr/share/tavern"
+export TAVERN_LOCALEDIR="$this_dir/usr/share/locale"
+export LD_LIBRARY_PATH="$this_dir/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# Environment hooks written by linuxdeploy plugins (GTK, GI typelibs, ...).
+if [ -d "$this_dir/apprun-hooks" ]; then
+    for hook in "$this_dir"/apprun-hooks/*.sh; do
+        [ -f "$hook" ] && . "$hook"
+    done
+fi
+
+exec "$this_dir/usr/bin/tavern" "$@"
