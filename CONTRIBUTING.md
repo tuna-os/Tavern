@@ -128,6 +128,16 @@ snapshots of verification with a date. They are not instructions for contributor
 - Run the test commands above before you open a PR.
 - Reference the issue to close (`Closes #123`).
 
+### Prose check
+
+The **Prose** workflow (`.github/workflows/ste.yml`) checks Markdown against Simplified Technical English. It runs on pull requests and on pushes to `main` that change a Markdown file or `.ste-budget`.
+
+- The check counts findings in all Markdown files, not only the files your PR changes. `.ste-budget` sets the maximum count. A PR can fail on prose that it did not change.
+- A common finding is STE 3.6: a paragraph has more than six sentences. Split the paragraph to fix it.
+- To exclude a file, put `<!-- ste-disable-file: <reason> -->` on its first line. The dated reports in `docs/reports/` use this comment.
+- The budget only goes down. Do not raise `.ste-budget` to make a PR pass.
+- The failure message suggests `just ste`. This repository has no `ste` recipe. Use the job log instead. It gives the file, line, and rule for each finding.
+
 ## Debugging
 
 Use environment variables to turn on debug logging and check performance:
