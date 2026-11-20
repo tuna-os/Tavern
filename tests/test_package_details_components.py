@@ -102,6 +102,29 @@ def test_readme_html_has_csp_and_strips_active_elements():
     assert not is_external_link_allowed('javascript:alert(1)')
 
 
+def test_strip_unsafe_html_does_not_join_text_into_a_new_tag():
+    from tavern.readme_renderer import strip_unsafe_html
+
+    # Each line hides one blocked tag in the name of a second one. Python-Markdown
+    # keeps the content of a raw HTML block such as <p align="center"> as it is.
+    html = (
+        '<p align="center">'
+        '<me<meta>ta http-equiv="refresh" content="0;url=https://evil.example">'
+        '<sty<link>le>body { display: none }</sty<link>le>'
+        '<ifr<base>ame src="https://evil.example"></ifr<base>ame>'
+        '<fo<input>rm action="https://evil.example"><inp<meta>ut name="x"></fo<input>rm>'
+        '<scr<meta>ipt>alert(1)</scr<meta>ipt>'
+        'Safe text.</p>'
+    )
+
+    stripped = strip_unsafe_html(html)
+
+    for needle in ('<meta', '<style', '<iframe', '<form', '<input', '<script',
+                   '</style', '</iframe', '</form', '</script'):
+        assert needle not in stripped
+    assert 'Safe text.' in stripped
+
+
 def test_task_binder_replaces_connections_and_cleans_up():
     package = Package({'name': 'ripgrep'}, 'formula')
     first = Task(package, TaskOperation.INSTALL)

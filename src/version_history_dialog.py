@@ -410,7 +410,12 @@ class TavernVersionHistoryDialog(Adw.NavigationPage):
             action = decision.get_navigation_action()
             uri = action.get_request().get_uri()
             if uri and not uri.startswith('about:') and not uri.startswith('data:'):
-                if open_web_link(uri, self.get_root()):
+                # Only a link that the user clicked may leave Tavern. Release
+                # notes can also navigate by themselves (a refresh in their
+                # markup), and that must not open anything.
+                clicked = (action.get_navigation_type()
+                           == WebKit.NavigationType.LINK_CLICKED)
+                if clicked and open_web_link(uri, self.get_root()):
                     _log.debug('Opened external link from webview: %s', uri)
                 else:
                     _log.debug('Blocked webview navigation: %s', uri)

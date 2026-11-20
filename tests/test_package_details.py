@@ -164,3 +164,42 @@ def test_web_homepage_is_launched(tmp_path, monkeypatch):
     details._on_info_row_activated(None, details.homepage_row)
     details.on_show_readme_clicked()
     assert launched == [homepage, homepage]
+
+
+def test_readme_navigation_opens_only_a_link_the_user_clicked(monkeypatch):
+    from types import SimpleNamespace
+    import tavern.package_details as package_details
+
+    navigation = object()
+    clicked, other = object(), object()
+    monkeypatch.setattr(package_details, 'WebKit', SimpleNamespace(
+        PolicyDecisionType=SimpleNamespace(NAVIGATION_ACTION=navigation),
+        NavigationType=SimpleNamespace(LINK_CLICKED=clicked, OTHER=other)))
+    launched = []
+    monkeypatch.setattr(Gtk.UriLauncher, 'launch',
+                        lambda self, parent, *args: launched.append(self.get_uri()))
+
+    def navigate(uri, navigation_type):
+        ignored = []
+        request = SimpleNamespace(get_uri=lambda: uri)
+        action = SimpleNamespace(get_request=lambda: request,
+                                 get_navigation_type=lambda: navigation_type)
+        decision = SimpleNamespace(get_navigation_action=lambda: action,
+                                   ignore=lambda: ignored.append(uri))
+        details = SimpleNamespace(get_root=lambda: None)
+        handled = TavernPackageDetails._on_decide_policy(
+            details, None, decision, navigation)
+        return handled, ignored
+
+    assert navigate('https://example.com/docs', clicked) == (True, ['https://example.com/docs'])
+    assert launched == ['https://example.com/docs']
+
+    # A README can navigate by itself, for example with a refresh in its
+    # markup. That navigation is refused and opens nothing.
+    assert navigate('https://evil.example/', other) == (True, ['https://evil.example/'])
+    assert navigate('mailto:someone@evil.example', other) == (True, ['mailto:someone@evil.example'])
+    assert launched == ['https://example.com/docs']
+
+    # A click still opens only a web link.
+    assert navigate('file:///etc/passwd', clicked) == (True, ['file:///etc/passwd'])
+    assert launched == ['https://example.com/docs']
