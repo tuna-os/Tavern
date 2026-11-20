@@ -165,16 +165,19 @@ def test_changelog_navigation_only_launches_external_links(monkeypatch):
     import tavern.version_history_dialog as version_history_dialog
 
     navigation = object()
+    clicked, other = object(), object()
     monkeypatch.setattr(version_history_dialog, 'WebKit', SimpleNamespace(
-        PolicyDecisionType=SimpleNamespace(NAVIGATION_ACTION=navigation)))
+        PolicyDecisionType=SimpleNamespace(NAVIGATION_ACTION=navigation),
+        NavigationType=SimpleNamespace(LINK_CLICKED=clicked, OTHER=other)))
     launched = []
     monkeypatch.setattr(Gtk.UriLauncher, 'launch',
                         lambda self, parent, *args: launched.append(self.get_uri()))
 
-    def navigate(uri):
+    def navigate(uri, navigation_type=clicked):
         ignored = []
         request = SimpleNamespace(get_uri=lambda: uri)
-        action = SimpleNamespace(get_request=lambda: request)
+        action = SimpleNamespace(get_request=lambda: request,
+                                 get_navigation_type=lambda: navigation_type)
         decision = SimpleNamespace(get_navigation_action=lambda: action,
                                    ignore=lambda: ignored.append(uri))
         dialog = SimpleNamespace(get_root=lambda: None)
@@ -187,4 +190,9 @@ def test_changelog_navigation_only_launches_external_links(monkeypatch):
 
     for uri in ('file:///etc/passwd', 'smb://host/share', 'brew://formula/wget'):
         assert navigate(uri) == (True, [uri])
+    assert launched == ['https://example.com/notes']
+
+    # Release notes can navigate by themselves, for example with a refresh in
+    # their markup. That navigation is refused and opens nothing.
+    assert navigate('https://evil.example/', other) == (True, ['https://evil.example/'])
     assert launched == ['https://example.com/notes']

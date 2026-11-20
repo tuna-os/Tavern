@@ -35,7 +35,9 @@ def strip_unsafe_html(html):
     while previous != html:
         previous = html
         html = _BLOCKED_PAIRED.sub('', html)
-    return _BLOCKED_SINGLE.sub('', html)
+    # A space takes the place of each tag. With nothing in its place, the text
+    # on the two sides joins: ``<me<meta>ta ...>`` becomes a new ``<meta>``.
+    return _BLOCKED_SINGLE.sub(' ', html)
 
 
 def is_external_link_allowed(uri):
