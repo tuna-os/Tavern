@@ -1,6 +1,8 @@
 # test_package_details_components.py
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+import pytest
+
 from tavern.asset_loader import AssetLoaderController
 from tavern.package import Package
 from tavern.readme_renderer import ReadmeRenderer
@@ -40,6 +42,78 @@ def test_asset_loader_discards_results_for_previous_package():
 
     assert icons == [(second, 'current-icon')]
     assert screenshots == [(second, 'current-screenshot')]
+
+
+def test_asset_loader_cancel_discards_in_flight_results():
+    backend = DeferredAssetBackend()
+    loader = AssetLoaderController(backend)
+    package = Package({'name': 'first'}, 'formula')
+    delivered = []
+
+    loader.load(package, lambda *args: delivered.append(args),
+                lambda *args: delivered.append(args))
+    loader.cancel()
+    backend.icon_callbacks[package](package, 'late-icon')
+    backend.screenshot_callbacks[package](package, 'late-screenshot')
+
+    assert delivered == []
+
+
+def test_asset_loader_set_backend_cancels_requests_to_old_backend():
+    old_backend = DeferredAssetBackend()
+    new_backend = DeferredAssetBackend()
+    loader = AssetLoaderController(old_backend)
+    package = Package({'name': 'first'}, 'formula')
+    delivered = []
+
+    loader.load(package, lambda *args: delivered.append(args),
+                lambda *args: delivered.append(args))
+    loader.set_backend(new_backend)
+    old_backend.icon_callbacks[package](package, 'old-icon')
+    loader.load(package, lambda *args: delivered.append(args),
+                lambda *args: delivered.append(args))
+    new_backend.icon_callbacks[package](package, 'new-icon')
+
+    assert delivered == [(package, 'new-icon')]
+
+
+def test_asset_loader_ignores_a_result_for_another_package():
+    backend = DeferredAssetBackend()
+    loader = AssetLoaderController(backend)
+    shown = Package({'name': 'shown'}, 'formula')
+    other = Package({'name': 'other'}, 'formula')
+    delivered = []
+
+    loader.load(shown, lambda *args: delivered.append(args),
+                lambda *args: delivered.append(args))
+    backend.icon_callbacks[shown](other, 'wrong-package')
+
+    assert delivered == []
+
+
+def test_asset_loader_load_without_backend_or_package_requests_nothing():
+    backend = DeferredAssetBackend()
+    package = Package({'name': 'first'}, 'formula')
+
+    AssetLoaderController().load(package, lambda *a: None, lambda *a: None)
+    AssetLoaderController(backend).load(None, lambda *a: None, lambda *a: None)
+
+    assert backend.icon_callbacks == {}
+    assert backend.screenshot_callbacks == {}
+
+
+def test_asset_loader_load_without_package_invalidates_earlier_request():
+    backend = DeferredAssetBackend()
+    loader = AssetLoaderController(backend)
+    package = Package({'name': 'first'}, 'formula')
+    delivered = []
+
+    loader.load(package, lambda *args: delivered.append(args),
+                lambda *args: delivered.append(args))
+    loader.load(None, lambda *a: None, lambda *a: None)
+    backend.icon_callbacks[package](package, 'late-icon')
+
+    assert delivered == []
 
 
 def test_readme_renderer_preserves_preview_and_uri_contract():
@@ -146,3 +220,85 @@ def test_task_binder_replaces_connections_and_cleans_up():
     assert progress == [first, second]
     assert finished == [(second, False)]
     assert binder.task is None
+
+
+class FakeTask:
+    """Records signal handlers the way ``GObject.connect``/``disconnect`` do."""
+
+    def __init__(self, disconnect_error=None):
+        self.handlers = {}
+        self.disconnected = []
+        self._next_id = 1
+        self._disconnect_error = disconnect_error
+
+    def connect(self, signal, callback):
+        handler_id = self._next_id
+        self._next_id += 1
+        self.handlers[handler_id] = (signal, callback)
+        return handler_id
+
+    def disconnect(self, handler_id):
+        if self._disconnect_error is not None:
+            raise self._disconnect_error
+        self.disconnected.append(handler_id)
+        del self.handlers[handler_id]
+
+    def emit(self, signal, *args):
+        for sig, callback in list(self.handlers.values()):
+            if sig == signal:
+                callback(self, *args)
+
+
+def test_task_binder_bind_none_unbinds_the_previous_task():
+    task = FakeTask()
+    binder = PackageTaskBinder(lambda *a: None, lambda *a: None)
+
+    binder.bind(task)
+    binder.bind(None)
+
+    assert binder.task is None
+    assert task.handlers == {}
+
+
+def test_task_binder_unbind_without_a_task_and_twice_is_harmless():
+    task = FakeTask()
+    binder = PackageTaskBinder(lambda *a: None, lambda *a: None)
+
+    binder.unbind()
+    binder.bind(task)
+    binder.unbind()
+    binder.unbind()
+
+    assert task.disconnected == [1, 2]
+    assert binder.task is None
+
+
+@pytest.mark.parametrize('error', [TypeError('gone'), ValueError('gone')])
+def test_task_binder_unbind_ignores_handlers_gobject_already_removed(error):
+    task = FakeTask(disconnect_error=error)
+    binder = PackageTaskBinder(lambda *a: None, lambda *a: None)
+
+    binder.bind(task)
+    binder.unbind()
+
+    assert binder.task is None
+
+
+def test_task_binder_finished_callback_can_bind_a_replacement_task():
+    first = FakeTask()
+    second = FakeTask()
+    finished = []
+    binder = PackageTaskBinder(lambda *a: None, None)
+
+    def on_finished(task, success):
+        finished.append((task, success))
+        binder.bind(second)
+
+    binder._on_finished_callback = on_finished
+    binder.bind(first)
+    first.emit('finished', True)
+
+    assert finished == [(first, True)]
+    assert first.handlers == {}
+    assert binder.task is second
+    assert len(second.handlers) == 2
