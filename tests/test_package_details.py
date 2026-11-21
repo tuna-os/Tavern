@@ -21,7 +21,20 @@ def test_package_details_workflows(tmp_path, monkeypatch, pixbuf):
     
     backend = BrewBackend()
     task_manager = TaskManager(backend)
-    
+
+    # Building the page asks the backend for the package info, README, icon and
+    # screenshot. The real methods start threads that fetch over the network and
+    # call GLib.idle_add after this test has ended, so the call can land in a
+    # later test that has replaced idle_add (test_taps saw _on_info_loaded).
+    # This test calls each callback itself, so record the requests and fetch
+    # nothing.
+    requested = []
+    for name in ('get_package_info_async', 'fetch_readme_async',
+                 'fetch_icon_async', 'fetch_screenshot_async'):
+        monkeypatch.setattr(
+            backend, name,
+            lambda package, callback, name=name: requested.append(name))
+
     # Pre-populate backend data for related packages
     pkg_rg = Package({'name': 'ripgrep', 'desc': 'rg'}, 'formula')
     # Using 'ripgrep@14' makes p_base == search_term ('ripgrep'), populating variants
@@ -35,7 +48,10 @@ def test_package_details_workflows(tmp_path, monkeypatch, pixbuf):
     details = TavernPackageDetails(package=pkg_rg, backend=backend, task_manager=task_manager)
     assert details is not None
     assert details.get_title() == 'ripgrep'
-    
+    assert sorted(requested) == [
+        'fetch_icon_async', 'fetch_readme_async', 'fetch_screenshot_async',
+        'get_package_info_async']
+
     # Test _load_related_packages
     details._load_related_packages()
     assert details.variants_bin.get_visible() is True
