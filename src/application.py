@@ -11,6 +11,7 @@ gi.require_version('Adw', '1')
 
 from gi.repository import Adw, Gio, GLib, Gtk
 from .window import TavernWindow
+from .cache_policy import CATALOG_BACKGROUND_REFRESH_AGE
 from .logging_util import get_logger
 
 _ = gettext.gettext
@@ -88,12 +89,13 @@ class TavernApplication(Adw.Application):
         cache_dir = os.path.join(GLib.get_user_cache_dir(), 'tavern')
         cache_path = os.path.join(cache_dir, 'formulae.json')
         
-        # Check if cache is stale (older than 4 hours for background worker)
+        # Skip the refresh while the catalog is newer than the background age.
+        # refresh_cache_files() checks the same age again under its lock.
         needs_refresh = True
         if os.path.exists(cache_path):
             try:
                 age = GLib.get_real_time() / 1e6 - os.path.getmtime(cache_path)
-                if age < 14400: # 4 hours
+                if age < CATALOG_BACKGROUND_REFRESH_AGE:
                      needs_refresh = False
                      _log.debug('Cache is fresh (age=%.0fs), skipping background refresh', age)
             except Exception as e:
