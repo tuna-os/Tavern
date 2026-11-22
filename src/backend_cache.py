@@ -20,7 +20,7 @@ from gi.repository import GLib
 from .backend_remote import FORMULA_API, CASK_API
 from .logging_util import get_logger, log_timing
 from .package import Package
-from .cache_policy import cache_manager_for
+from .cache_policy import CATALOG_BACKGROUND_REFRESH_AGE, cache_manager_for
 
 _ = gettext.gettext
 
@@ -148,7 +148,7 @@ class CacheMixin:
         """Fetch/load and save fresh formulae and casks cache files, and rebuild search cache."""
         with self._refresh_lock:
             # Double check if cache is fresh before doing heavy work
-            double_check_data, double_check_stale = self._load_cached('formulae', max_age=14400)
+            double_check_data, double_check_stale = self._load_cached('formulae', max_age=CATALOG_BACKGROUND_REFRESH_AGE)
             if double_check_data and not double_check_stale:
                 _log.debug('Cache is already fresh, skipping refresh_cache_files')
                 return

@@ -20,6 +20,7 @@ from urllib.error import URLError
 
 from gi.repository import GLib
 
+from .cache_policy import ANALYTICS_TTL, CURATION_TTL, VERSION_HISTORY_TTL
 from .logging_util import get_logger, log_timing
 from .brew_commands import validate_name
 from .external_links import is_flatpak_app_id
@@ -38,7 +39,6 @@ CASK_DETAIL_API = 'https://formulae.brew.sh/api/cask/{}.json'
 ANALYTICS_ON_REQUEST_API = 'https://formulae.brew.sh/api/analytics/install-on-request/{}.json'
 FLATHUB_APPSTREAM_API = 'https://flathub.org/api/v2/appstream/{}'
 CURATION_API = 'https://raw.githubusercontent.com/tuna-os/Tavern/main/data/curation.json'
-VERSION_HISTORY_TTL = 24 * 60 * 60
 
 
 class RemoteMixin:
@@ -48,7 +48,7 @@ class RemoteMixin:
         """Return validated, cached curation with an offline-safe fallback."""
         from .catalog_policy import DEFAULT_CURATION, validate_curation
 
-        cached, is_stale = self._load_cached('curation', max_age=21600)
+        cached, is_stale = self._load_cached('curation', max_age=CURATION_TTL)
         candidates = []
         if cached and not is_stale:
             candidates.append(cached)
@@ -248,7 +248,7 @@ class RemoteMixin:
         Returns dict of {formula_name: {'installs_30d': int, ...}}.
         """
         cache_key = 'analytics'
-        cached, is_stale = self._load_cached(cache_key, max_age=86400)  # 24 h
+        cached, is_stale = self._load_cached(cache_key, max_age=ANALYTICS_TTL)
         if cached and not is_stale:
             _log.debug('Analytics cache hit (%d entries)', len(cached))
             return cached

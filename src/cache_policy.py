@@ -7,6 +7,18 @@ import tempfile
 import time
 from pathlib import Path
 
+# How long each cached file stays fresh, in seconds. docs/CACHE.md describes
+# these lifetimes; change them here and there, not at a call site.
+HOUR = 60 * 60
+CATALOG_TTL = 12 * HOUR  # formulae.json and casks.json, read at catalog load
+# The background refresher replaces formulae.json and casks.json sooner than
+# a catalog load would, so a long-running app does not wait 12 hours.
+CATALOG_BACKGROUND_REFRESH_AGE = 4 * HOUR
+CURATION_TTL = 6 * HOUR
+ANALYTICS_TTL = 24 * HOUR
+POPULAR_TAPS_TTL = 24 * HOUR
+VERSION_HISTORY_TTL = 24 * HOUR
+
 
 class CacheManager:
     """Own Tavern cache writes, accounting, eviction, and safe clearing."""

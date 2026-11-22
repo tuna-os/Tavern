@@ -16,6 +16,7 @@ from gi.repository import GLib, Gio
 
 _ = gettext.gettext
 
+from .cache_policy import CATALOG_TTL
 from .logging_util import get_logger, log_timing
 from .package import Package
 from .backend_remote import FORMULA_API, CASK_API
@@ -64,7 +65,7 @@ class UiMixin:
         self._update_status(_("Loading Homebrew formulae catalog…"))
         self._update_progress(0.08)
         has_cache_f = False
-        data, is_stale = self._load_cached('formulae', max_age=43200)
+        data, is_stale = self._load_cached('formulae', max_age=CATALOG_TTL)
         if data:
             has_cache_f = True
             with log_timing('parse formulae from cache', 'backend'):
@@ -79,7 +80,7 @@ class UiMixin:
         self._update_status(_("Loading Homebrew casks catalog…"))
         self._update_progress(0.15)
         has_cache_c = False
-        data_c, is_stale_c = self._load_cached('casks', max_age=43200)
+        data_c, is_stale_c = self._load_cached('casks', max_age=CATALOG_TTL)
         if data_c:
             has_cache_c = True
             data_c = self._filter_linux_casks(data_c)
@@ -103,7 +104,7 @@ class UiMixin:
             _log.debug('Formulae cache missing or stale, refreshing…')
             with self._refresh_lock:
                 # Double check if cache is still missing or stale after acquiring the lock
-                double_check_data, double_check_stale = self._load_cached('formulae', max_age=43200)
+                double_check_data, double_check_stale = self._load_cached('formulae', max_age=CATALOG_TTL)
                 if double_check_data and not double_check_stale:
                     _log.debug('Formulae cache was refreshed by another thread, loading from cache')
                     self._formulae = [
@@ -134,7 +135,7 @@ class UiMixin:
             _log.debug('Casks cache missing or stale, refreshing…')
             with self._refresh_lock:
                 # Double check if cache is still missing or stale after acquiring the lock
-                double_check_data, double_check_stale = self._load_cached('casks', max_age=43200)
+                double_check_data, double_check_stale = self._load_cached('casks', max_age=CATALOG_TTL)
                 if double_check_data and not double_check_stale:
                     _log.debug('Casks cache was refreshed by another thread, loading from cache')
                     

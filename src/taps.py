@@ -10,6 +10,7 @@ from urllib.request import Request, urlopen
 
 from gi.repository import GLib
 
+from .cache_policy import POPULAR_TAPS_TTL
 from .logging_util import get_logger, log_timing
 from .package import Package
 from .tap_metadata import parse_cask_file, parse_formula_file
@@ -229,7 +230,7 @@ class TapsMixin:
 
     def _fetch_popular_taps_thread(self, callback):
         cache_key = 'popular_taps'
-        cached, is_stale = self._load_cached(cache_key, max_age=86400)  # 24 h
+        cached, is_stale = self._load_cached(cache_key, max_age=POPULAR_TAPS_TTL)
         if cached and not is_stale:
             _log.debug('Popular taps: cache hit (%d taps)', len(cached))
             GLib.idle_add(callback, cached)
