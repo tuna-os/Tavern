@@ -100,6 +100,24 @@ def test_wrong_bundle_digest(tmp_path):
            'bundle digest')
 
 
+@pytest.mark.parametrize('lane,key', [
+    ('candidate-build', 'bundle_sha256'), ('candidate-build', 'source_sha'),
+    ('candidate-build', 'runtime'), ('published-artifact', 'runtime'),
+])
+@pytest.mark.parametrize('value', [None, ''])
+def test_missing_expectation_fails(tmp_path, lane, key, value):
+    receipt, expect = make(tmp_path, lane)
+    expect[key] = value
+    if key == 'bundle_sha256':
+        receipt['artifact'].pop('bundle_sha256')
+    if key == 'source_sha':
+        receipt['source'].pop('commit')
+    if key == 'runtime':
+        receipt['artifact'].pop('runtime')
+    failures = ve.verify(receipt, tmp_path, expect=expect)
+    assert any(f'expectation {key!r} not supplied' in f for f in failures)
+
+
 def test_stale_png_modified(tmp_path):
     def m(r, e):
         (tmp_path / 'main-window.png').write_bytes(ve.PNG_MAGIC + b'older')

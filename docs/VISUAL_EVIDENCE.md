@@ -26,8 +26,13 @@ its own result.
 python3 tools/visual_evidence.py verify --receipt out/receipt.json \
   --out-dir out --lane candidate-build --scenario no-homebrew \
   --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+  --runtime "$EXPECTED_RUNTIME" \
   --source-sha "$GITHUB_SHA" --bundle-sha256 "$BUNDLE_SHA256"
 ```
+
+`--runtime` is required for both lanes. `--source-sha` and `--bundle-sha256`
+are required for `candidate-build`. The command also exits 1 if any of them
+is missing or empty.
 
 The command exits 1 if any of these is true:
 

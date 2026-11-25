@@ -69,12 +69,23 @@ def verify(receipt, out_dir, *, expect):
     """Return failure strings; empty means the receipt is acceptable.
 
     ``expect`` carries what this run must have produced: ``lane``,
-    ``scenario``, ``run_id``, ``run_attempt``, ``app_id``, and for the
-    candidate lane ``source_sha`` and ``bundle_sha256``. Optional:
-    ``runtime`` (expected runtime ref/commit).
+    ``scenario``, ``run_id``, ``run_attempt``, ``app_id``, ``runtime``
+    (expected runtime ref/commit), and for the candidate lane
+    ``source_sha`` and ``bundle_sha256``. All of these are required: an
+    expectation that is missing or empty fails the receipt, so an absent
+    digest can never match an absent digest.
     """
     out_dir = Path(out_dir)
     bad = []
+    required = ['lane', 'scenario', 'run_id', 'run_attempt', 'app_id',
+                'runtime']
+    if expect.get('lane') == 'candidate-build':
+        required += ['source_sha', 'bundle_sha256']
+    for key in required:
+        if not expect.get(key):
+            bad.append(f'expectation {key!r} not supplied')
+    if bad:
+        return bad
     if not isinstance(receipt, dict):
         return ['receipt is not an object']
     extra = set(receipt) - ALLOWED_KEYS
@@ -102,7 +113,7 @@ def verify(receipt, out_dir, *, expect):
     source = receipt.get('source') or {}
     if artifact.get('app_id') != expect['app_id']:
         bad.append('wrong app id')
-    if expect.get('runtime') and artifact.get('runtime') != expect['runtime']:
+    if artifact.get('runtime') != expect['runtime']:
         bad.append('wrong runtime')
     if not artifact.get('app_commit') or artifact.get('app_commit') == UNKNOWN:
         bad.append('app commit/digest not recorded')
@@ -115,9 +126,9 @@ def verify(receipt, out_dir, *, expect):
         if artifact.get('source') != 'bundle':
             bad.append('candidate lane did not install the built bundle '
                        '(published package substituted?)')
-        if artifact.get('bundle_sha256') != expect.get('bundle_sha256'):
+        if artifact.get('bundle_sha256') != expect['bundle_sha256']:
             bad.append('bundle digest does not match the built candidate')
-        if source.get('commit') != expect.get('source_sha'):
+        if source.get('commit') != expect['source_sha']:
             bad.append('source digest does not match the candidate commit')
         if source.get('binding') != 'bundle-built-from-commit':
             bad.append('candidate source binding missing')
@@ -172,7 +183,7 @@ def main(argv=None):
     v.add_argument('--run-id', required=True)
     v.add_argument('--run-attempt', required=True)
     v.add_argument('--app-id', default='org.tunaos.tavern')
-    v.add_argument('--runtime')
+    v.add_argument('--runtime', required=True)
     v.add_argument('--source-sha')
     v.add_argument('--bundle-sha256')
     args = parser.parse_args(argv)
